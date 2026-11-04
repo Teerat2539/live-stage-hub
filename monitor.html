@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+<html lang="th" class="h-full">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Live Stage Hub - Monitor</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: sans-serif; }
+    html, body { height: 100%; overflow: hidden; background: #12131a; color: #fff; display: flex; flex-direction: column; }
+
+    .color-set-1 { color: #00f2d1 !important; }
+    .color-set-2 { color: #3b82f6 !important; }
+    .color-set-3 { color: #f59e0b !important; }
+    .color-set-4 { color: #ec4899 !important; }
+    .color-set-5 { color: #8b5cf6 !important; }
+
+    .monitor-container {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: 6px 8px;
+      gap: 6px;
+      overflow: hidden;
+      height: 100%;
+    }
+
+    /* 1. ส่วนท็อคแบคด้านบน (ใหญ่ที่สุด) */
+    .monitor-top-section {
+      background: #1e202c;
+      border: 1px solid #333;
+      border-radius: 8px;
+      padding: 6px 10px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      height: 20%;
+      cursor: pointer;
+      overflow: hidden;
+    }
+    .monitor-top-section:active { background: #252838; }
+    .monitor-top-header { display: flex; justify-content: space-between; font-size: 1.2vw; color: #888; }
+    .monitor-talkback-body { flex: 1; display: flex; align-items: center; overflow: hidden; position: relative; }
+    
+    /* 📌 ปรับฟอนต์ท็อคแบคให้ใหญ่ขยายตามจอ (ใช้หน่วย clamp หรือ vw) */
+    .monitor-talkback-text { font-size: clamp(22px, 4.5vw, 48px); font-weight: bold; color: #00f2d1; white-space: nowrap; position: absolute; animation: marquee 12s linear infinite; }
+
+    /* 2. ส่วนคิวเพลง 3 เพลงตรงกลาง */
+    .monitor-songs-section {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      gap: 4px;
+      overflow: hidden;
+      cursor: pointer;
+    }
+
+    /* เพลงกำลังเล่น (ขนาดเล็กลงมา) */
+    .song-box-current {
+      background: #1e202c;
+      border: 1px solid #333;
+      border-radius: 6px;
+      padding: 6px 10px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      height: 22%;
+    }
+    .box-label { font-size: clamp(10px, 1.2vw, 14px); color: #888; margin-bottom: 1px; }
+    .box-title-playing { font-size: clamp(14px, 2vw, 24px); font-weight: bold; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+    /* เพลงถัดไป (ใหญ่ที่สุดในส่วนเพลง) */
+    .song-box-next {
+      background: #1a3a3a;
+      border: 2px solid #00f2d1;
+      border-radius: 8px;
+      padding: 8px 12px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      box-shadow: 0 2px 10px rgba(0,242,209,0.2);
+      height: 56%;
+      transition: all 0.2s ease;
+    }
+    .box-title-next { font-size: clamp(20px, 3.8vw, 44px); font-weight: bold; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-bottom: 2px; }
+    .box-detail-next { font-size: clamp(11px, 1.5vw, 18px); color: #f59e0b; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+    /* เพลงสแตนบาย (ขนาดเล็กกว่าเพลงถัดไป) */
+    .song-box-standby {
+      background: #1e202c;
+      border: 1px solid #333;
+      border-radius: 6px;
+      padding: 6px 10px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      height: 22%;
+    }
+    .box-title-standby { font-size: clamp(14px, 2vw, 24px); font-weight: bold; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+    /* 📌 สไตล์สำหรับแสดงโน้ต (ตัวเล็ก สีขาว ในวงเล็บ) */
+    .song-note {
+      font-size: 0.6em;
+      font-weight: normal;
+      color: #ffffff;
+      margin-left: 6px;
+    }
+    /* 📌 เพิ่ม Keyframe สำหรับอนิเมชันกระพริบของท็อคแบคที่ขาดหายไป */
+    @keyframes flashAlert {
+      0% { background: #1e202c; border-color: #333; }
+      50% { background: #ff007f33; border-color: #ff007f; }
+      100% { background: #1e202c; border-color: #333; }
+    }
+    .flashing { animation: flashAlert 0.8s ease-in-out 3; }
+
+    /* อนิเมชันกระพริบเตือนสำหรับส่วนคิวเพลง (มีอยู่แล้ว เช็กให้แน่ใจว่ามีครบ) */
+    @keyframes flashCuePink { 
+      0%, 100% { background-color: #1a3a3a; border-color: #00f2d1; } 
+      50% { background-color: rgba(255, 0, 127, 0.4); border-color: rgba(255, 105, 180, 1); } 
+    }
+    .flash-cue-pink-active { animation: flashCuePink 0.5s ease-in-out 3; }
+    /* 3. ส่วน Progress Bar ด้านล่างสุด */
+    .monitor-progress-bar-container {
+      height: 7vh;
+      min-height: 32px;
+      background: #1e202c;
+      border: 1px solid #333;
+      border-radius: 6px;
+      padding: 4px 8px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      gap: 2px;
+    }
+    .progress-segments {
+      display: flex;
+      height: 8px;
+      background: #12131a;
+      border-radius: 4px;
+      overflow: hidden;
+      gap: 2px;
+      padding: 1px;
+    }
+    .progress-seg-item {
+      height: 100%;
+      border-radius: 2px;
+      opacity: 0.3;
+      transition: all 0.3s ease;
+    }
+    .progress-seg-item.played { opacity: 1; }
+
+    .seg-set-1 { background: #00f2d1; }
+    .seg-set-2 { background: #3b82f6; }
+    .seg-set-3 { background: #f59e0b; }
+    .seg-set-4 { background: #ec4899; }
+    .seg-set-5 { background: #8b5cf6; }
+
+    /* Modals */
+    .slide-modal-overlay {
+      position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(0,0,0,0.8); z-index: 9999;
+      display: flex; flex-direction: column;
+    }
+    .slide-modal-overlay.hidden { display: none; }
+    .slide-down-content { background: #1e1f26; border-bottom: 3px solid #00f2d1; border-radius: 0 0 16px 16px; padding: 16px; max-height: 50vh; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; }
+    .slide-up-content { background: #1e1f26; border-top: 3px solid #00f2d1; border-radius: 16px 16px 0 0; padding: 16px; height: 80vh; margin-top: auto; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; }
+    .modal-song-item { background: #12131a; border: 1px solid #333; border-radius: 8px; padding: 10px 12px; display: flex; justify-content: space-between; align-items: center; }
+    .modal-song-item.played { opacity: 0.4; text-decoration: line-through; border-style: dashed; }
+    .modal-song-item.playing { border: 2px solid #00f2d1; background: #1a3a3a; }
+    .modal-song-item.next { border: 2px solid #f59e0b; background: #2b2615; }
+  </style>
+</head>
+<body>
+
+  <div class="monitor-container">
+    <!-- 1. ส่วนบน: ท็อคแบคล่าสุด -->
+    <div class="monitor-top-section" id="monitorTopBar" onclick="openTalkbackHistoryModal()">
+      <div class="monitor-top-header">
+        <span id="tbTime">-:--</span>
+        <span id="tbSender">- 🎵</span>
+      </div>
+      <div class="monitor-talkback-body">
+        <div id="monitorTalkbackText" class="monitor-talkback-text">สแตนบายรอคำสั่ง...</div>
+      </div>
+    </div>
+
+    <!-- 2. ส่วนกลาง: คิวเพลง 3 เพลง -->
+    <div class="monitor-songs-section" onclick="openFullQueueModal()">
+      <!-- เพลงกำลังเล่น -->
+      <div class="song-box-current">
+        <div class="box-label">▶ กำลังเล่น</div>
+        <div id="mPlayingTitle" class="box-title-playing">-</div>
+      </div>
+
+      <!-- เพลงถัดไป (มีเอฟเฟกต์กระพริบเตือนเมื่อเพลงถัดไปเปลี่ยน) -->
+      <div class="song-box-next" id="nextSongCardBox">
+        <div class="box-label" style="color: #00f2d1;">⭐ เพลงถัดไป (เตรียมพร้อม)</div>
+        <div id="mNextTitle" class="box-title-next">-</div>
+        <div id="mNextDetail" class="box-detail-next">-</div>
+      </div>
+
+      <!-- เพลงสแตนบาย -->
+      <div class="song-box-standby">
+        <div class="box-label">⏳ เพลงสแตนบายถัดไป</div>
+        <div id="mStandbyTitle" class="box-title-standby">-</div>
+      </div>
+    </div>
+
+    <!-- 3. ส่วนล่าง: Progress Bar -->
+    <div class="monitor-progress-bar-container" onclick="openFullQueueModal()">
+      <div style="display: flex; justify-content: space-between; font-size: 9px; color: #888;">
+        <span>สถานะความคืบหน้าโชว์</span>
+        <span id="progressText">Set 1 (0/0)</span>
+      </div>
+      <div class="progress-segments" id="progressSegmentsContainer"></div>
+    </div>
+  </div>
+
+  <!-- Modals -->
+  <div id="talkbackHistoryModal" class="slide-modal-overlay hidden" onclick="closeTalkbackHistoryModal(event)">
+    <div class="slide-down-content" onclick="event.stopPropagation()">
+      <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #333; padding-bottom: 6px;">
+        <span style="font-size: 14px; font-weight: bold; color: #00f2d1;">🎙️ ประวัติ 4 คำสั่งท็อคแบคล่าสุด</span>
+        <button onclick="closeTalkbackHistoryModal()" style="background:none; border:none; color:#aaa; font-size:16px; cursor:pointer;">✕</button>
+      </div>
+      <div id="talkbackHistoryList" style="display: flex; flex-direction: column; gap: 6px;"></div>
+    </div>
+  </div>
+
+  <div id="fullQueueModal" class="slide-modal-overlay hidden" onclick="closeFullQueueModal(event)">
+    <div class="slide-up-content" onclick="event.stopPropagation()">
+      <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #333; padding-bottom: 6px;">
+        <span style="font-size: 15px; font-weight: bold; color: #00f2d1;">🎵 รายการคิวเพลงทั้งหมด</span>
+        <button onclick="closeFullQueueModal()" style="background:none; border:none; color:#aaa; font-size:18px; cursor:pointer;">✕</button>
+      </div>
+      <div id="fullQueueListContainer" style="flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; padding: 4px 0;"></div>
+    </div>
+  </div>
+
+  <script>
+    window.initMonitorPageModule = function() {
+      let currentQueue = [];
+      let lastNextSongId = null;
+
+      const sessionStr = localStorage.getItem('lsh_session');
+      const session = sessionStr ? JSON.parse(sessionStr) : {};
+      const selectedRoom = session.room || localStorage.getItem('lsh_selected_room') || 'PGL8';
+
+      function getSetColorClass(setVal) {
+        let num = (setVal || 'Set 1').replace('Set ', '').trim();
+        return `color-set-${num}`;
+      }
+
+      function initMonitorQueueListener() {
+        if (typeof db !== 'undefined' && db && db.ref) {
+          db.ref(`rooms/${selectedRoom}/queue/songs`).off('value');
+          db.ref(`rooms/${selectedRoom}/queue/songs`).on('value', (snapshot) => {
+            const val = snapshot.val();
+            if (val && Array.isArray(val)) {
+              processQueueData(val);
+            } else {
+              let localQueue = JSON.parse(localStorage.getItem('lsh_queue_data')) || [];
+              processQueueData(localQueue);
+            }
+          });
+        } else {
+          let localQueue = JSON.parse(localStorage.getItem('lsh_queue_data')) || [];
+          processQueueData(localQueue);
+        }
+      }
+
+      function processQueueData(queueData) {
+        currentQueue = queueData;
+
+        let playing = queueData.find(i => i.status === 'playing');
+        let next = queueData.find(i => i.status === 'next');
+        let standby = queueData.find(i => i.status === 'standby');
+
+        let currentNextId = next ? (next.id || next.title) : null;
+        if (currentNextId !== lastNextSongId) {
+          if (lastNextSongId !== null) {
+            triggerNextSongFlashAlert();
+          }
+          lastNextSongId = currentNextId;
+        }
+
+        const mPlayingTitle = document.getElementById('mPlayingTitle');
+        if (playing) {
+          let setColorClass = getSetColorClass(playing.set);
+          mPlayingTitle.className = `box-title-playing ${setColorClass}`;
+          let hasNote = playing.note && playing.note.trim() !== '' && playing.note.trim() !== '-';
+          let noteHtml = hasNote ? `<span class="song-note">(${playing.note})</span>` : '';
+          mPlayingTitle.innerHTML = `${playing.title}${noteHtml} - ${playing.artist}`;
+        } else {
+          mPlayingTitle.className = 'box-title-playing';
+          mPlayingTitle.innerText = '-';
+        }
+
+        const mNextTitle = document.getElementById('mNextTitle');
+        if (next) {
+          let setColorClass = getSetColorClass(next.set);
+          mNextTitle.className = `box-title-next ${setColorClass}`;
+          let hasNote = next.note && next.note.trim() !== '' && next.note.trim() !== '-';
+          let noteHtml = hasNote ? `<span class="song-note">(${next.note})</span>` : '';
+          mNextTitle.innerHTML = `${next.title}${noteHtml}`;
+          document.getElementById('mNextDetail').innerText = `${next.artist} | คีย์: ${next.key || '-'} | BPM: ${next.bpm || '-'}`;
+        } else {
+          mNextTitle.className = 'box-title-next';
+          mNextTitle.innerText = 'ไม่มีเพลงแสดง';
+          document.getElementById('mNextDetail').innerText = '-';
+        }
+
+        const mStandbyTitle = document.getElementById('mStandbyTitle');
+        if (standby) {
+          let setColorClass = getSetColorClass(standby.set);
+          mStandbyTitle.className = `box-title-standby ${setColorClass}`;
+          let hasNote = standby.note && standby.note.trim() !== '' && standby.note.trim() !== '-';
+          let noteHtml = hasNote ? `<span class="song-note">(${standby.note})</span>` : '';
+          mStandbyTitle.innerHTML = `${standby.title}${noteHtml} - ${standby.artist} (คีย์: ${standby.key || '-'})`;
+        } else {
+          mStandbyTitle.className = 'box-title-standby';
+          mStandbyTitle.innerText = '-';
+        }
+
+        renderProgressBar(queueData);
+      }
+
+      function initMonitorTalkbackListener() {
+        if (typeof db !== 'undefined' && db && db.ref) {
+          db.ref(`rooms/${selectedRoom}/talkbacks`).limitToLast(4).on('value', (snapshot) => {
+            const val = snapshot.val() || {};
+            let list = Object.keys(val).map(k => val[k]).reverse();
+
+            if (list.length > 0) {
+              let latest = list[0];
+              let timeStr = new Date(latest.timestamp || Date.now()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+              
+              document.getElementById('tbTime').innerText = timeStr;
+              document.getElementById('tbSender').innerText = `${latest.sender || 'ระบบ'} ${latest.emoji || '🎵'}`;
+              document.getElementById('monitorTalkbackText').innerText = latest.message || '';
+
+              triggerTalkbackFlashAlert();
+              renderTalkbackHistory(list);
+            }
+          });
+        }
+      }
+
+      function triggerTalkbackFlashAlert() {
+        const topBar = document.getElementById('monitorTopBar');
+        if (topBar) {
+          topBar.classList.remove('flashing');
+          setTimeout(() => {
+            topBar.classList.add('flashing');
+          }, 10);
+        }
+      }
+
+      // ฟังก์ชันกระพริบเตือนเมื่อเพลงถัดไปเปลี่ยน (แก้ให้ใช้ setTimeout หน่วงเวลาแทน)
+      function triggerNextSongFlashAlert() {
+        const nextCard = document.getElementById('nextSongCardBox');
+        if (nextCard) {
+          nextCard.classList.remove('flash-cue-pink-active');
+          setTimeout(() => {
+            nextCard.classList.add('flash-cue-pink-active');
+          }, 10);
+        }
+      }
+
+      function renderProgressBar(queueData) {
+        const container = document.getElementById('progressSegmentsContainer');
+        const progressText = document.getElementById('progressText');
+        if (!container) return;
+
+        let realSongs = queueData.filter(i => i.type !== 'dummy_start' && i.type !== 'dummy_end' && i.status !== 'removed');
+        if (realSongs.length === 0) {
+          container.innerHTML = '';
+          if (progressText) progressText.innerText = 'ไม่มีข้อมูลเซ็ตลิสต์';
+          return;
+        }
+
+        let totalSongsCount = realSongs.length;
+        let playedSongsCount = realSongs.filter(i => i.status === 'played').length;
+
+        let html = '';
+        realSongs.forEach((song) => {
+          let widthPercent = (1 / totalSongsCount) * 100;
+          let setName = song.set || 'Set 1';
+          let setNum = setName.replace('Set ', '').trim();
+          let colorClass = `seg-set-${setNum}`;
+          let isPlayedClass = (song.status === 'played') ? 'played' : '';
+
+          html += `<div class="progress-seg-item ${colorClass} ${isPlayedClass}" style="width: ${widthPercent}%;" title="${setName}: ${song.title}"></div>`;
+        });
+
+        container.innerHTML = html;
+        let currentPlayingSong = realSongs.find(i => i.status === 'playing');
+        let currentSetLabel = currentPlayingSong ? (currentPlayingSong.set || 'Set 1') : (realSongs[0].set || 'Set 1');
+        if (progressText) {
+          progressText.innerText = `${currentSetLabel} (${playedSongsCount}/${totalSongsCount} เพลง)`;
+        }
+      }
+
+      function renderTalkbackHistory(list) {
+        const container = document.getElementById('talkbackHistoryList');
+        if (!container) return;
+        let html = '';
+        list.slice(0, 4).forEach(item => {
+          let time = new Date(item.timestamp || Date.now()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+          html += `
+            <div style="background: #12131a; padding: 8px 10px; border-radius: 6px; border: 1px solid #333;">
+              <div style="font-size: 10px; color: #888; display: flex; justify-content: space-between;">
+                <span>${item.emoji || '🎵'} ${item.sender}</span>
+                <span>${time}</span>
+              </div>
+              <div style="font-size: 13px; color: #fff; margin-top: 2px;">${item.message}</div>
+            </div>
+          `;
+        });
+        container.innerHTML = html;
+      }
+
+      window.openFullQueueModal = function() {
+        const container = document.getElementById('fullQueueListContainer');
+        if (!container) return;
+        let html = '';
+        currentQueue.forEach((song) => {
+          if (song.type === 'dummy_start' || song.type === 'dummy_end') return;
+          let itemClass = '', badge = '', setColorClass = getSetColorClass(song.set);
+          if (song.status === 'played') {
+            itemClass = 'played';
+            badge = '<span style="font-size:10px; color:#888;">[เล่นแล้ว]</span>';
+          } else if (song.status === 'playing') {
+            itemClass = 'playing';
+            badge = '<span style="font-size:10px; color:#00f2d1; font-weight:bold;">[กำลังเล่น]</span>';
+          } else if (song.status === 'next') {
+            itemClass = 'next';
+            badge = '<span style="font-size:10px; color:#f59e0b; font-weight:bold;">[เพลงถัดไป]</span>';
+          }
+          html += `
+            <div class="modal-song-item ${itemClass}">
+              <div>
+                <div style="font-size: 11px; color: #888;">${song.set || 'Set 1'} | คีย์: ${song.key || '-'}</div>
+                <div style="font-size: 14px; font-weight: bold;" class="${setColorClass}">${song.title} - ${song.artist}</div>
+              </div>
+              <div>${badge}</div>
+            </div>
+          `;
+        });
+        container.innerHTML = html;
+        document.getElementById('fullQueueModal').classList.remove('hidden');
+      };
+
+      window.closeFullQueueModal = function(e) {
+        if (!e || e.target.id === 'fullQueueModal' || e.target.tagName === 'BUTTON') {
+          document.getElementById('fullQueueModal').classList.add('hidden');
+        }
+      };
+
+      window.openTalkbackHistoryModal = function() {
+        document.getElementById('talkbackHistoryModal').classList.remove('hidden');
+      };
+
+      window.closeTalkbackHistoryModal = function(e) {
+        if (!e || e.target.id === 'talkbackHistoryModal' || e.target.tagName === 'BUTTON') {
+          document.getElementById('talkbackHistoryModal').classList.add('hidden');
+        }
+      };
+
+      initMonitorQueueListener();
+      initMonitorTalkbackListener();
+    };
+
+    window.initMonitorPageModule();
+  </script>
+</body>
+</html>

@@ -1,0 +1,742 @@
+<!-- ========================================== -->
+<!-- หน้าเบื้องหลัง: เพลงทั้งหมด (songs.html)         -->
+<!-- ========================================== -->
+<style>
+  .songs-container { 
+    padding: 10px; 
+    color: #fff; 
+    font-family: sans-serif; 
+    position: relative; 
+  }
+  
+  /* ซ่อน element ที่มีคลาส .hidden */
+  .hidden { display: none !important; }
+
+  /* 📌 ส่วนควบคุมด้านบน ถูกตรึงไว้บนสุดตลอดเวลา (ไม่ทับ Header หลัก/แฮมเบอร์เกอร์) */
+  .sticky-header-wrap {
+    position: sticky;
+    top: 0;
+    background: #12131a;
+    padding-bottom: 8px;
+    margin-bottom: 12px;
+    z-index: 20;
+    border-bottom: 1px solid #222430;
+    pointer-events: none; /* ป้องกันพื้นที่ว่างของส่วนหัวไปบังการแตะการ์ดเพลง */
+  }
+
+  /* คืนค่า pointer-events ให้ปุ่มและช่องพิมพ์ในส่วนหัวกดได้ตามปกติ */
+  .header-line-1 *, .header-line-2 * {
+    pointer-events: auto;
+  }
+
+  /* บรรทัดที่ 1: ช่องค้นหา + ปุ่มสลับฟิลเตอร์ + ปุ่มเพิ่มเพลง */
+  .header-line-1 {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    margin-bottom: 6px;
+  }
+  .search-box-wrap {
+    position: relative;
+    flex: 1;
+  }
+  .search-input {
+    width: 100%;
+    padding: 10px 35px 10px 12px;
+    border-radius: 8px;
+    border: 1px solid #333;
+    background: #222430;
+    color: #fff;
+    font-size: 14px;
+    box-sizing: border-box;
+  }
+  .clear-search-btn {
+    position: absolute;
+    right: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    color: #888;
+    font-size: 16px;
+    cursor: pointer;
+  }
+
+  /* ปุ่มสามเหลี่ยมสลับเปิด-ปิดบรรทัดที่ 2 */
+  .toggle-filter-btn {
+    padding: 8px 10px;
+    border-radius: 6px;
+    border: 1px solid #333;
+    background: #222430;
+    color: #00f2d1;
+    font-size: 12px;
+    cursor: pointer;
+    transition: transform 0.2s ease;
+  }
+  .toggle-filter-btn.active {
+    background: #1a3a3a;
+    border-color: #00f2d1;
+  }
+
+  .add-song-btn {
+    padding: 8px 14px;
+    border-radius: 6px;
+    border: none;
+    background: #00f2d1;
+    color: #000;
+    font-weight: bold;
+    cursor: pointer;
+    font-size: 13px;
+    white-space: nowrap;
+  }
+
+  /* บรรทัดที่ 2: ฟิลเตอร์คีย์ + ปุ่มจัดเรียง */
+  .header-line-2 {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: #1e202c;
+    padding: 8px 12px;
+    border-radius: 8px;
+    border: 1px solid #333;
+    gap: 10px;
+    transition: all 0.25s ease-in-out;
+    overflow: hidden;
+    max-height: 100px;
+    opacity: 1;
+    margin-top: 4px;
+  }
+  .header-line-2.collapsed {
+    max-height: 0;
+    opacity: 0;
+    padding-top: 0;
+    padding-bottom: 0;
+    margin-top: 0;
+    border: none;
+    pointer-events: none;
+  }
+
+  .sort-select {
+    padding: 6px 10px;
+    border-radius: 6px;
+    border: 1px solid #333;
+    background: #222430;
+    color: #fff;
+    font-size: 12px;
+  }
+
+  /* รายชื่อเพลง */
+  .song-list { 
+    display: flex; 
+    flex-direction: column; 
+    gap: 8px; 
+    position: relative; 
+    z-index: 10; 
+  }
+  .song-card { 
+    background: #1e202c; 
+    padding: 12px 14px; 
+    border-radius: 8px; 
+    border-left: 4px solid #00f2d1; 
+    display: flex; 
+    justify-content: space-between; 
+    align-items: center; 
+    cursor: pointer; 
+    user-select: none;
+  }
+  .song-card:hover { background: #272a3a; }
+  .song-card:active { transform: scale(0.98); }
+  .song-title { font-size: 15px; font-weight: bold; color: #fff; margin-bottom: 2px; }
+  .song-artist { font-size: 12px; color: #aaa; }
+  .song-key { font-size: 16px; font-weight: bold; color: #00f2d1; }
+
+  /* Empty State */
+  .empty-state-box { text-align: center; padding: 40px 20px; background: #181a24; border-radius: 12px; border: 1px dashed #333; margin-top: 20px; }
+  .empty-state-title { font-size: 16px; font-weight: bold; color: #00f2d1; margin-bottom: 6px; }
+  .empty-state-desc { font-size: 13px; color: #aaa; line-height: 1.5; margin-bottom: 16px; }
+
+  /* 📌 Overlays & Modals Layering */
+  .sub-overlay { 
+    position: fixed; 
+    top: 0; 
+    left: 0; 
+    width: 100%; 
+    height: 100%; 
+    background: rgba(0, 0, 0, 0.75); 
+    z-index: 12000; 
+    display: flex; 
+    justify-content: center; 
+    align-items: center; 
+  }
+  .slide-up-panel { 
+    position: fixed; 
+    bottom: -100%; 
+    left: 0; 
+    right: 0; 
+    background: #1e202c; 
+    border-top: 2px solid #00f2d1; 
+    border-radius: 16px 16px 0 0; 
+    padding: 20px; 
+    z-index: 13000; 
+    transition: bottom 0.3s cubic-bezier(0.4, 0, 0.2, 1); 
+    max-height: 70vh; 
+    overflow-y: auto; 
+    box-shadow: 0 -10px 25px rgba(0,0,0,0.5);
+  }
+  .slide-up-panel.open { 
+    bottom: 0 !important; 
+  }
+  .panel-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #333; padding-bottom: 10px; margin-bottom: 15px; }
+
+  /* ฟอร์ม Popup */
+  .form-box { background: #1e202c; padding: 20px; border-radius: 12px; width: 320px; border: 1px solid #444; }
+  .form-group { margin-bottom: 12px; text-align: left; }
+  .form-group label { display: block; font-size: 12px; color: #aaa; margin-bottom: 4px; }
+  .form-group input, .form-group select { width: 100%; padding: 10px; border-radius: 6px; border: 1px solid #333; background: #12131a; color: #fff; box-sizing: border-box; font-size: 14px; }
+  .tempo-wrap { display: flex; gap: 6px; }
+  .tempo-btn { padding: 8px 12px; border-radius: 6px; border: none; background: #f59e0b; color: #000; font-weight: bold; font-size: 12px; cursor: pointer; white-space: nowrap; }
+</style>
+
+<div class="songs-container">
+
+  <!-- 📌 แถบควบคุมด้านบน (Sticky Header) -->
+  <div class="sticky-header-wrap">
+    <!-- บรรทัดที่ 1: ช่องค้นหา + ปุ่มสามเหลี่ยมสลับฟิลเตอร์ + ปุ่มเพิ่มเพลง -->
+    <div class="header-line-1">
+      <div class="search-box-wrap">
+        <input type="text" id="songSearchInput" class="search-input" placeholder="พิมพ์ชื่อเพลง หรือชื่อศิลปิน...">
+        <button class="clear-search-btn" id="btnClearSearch">✖</button>
+      </div>
+      <button id="btnToggleLine2" class="toggle-filter-btn" title="แสดง/ซ่อน ตัวกรอง">▼</button>
+      <button id="btnOpenAddSong" class="add-song-btn">+ เพิ่มเพลง</button>
+    </div>
+
+    <!-- บรรทัดที่ 2: ฟิลเตอร์คีย์ + จัดเรียงโดย -->
+    <div id="headerLine2" class="header-line-2 collapsed">
+      <label style="font-size:12px; color:#aaa; display:flex; align-items:center; gap:6px;">
+        คีย์:
+        <select id="keyFilterSelect" class="sort-select" style="border-color:#00f2d1; font-weight:bold; color:#00f2d1;">
+          <option value="ALL">ทั้งหมด (All)</option>
+        </select>
+      </label>
+
+      <div>
+        <span style="font-size:12px; color:#aaa;">จัดเรียง: </span>
+        <select id="sortSelect" class="sort-select">
+          <option value="title">ตามตัวอักษรชื่อเพลง</option>
+          <option value="artist">ตามชื่อศิลปิน</option>
+          <option value="key">ตามคีย์เพลง</option>
+          <option value="bpm">ตาม BPM</option>
+          <option value="playCount">ตามความถี่ที่นำมาเล่น</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <!-- ส่วนแสดงรายชื่อเพลง -->
+  <div id="masterSongList" class="song-list">
+    <p style="text-align:center; color:#666; margin-top:20px;">กำลังโหลดคลังเพลง...</p>
+  </div>
+
+</div>
+
+<!-- MODALS & DRAWERS -->
+<div id="detailOverlay" class="sub-overlay hidden"></div>
+<div id="songDetailDrawer" class="slide-up-panel">
+  <div class="panel-header">
+    <h3 id="detailSongTitle" style="color:#00f2d1; margin:0;">-</h3>
+    <div>
+      <button id="btnEditSong" style="background:none; border:none; font-size:18px; cursor:pointer; margin-right:10px;">✏️</button>
+      <button id="btnDeleteSong" style="background:none; border:none; font-size:18px; cursor:pointer;">🗑️</button>
+    </div>
+  </div>
+  <div style="font-size:14px; line-height:1.8; color:#ccc;">
+    <div>ศิลปิน: <b id="detailArtist" style="color:#fff;">-</b></div>
+    <div>คีย์หลัก: <b id="detailKey" style="color:#00f2d1;">-</b></div>
+    <div>BPM: <b id="detailBpm" style="color:#fff;">-</b></div>
+    <div>ความถี่ที่เล่น: <b id="detailPlayCount" style="color:#f59e0b;">0 ครั้ง</b></div>
+  </div>
+</div>
+
+<div id="songFormOverlay" class="sub-overlay hidden">
+  <div class="form-box" onclick="event.stopPropagation()">
+    <h3 id="formModalTitle" style="margin-bottom:12px; color:#00f2d1;">เพิ่มเพลงใหม่</h3>
+    
+    <div class="form-group">
+      <label>ชื่อเพลง *</label>
+      <input type="text" id="formSongTitle">
+    </div>
+    <div class="form-group">
+      <label>ชื่อศิลปิน *</label>
+      <input type="text" id="formArtist">
+    </div>
+    
+    <div class="form-group">
+      <label>คีย์หลัก *</label>
+      <select id="formKeySelect">
+        <option value="">-- เลือกคีย์เพลง --</option>
+      </select>
+    </div>
+
+    <div class="form-group">
+      <label>BPM</label>
+      <div class="tempo-wrap">
+        <input type="number" id="formBpm" placeholder="120">
+        <button type="button" class="tempo-btn" id="btnTapTempo">Tap Tempo</button>
+      </div>
+    </div>
+
+    <div style="display:flex; justify-content:flex-end; gap:8px; margin-top:15px;">
+      <button id="btnSaveSong" style="padding:10px 18px; border-radius:6px; border:none; background:#00f2d1; color:#000; font-weight:bold; cursor:pointer;">บันทึก</button>
+      <button id="btnCancelForm" style="padding:10px 18px; border-radius:6px; border:none; background:#333; color:#fff; cursor:pointer;">ยกเลิก</button>
+    </div>
+  </div>
+</div>
+
+<div id="unsavedWarningOverlay" class="sub-overlay hidden" style="z-index:14000;">
+  <div class="slide-up-panel open" style="z-index:14001; border-color:#f59e0b;">
+    <h3 style="color:#f59e0b; margin-bottom:8px;">⚠️ ยังไม่ได้บันทึกข้อมูล</h3>
+    <p style="font-size:13px; color:#ccc; margin-bottom:15px;">คุณต้องการออกจากหน้าต่างนี้โดยไม่บันทึกใช่หรือไม่?</p>
+    <div style="display:flex; gap:10px;">
+      <button id="btnConfirmDiscard" style="flex:1; padding:10px; border-radius:6px; border:none; background:#ef4444; color:#fff; font-weight:bold; cursor:pointer;">ยืนยัน (ไม่บันทึก)</button>
+      <button id="btnCancelDiscard" style="flex:1; padding:10px; border-radius:6px; border:none; background:#333; color:#fff; cursor:pointer;">แก้ไขต่อ</button>
+    </div>
+  </div>
+</div>
+
+<div id="deleteConfirmOverlay" class="sub-overlay hidden" style="z-index:14000;">
+  <div class="form-box" style="text-align:center;">
+    <h3 style="color:#ef4444; margin-bottom:10px;">ยืนยันการลบเพลง</h3>
+    <p style="font-size:13px; color:#ccc; margin-bottom:15px;">คุณต้องการลบเพลง <b id="deleteTargetTitle" style="color:#fff;">-</b> ออกจากคลังใช่หรือไม่?</p>
+    <div style="display:flex; justify-content:center; gap:10px;">
+      <button id="btnExecuteDelete" style="padding:8px 16px; border-radius:6px; border:none; background:#ef4444; color:#fff; font-weight:bold; cursor:pointer;">ยืนยันลบ</button>
+      <button id="btnCancelDelete" style="padding:8px 16px; border-radius:6px; border:none; background:#333; color:#fff; cursor:pointer;">ยกเลิก</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  window.initSongsPageModule = function() {
+    let allSongsData = {};
+    let allSetlistsData = {};
+    let selectedKey = 'ALL';
+    let currentActiveSongId = null;
+    let isEditing = false;
+    let tapTimes = [];
+    let isManualPinned = false;
+
+    // 📌 ดึงชื่อห้องปัจจุบันจาก session มาใช้ดึงข้อมูล setlists ให้ตรงวง
+    const sessionStr = localStorage.getItem('lsh_session');
+    const session = sessionStr ? JSON.parse(sessionStr) : {};
+    const selectedRoom = session.room || localStorage.getItem('lsh_selected_room') || 'PGL8';
+
+    const masterKeyList = [
+      'C', 'Cm', 'C#', 'C#m', 'Db', 'D', 'Dm', 'D#m', 'Eb', 'E', 'Em', 
+      'F', 'Fm', 'F#', 'F#m', 'Gb', 'G', 'Gm', 'G#m', 'Ab', 'A', 'Am', 
+      'A#m', 'Bb', 'B', 'Bm'
+    ];
+
+    const relativeKeyMap = {
+      'C': 'Am', 'Am': 'C', 'G': 'Em', 'Em': 'G', 'D': 'Bm', 'Bm': 'D',
+      'A': 'F#m', 'F#m': 'A', 'E': 'C#m', 'C#m': 'E', 'B': 'G#m', 'G#m': 'B',
+      'F': 'Dm', 'Dm': 'F', 'Bb': 'Gm', 'Gm': 'Bb', 'Eb': 'Cm', 'Cm': 'Eb',
+      'Ab': 'Fm', 'Fm': 'Ab', 'Db': 'Bbm', 'Bbm': 'Db'
+    };
+
+    function populateKeyFilterSelect() {
+      const selectEl = document.getElementById('keyFilterSelect');
+      if (!selectEl) return;
+
+      let html = '<option value="ALL">ทั้งหมด (All)</option>';
+      masterKeyList.forEach(k => {
+        html += `<option value="${k}">${k}</option>`;
+      });
+      selectEl.innerHTML = html;
+
+      selectEl.onchange = function() {
+        selectedKey = this.value;
+        onSearchOrFilterChange();
+      };
+    }
+
+    function populateFormKeySelect() {
+      const selectEl = document.getElementById('formKeySelect');
+      if (!selectEl) return;
+
+      let html = '<option value="">-- เลือกคีย์เพลง --</option>';
+      masterKeyList.forEach(k => {
+        html += `<option value="${k}">${k}</option>`;
+      });
+      selectEl.innerHTML = html;
+    }
+
+    if (typeof db !== 'undefined') {
+      // ดึงคลังเพลงกลาง
+      db.ref('songs').on('value', (snapshot) => {
+        allSongsData = snapshot.val() || {};
+        onSearchOrFilterChange();
+      });
+
+      // 📌 ดึงชุดลิสต์เพลง (setlists) ของห้องปัจจุบันมาคำนวณความถี่แบบ Realtime
+      db.ref(`rooms/${selectedRoom}/setlists`).on('value', (snapshot) => {
+        allSetlistsData = snapshot.val() || {};
+        onSearchOrFilterChange();
+      });
+    }
+
+    // 📌 ฟังก์ชันคำนวณความถี่ของเพลงจาก setlists ทั้งหมดในห้องนั้นๆ
+    function calculateSongPlayCounts() {
+      let counts = {};
+      Object.keys(allSetlistsData).forEach(setId => {
+        const setlist = allSetlistsData[setId];
+        if (setlist && setlist.songs) {
+          Object.keys(setlist.songs).forEach(sKey => {
+            const songItem = setlist.songs[sKey];
+            const sId = songItem.songId;
+            if (sId) {
+              counts[sId] = (counts[sId] || 0) + 1;
+            }
+          });
+        }
+      });
+      return counts;
+    }
+
+    function onSearchOrFilterChange() {
+      const searchEl = document.getElementById('songSearchInput');
+      const sortEl = document.getElementById('sortSelect');
+      if (!searchEl || !sortEl) return;
+
+      const searchText = searchEl.value.trim().toLowerCase();
+      const sortOption = sortEl.value;
+
+      // คำนวณความถี่ล่าสุดจาก setlists
+      const playCountsMap = calculateSongPlayCounts();
+
+      let songList = Object.keys(allSongsData).map(id => ({
+        id: id,
+        ...allSongsData[id],
+        playCount: playCountsMap[id] || 0
+      }));
+
+      if (selectedKey !== 'ALL') {
+        let allowedKeys = new Set();
+        allowedKeys.add(selectedKey.toLowerCase());
+        if (relativeKeyMap[selectedKey]) {
+          allowedKeys.add(relativeKeyMap[selectedKey].toLowerCase());
+        }
+        songList = songList.filter(song => song.key && allowedKeys.has(song.key.trim().toLowerCase()));
+      }
+
+      if (searchText !== '') {
+        let group1Prefix = [];
+        let group2TitleContains = [];
+        let group3ArtistContains = [];
+
+        songList.forEach(song => {
+          const titleLower = (song.title || '').toLowerCase();
+          const artistLower = (song.artist || '').toLowerCase();
+
+          if (titleLower.startsWith(searchText)) {
+            group1Prefix.push(song);
+          } else if (titleLower.includes(searchText)) {
+            group2TitleContains.push(song);
+          } else if (artistLower.includes(searchText)) {
+            group3ArtistContains.push(song);
+          }
+        });
+
+        sortSongArray(group2TitleContains, sortOption);
+        sortSongArray(group3ArtistContains, sortOption);
+
+        songList = [...group1Prefix, ...group2TitleContains, ...group3ArtistContains];
+      } else {
+        sortSongArray(songList, sortOption);
+      }
+
+      renderSongList(songList);
+    }
+
+    function sortSongArray(arr, option) {
+      arr.sort((a, b) => {
+        if (option === 'title') return (a.title || '').localeCompare(b.title || '', 'th');
+        if (option === 'artist') return (a.artist || '').localeCompare(b.artist || '', 'th');
+        if (option === 'key') return (a.key || '').localeCompare(b.key || '');
+        if (option === 'bpm') return (b.bpm || 0) - (a.bpm || 0);
+        if (option === 'playCount') return (b.playCount || 0) - (a.playCount || 0);
+        return 0;
+      });
+    }
+
+    function renderSongList(list) {
+      const container = document.getElementById('masterSongList');
+      if (!container) return;
+      
+      if (list.length === 0) {
+        container.innerHTML = `
+          <div class="empty-state-box">
+            <div style="font-size:32px; margin-bottom:8px;">🎵</div>
+            <div class="empty-state-title">ยังไม่มีรายการเพลงในระบบ</div>
+            <div class="empty-state-desc">คลังเพลงกลางของคุณยังว่างอยู่ กดปุ่มด้านล่างเพื่อเริ่มสร้างเพลงแรกได้เลยครับ</div>
+            <button class="add-song-btn" id="btnEmptyStateAdd">+ เพิ่มเพลงก้อนแรก</button>
+          </div>
+        `;
+        const btnEmpty = document.getElementById('btnEmptyStateAdd');
+        if (btnEmpty) {
+          btnEmpty.onclick = () => document.getElementById('btnOpenAddSong').click();
+        }
+        return;
+      }
+
+      let html = '';
+      list.forEach(song => {
+        html += `
+          <div class="song-card" data-songid="${song.id}">
+            <div>
+              <div class="song-title">${song.title || 'ไม่ระบุชื่อ'}</div>
+              <div class="song-artist">${song.artist || 'ไม่ระบุศิลปิน'}</div>
+            </div>
+            <div style="display:flex; align-items:center; gap:12px;">
+              <span style="font-size:12px; color:#f59e0b;">(${song.playCount || 0} ครั้ง)</span>
+              <div class="song-key">${song.key || '-'}</div>
+            </div>
+          </div>
+        `;
+      });
+      container.innerHTML = html;
+
+      container.querySelectorAll('.song-card').forEach(card => {
+        card.onclick = function() {
+          openSongDetailDrawer(this.getAttribute('data-songid'));
+        };
+      });
+    }
+
+    const line2 = document.getElementById('headerLine2');
+    const toggleBtn = document.getElementById('btnToggleLine2');
+    const searchInput = document.getElementById('songSearchInput');
+
+    function showLine2() {
+      line2.classList.remove('collapsed');
+      toggleBtn.innerText = '▲';
+      toggleBtn.classList.add('active');
+    }
+
+    function hideLine2() {
+      if (!isManualPinned) {
+        line2.classList.add('collapsed');
+        toggleBtn.innerText = '▼';
+        toggleBtn.classList.remove('active');
+      }
+    }
+
+    if (toggleBtn && line2 && searchInput) {
+      toggleBtn.onclick = () => {
+        isManualPinned = !isManualPinned;
+        if (isManualPinned) {
+          showLine2();
+        } else {
+          line2.classList.add('collapsed');
+          toggleBtn.innerText = '▼';
+          toggleBtn.classList.remove('active');
+        }
+      };
+
+      searchInput.onfocus = () => showLine2();
+      searchInput.oninput = () => {
+        showLine2();
+        onSearchOrFilterChange();
+      };
+
+      searchInput.onblur = () => {
+        setTimeout(() => {
+          if (document.activeElement !== document.getElementById('keyFilterSelect') &&
+              document.activeElement !== document.getElementById('sortSelect')) {
+            hideLine2();
+          }
+        }, 200);
+      };
+    }
+
+    function openSongDetailDrawer(songId) {
+      currentActiveSongId = songId;
+      const song = allSongsData[songId];
+      if (!song) return;
+
+      const playCountsMap = calculateSongPlayCounts();
+      const currentPlayCount = playCountsMap[songId] || 0;
+
+      document.getElementById('detailSongTitle').innerText = song.title || '-';
+      document.getElementById('detailArtist').innerText = song.artist || '-';
+      document.getElementById('detailKey').innerText = song.key || '-';
+      document.getElementById('detailBpm').innerText = song.bpm || '-';
+      document.getElementById('detailPlayCount').innerText = currentPlayCount + ' ครั้ง';
+
+      const overlay = document.getElementById('detailOverlay');
+      const drawer = document.getElementById('songDetailDrawer');
+
+      overlay.classList.remove('hidden');
+      setTimeout(() => {
+        drawer.classList.add('open');
+      }, 10);
+    }
+
+    function closeSongDetailDrawer() {
+      const drawer = document.getElementById('songDetailDrawer');
+      const overlay = document.getElementById('detailOverlay');
+
+      drawer.classList.remove('open');
+      setTimeout(() => {
+        overlay.classList.add('hidden');
+      }, 300);
+    }
+
+    function generateNextSongId() {
+      const existingIds = Object.keys(allSongsData);
+      if (existingIds.length === 0) return 'a000';
+
+      let maxChar = 'a';
+      let maxNum = -1;
+
+      existingIds.forEach(id => {
+        const match = id.match(/^([a-z])(\d{3})$/);
+        if (match) {
+          const char = match[1];
+          const num = parseInt(match[2], 10);
+          if (char > maxChar || (char === maxChar && num > maxNum)) {
+            maxChar = char;
+            maxNum = num;
+          }
+        }
+      });
+
+      if (maxNum === -1) return 'a000';
+      maxNum++;
+      if (maxNum > 999) {
+        maxNum = 0;
+        maxChar = String.fromCharCode(maxChar.charCodeAt(0) + 1);
+      }
+      return maxChar + String(maxNum).padStart(3, '0');
+    }
+
+    async function saveSongData() {
+      const title = document.getElementById('formSongTitle').value.trim();
+      const artist = document.getElementById('formArtist').value.trim();
+      const key = document.getElementById('formKeySelect').value;
+      const bpm = parseInt(document.getElementById('formBpm').value, 10) || 0;
+
+      if (!title || !artist || !key) {
+        alert('กรุณากรอกชื่อเพลง ศิลปิน และเลือกคีย์หลักให้ครบถ้วน');
+        return;
+      }
+
+      const songId = isEditing ? currentActiveSongId : generateNextSongId();
+      const songPayload = {
+        title: title,
+        artist: artist,
+        key: key,
+        bpm: bpm
+      };
+
+      try {
+        await db.ref('songs/' + songId).set(songPayload);
+        document.getElementById('songFormOverlay').classList.add('hidden');
+      } catch (e) {
+        alert('เกิดข้อผิดพลาดในการบันทึก: ' + e.message);
+      }
+    }
+
+    // Bind Controls
+    populateKeyFilterSelect();
+    populateFormKeySelect();
+
+    document.getElementById('sortSelect').onchange = onSearchOrFilterChange;
+    document.getElementById('btnClearSearch').onclick = () => {
+      document.getElementById('songSearchInput').value = '';
+      onSearchOrFilterChange();
+    };
+
+    document.getElementById('btnOpenAddSong').onclick = () => {
+      isEditing = false;
+      currentActiveSongId = null;
+      document.getElementById('formModalTitle').innerText = 'เพิ่มเพลงใหม่';
+      document.getElementById('formSongTitle').value = '';
+      document.getElementById('formArtist').value = '';
+      document.getElementById('formKeySelect').value = '';
+      document.getElementById('formBpm').value = '';
+      tapTimes = [];
+      document.getElementById('songFormOverlay').classList.remove('hidden');
+    };
+
+    document.getElementById('songFormOverlay').onclick = () => {
+      document.getElementById('unsavedWarningOverlay').classList.remove('hidden');
+    };
+
+    document.getElementById('btnConfirmDiscard').onclick = () => {
+      document.getElementById('unsavedWarningOverlay').classList.add('hidden');
+      document.getElementById('songFormOverlay').classList.add('hidden');
+    };
+
+    document.getElementById('btnCancelDiscard').onclick = () => {
+      document.getElementById('unsavedWarningOverlay').classList.add('hidden');
+    };
+
+    document.getElementById('btnCancelForm').onclick = () => {
+      document.getElementById('songFormOverlay').classList.add('hidden');
+    };
+
+    document.getElementById('btnSaveSong').onclick = saveSongData;
+
+    document.getElementById('btnTapTempo').onclick = () => {
+      const now = Date.now();
+      tapTimes.push(now);
+      if (tapTimes.length > 4) tapTimes.shift();
+      if (tapTimes.length > 1) {
+        const intervals = [];
+        for (let i = 1; i < tapTimes.length; i++) intervals.push(tapTimes[i] - tapTimes[i - 1]);
+        const avg = intervals.reduce((a, b) => a + b) / intervals.length;
+        document.getElementById('formBpm').value = Math.round(60000 / avg);
+      }
+    };
+
+    document.getElementById('detailOverlay').onclick = closeSongDetailDrawer;
+
+    document.getElementById('btnEditSong').onclick = () => {
+      closeSongDetailDrawer();
+      const song = allSongsData[currentActiveSongId];
+      if (!song) return;
+      isEditing = true;
+      document.getElementById('formModalTitle').innerText = 'แก้ไขเพลง';
+      document.getElementById('formSongTitle').value = song.title || '';
+      document.getElementById('formArtist').value = song.artist || '';
+      document.getElementById('formKeySelect').value = song.key || '';
+      document.getElementById('formBpm').value = song.bpm || '';
+      tapTimes = [];
+      document.getElementById('songFormOverlay').classList.remove('hidden');
+    };
+
+    document.getElementById('btnDeleteSong').onclick = () => {
+      closeSongDetailDrawer();
+      const song = allSongsData[currentActiveSongId];
+      if (!song) return;
+      document.getElementById('deleteTargetTitle').innerText = song.title || '';
+      document.getElementById('deleteConfirmOverlay').classList.remove('hidden');
+    };
+
+    document.getElementById('btnCancelDelete').onclick = () => {
+      document.getElementById('deleteConfirmOverlay').classList.add('hidden');
+    };
+
+    document.getElementById('btnExecuteDelete').onclick = async () => {
+      if (!currentActiveSongId) return;
+      try {
+        await db.ref('songs/' + currentActiveSongId).remove();
+        document.getElementById('deleteConfirmOverlay').classList.add('hidden');
+      } catch (e) {
+        alert('เกิดข้อผิดพลาดในการลบ: ' + e.message);
+      }
+    };
+  };
+
+  window.initSongsPageModule();
+</script>

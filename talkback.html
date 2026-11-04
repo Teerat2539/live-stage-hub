@@ -1,0 +1,588 @@
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+  body { background: #12131a; color: #fff; height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
+
+  /* Top Bar */
+  .tb-top-bar {
+    height: 10vh; min-height: 55px; background: #1e202c; border-bottom: 1px solid rgba(255,255,255,0.08);
+    display: grid; grid-template-columns: 1fr 1fr; gap: 8px; padding: 8px 12px; align-items: center; flex-shrink: 0;
+  }
+  .top-box { background: #12131a; border: 1px solid #2a2c38; border-radius: 8px; padding: 6px 10px; font-size: 11px; overflow: hidden; white-space: nowrap; }
+  .top-title { color: #888; font-size: 9px; display: block; margin-bottom: 2px; }
+  .top-content { color: #00f2d1; font-weight: 700; display: inline-block; text-overflow: ellipsis; overflow: hidden; width: 100%; }
+
+  /* Main Content Area */
+  .tb-main-content { height: 62vh; overflow-y: auto; padding: 12px; display: flex; flex-direction: column; gap: 14px; flex-grow: 1; }
+
+  /* Telegram Card */
+  .tg-control-card {
+    background: #1e202c; border: 1px solid #2a2c38; border-radius: 12px; padding: 12px 16px;
+    display: flex; justify-content: space-between; align-items: center; box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+    transition: all 0.3s ease;
+  }
+  .tg-info { display: flex; flex-direction: column; }
+  .tg-title { font-size: 13px; font-weight: 700; color: #fff; }
+  .tg-status { font-size: 10px; color: #888; margin-top: 2px; }
+
+  /* Switch Toggle Animation */
+  .switch { position: relative; display: inline-block; width: 46px; height: 26px; }
+  .switch input { opacity: 0; width: 0; height: 0; }
+  .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #2a2c38; transition: cubic-bezier(0.4, 0, 0.2, 1) .3s; border-radius: 26px; }
+  .slider:before { position: absolute; content: ""; height: 20px; width: 20px; left: 3px; bottom: 3px; background-color: #aaa; transition: cubic-bezier(0.4, 0, 0.2, 1) .3s; border-radius: 50%; }
+  input:checked + .slider { background-color: #00f2d1; box-shadow: 0 0 10px rgba(0,242,209,0.4); }
+  input:checked + .slider:before { transform: translateX(20px); background-color: #00382f; }
+  input:disabled + .slider { opacity: 0.3; cursor: not-allowed; }
+
+  /* Section Title */
+  .section-title { font-size: 12px; color: #00f2d1; font-weight: 700; display: flex; align-items: center; gap: 4px; }
+
+  /* Quick Talkback Grid */
+  .quick-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 6px; }
+  .btn-quick {
+    padding: 12px 10px; border-radius: 10px; border: 1px solid #2a2c38; background: #1e202c; color: #fff;
+    font-weight: 600; font-size: 12px; cursor: pointer; text-align: center; transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+  }
+  .btn-quick:active { transform: scale(0.96); background: #252838; }
+
+  /* ปรับ Action Row ให้เรียงลงมาคนละแถว (คนละบรรทัด) */
+  .action-row { 
+    display: flex; 
+    flex-direction: column; 
+    gap: 10px; 
+  }
+  .btn-action-main {
+    padding: 14px 10px; border-radius: 10px; border: none; font-weight: 700; font-size: 13px; cursor: pointer;
+    text-align: center; transition: all 0.2s ease; box-shadow: 0 4px 12px rgba(0,0,0,0.25);
+  }
+  .btn-action-main:active { transform: scale(0.96); filter: brightness(1.1); }
+  .btn-feel { background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%); color: #fff; }
+  .btn-request { background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); color: #000; }
+
+  /* Chat Box Area */
+  .chat-container {
+    background: #161822; border: 1px solid #2a2c38; border-radius: 12px; padding: 12px; height: 220px;
+    overflow-y: auto; display: flex; flex-direction: column; gap: 10px; scroll-behavior: smooth;
+  }
+  .chat-bubble {
+    max-width: 82%; padding: 9px 13px; border-radius: 14px; font-size: 12px; line-height: 1.45; word-break: break-word;
+    animation: popIn 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275); box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+  }
+  .chat-bubble.self { align-self: flex-end; background: linear-gradient(135deg, #005f53 0%, #00473e 100%); color: #fff; border-bottom-right-radius: 3px; }
+  .chat-bubble.other { align-self: flex-start; background: #222533; color: #ddd; border-bottom-left-radius: 3px; border: 1px solid #2d3042; }
+  .chat-sender { font-size: 10px; opacity: 0.75; margin-bottom: 3px; font-weight: 600; }
+
+  /* Bottom Control Bar */
+  .tb-bottom-bar {
+    height: 8vh; min-height: 55px; background: #1e202c; border-top: 1px solid rgba(255,255,255,0.08);
+    display: flex; gap: 8px; padding: 8px 12px; align-items: center; position: sticky; bottom: 0; z-index: 100; flex-shrink: 0;
+  }
+  .tb-input {
+    flex: 1; height: 42px; background: #12131a; border: 1px solid #2a2c38; border-radius: 10px; padding: 0 14px;
+    color: #fff; font-size: 13px; outline: none; transition: border-color 0.2s;
+  }
+  .tb-input:focus { border-color: #00f2d1; }
+  .btn-send {
+    width: 72px; height: 42px; background: #00f2d1; border: none; border-radius: 10px; color: #00382f;
+    font-weight: 700; font-size: 13px; cursor: pointer; transition: all 0.2s;
+  }
+  .btn-send:active { transform: scale(0.95); background: #00d8bb; }
+
+  /* Modals & Animations */
+  .modal-overlay {
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.75); backdrop-filter: blur(4px);
+    z-index: 9999; display: flex; justify-content: center; align-items: center; animation: fadeIn 0.2s ease-out;
+  }
+  .modal-overlay.hidden { display: none; }
+
+  .feel-popup {
+    background: #1e202c; border: 1px solid #3b82f6; border-radius: 16px; width: 90%; max-width: 360px; padding: 18px;
+    display: flex; flex-direction: column; gap: 14px; animation: zoomIn 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    box-shadow: 0 10px 30px rgba(59,130,246,0.25);
+  }
+  .feel-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .btn-feel-item {
+    background: #12131a; border: 1px solid #2a2c38; color: #fff; padding: 11px; border-radius: 8px;
+    font-size: 12px; font-weight: 600; cursor: pointer; text-align: center; transition: all 0.15s ease;
+  }
+  .btn-feel-item:active { transform: scale(0.95); background: #3b82f6; border-color: #3b82f6; }
+
+  .request-modal-container {
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); backdrop-filter: blur(4px);
+    z-index: 999; display: flex; flex-direction: column; justify-content: flex-start; animation: fadeIn 0.2s ease-out;
+  }
+  .request-modal-container.hidden { display: none; }
+  .request-modal-content {
+    background: #1e202c; border-bottom: 3px solid #f59e0b; border-radius: 0 0 20px 20px; height: 52vh; padding: 16px;
+    display: flex; flex-direction: column; gap: 12px; box-shadow: 0 12px 30px rgba(0,0,0,0.8); animation: slideDown 0.25s ease-out;
+  }
+  .search-row { display: flex; gap: 8px; }
+  .search-row input { flex: 1; padding: 10px 12px; background: #12131a; border: 1px solid #2a2c38; border-radius: 8px; color: #fff; font-size: 13px; outline: none; }
+  .search-row input:focus { border-color: #f59e0b; }
+  .btn-check { background: #10b981; border: none; color: #fff; width: 44px; border-radius: 8px; font-weight: 700; cursor: pointer; transition: transform 0.15s; }
+  .btn-check:active { transform: scale(0.92); }
+  .db-song-list { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 6px; }
+  .db-song-item { background: #12131a; border: 1px solid #2a2c38; padding: 10px; border-radius: 8px; font-size: 12px; cursor: pointer; transition: background 0.15s; }
+  .db-song-item:active { background: #252838; border-color: #f59e0b; }
+
+  /* Keyframe Animations */
+  @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+  @keyframes popIn { from { opacity: 0; transform: scale(0.92) translateY(6px); } to { opacity: 1; transform: scale(1) translateY(0); } }
+  @keyframes zoomIn { from { opacity: 0; transform: scale(0.85); } to { opacity: 1; transform: scale(1); } }
+  @keyframes slideDown { from { transform: translateY(-100%); } to { transform: translateY(0); } }
+</style>
+
+<!-- Top Bar (10%) -->
+<div class="tb-top-bar">
+  <div class="top-box">
+    <span class="top-title">🎙️ ท็อคแบคล่าสุด</span>
+    <div id="tbTopTalkback" class="top-content">รอคำสั่ง...</div>
+  </div>
+  <div class="top-box">
+    <span class="top-title">🎵 เพลงถัดไป</span>
+    <div id="tbTopNext" class="top-content">-</div>
+  </div>
+</div>
+
+<!-- Main Content Area (62%) -->
+<div class="tb-main-content">
+  <!-- 1. Telegram Switch -->
+  <div class="tg-control-card">
+    <div class="tg-info">
+      <div class="tg-title">✈️ ส่งการแจ้งเตือนเข้า Telegram</div>
+      <div id="tgStatusText" class="tg-status">กำลังตรวจสอบการเชื่อมต่อ...</div>
+    </div>
+    <label class="switch">
+      <input type="checkbox" id="tgToggle" disabled>
+      <span class="slider"></span>
+    </label>
+  </div>
+
+  <!-- 2. Quick Talkback Grid -->
+  <div>
+    <div class="section-title">⚡ คำสั่งด่วน Quick Talkback</div>
+    <div class="quick-grid" id="quickButtonsContainer"></div>
+    <div id="quickLimitNotice" style="font-size: 10px; color: #888; margin-top: 4px; text-align: right;">
+      * เพิ่ม/แก้ไขคำสั่งด่วนได้สูงสุด 6 ปุ่ม
+    </div>
+  </div>
+
+  <!-- 3 & 4. Action Row -->
+  <div class="action-row">
+    <button class="btn-action-main btn-feel" id="btnOpenFeel">🎛️ ตัดเพลง / เปลี่ยนฟีล</button>
+    <button class="btn-action-main btn-request" id="btnOpenRequest">📥 ลูกค้าขอเพลง</button>
+  </div>
+
+  <!-- 5. Chat Display Box -->
+  <div>
+    <div class="section-title" style="margin-bottom: 6px;">💬 จอแสดงท็อคแบ็ก (ห้องแชต)</div>
+    <div class="chat-container" id="chatBox"></div>
+  </div>
+</div>
+
+<!-- Bottom Control Bar (8%) Sticky -->
+<div class="tb-bottom-bar" id="bottomControlBar">
+  <input type="text" id="talkbackInput" class="tb-input" placeholder="พิมพ์ข้อความท็อคแบค...">
+  <button class="btn-send" id="btnSendTalkback">ส่ง</button>
+</div>
+
+<!-- Popup: ตัดเพลง / เปลี่ยนฟีล (เพิ่ม onclick ปิดเมื่อแตะพื้นที่ภายนอก) -->
+<div id="feelModal" class="modal-overlay hidden" onclick="closeFeelModal(event)">
+  <div class="feel-popup" onclick="event.stopPropagation()">
+    <div style="font-size: 14px; font-weight: 700; color: #3b82f6; text-align: center; border-bottom: 1px solid #2a2c38; padding-bottom: 8px;">
+      🎛️ สั่งงานด่วน: ตัดเพลง / เปลี่ยนฟีล
+    </div>
+    <div class="feel-grid">
+      <div class="btn-feel-item" data-act="เล่นเร็วกว่านี้">เร็วขึ้น</div>
+      <div class="btn-feel-item" data-act="เล่นช้าลงกว่านี้">ช้าลง</div>
+      <div class="btn-feel-item" data-act="จบท่อนนี้แล้วตัดจบเลย">ตัดจบ</div>
+      <div class="btn-feel-item" data-act="ซ้ำท่อนฮุคอีก 1 รอบ">ซ้ำฮุค</div>
+      <div class="btn-feel-item" data-act="โซโล่ต่อให้ยาวกว่านี้">ยืดโซโล่</div>
+      <div class="btn-feel-item" data-act="ท่อนต่อไปให้ลูกค้าร้อง">ลูกค้าร้อง</div>
+      <div class="btn-feel-item" data-act="ย้ำกระเดื่อง วนคอร์ดท่อนฮุค">กระเดื่อง</div>
+      <div class="btn-feel-item" data-act="ท่อนต่อไปเล่นสามช่า">สามช่า</div>
+      <div class="btn-feel-item" data-act="ท่อนต่อไปเล่นดิสโก้">ดิสโก้</div>
+      <div class="btn-feel-item" data-act="ท่อนต่อไปเล่นเร็กเก้">เร็กเก้</div>
+    </div>
+    <button id="btnCancelFeel" style="background: #2a2c38; color: #ccc; border: none; padding: 10px; border-radius: 8px; cursor: pointer; font-weight: 600;">ยกเลิก</button>
+  </div>
+</div>
+
+<!-- Modal: ลูกค้าขอเพลง (เพิ่ม onclick="closeRequestModal(event)" ที่คอนเทนเนอร์หลัก) -->
+<div id="requestModal" class="request-modal-container hidden" onclick="closeRequestModal(event)">
+  <div class="request-modal-content" onclick="event.stopPropagation()">
+    <div style="display: flex; justify-content: space-between; align-items: center;">
+      <span style="font-size: 14px; font-weight: 700; color: #f59e0b;">📥 ลูกค้าขอเพลง</span>
+      <button id="btnCloseRequestModal" style="background: none; border: none; color: #aaa; font-size: 20px; cursor: pointer;">✕</button>
+    </div>
+    <div class="search-row">
+      <input type="text" id="reqSearchInput" placeholder="พิมพ์ชื่อเพลง หรือศิลปิน...">
+      <button class="btn-check" id="btnApplyReqSong">✓</button>
+    </div>
+    <div class="db-song-list" id="reqDbList"></div>
+  </div>
+</div>
+
+<script>
+  window.initTalkbackPageModule = function() {
+    let currentUser = null;
+    let selectedRoom = 'PGL8';
+    let botToken = null;
+    let chatId = null;
+    let isTgEnabled = false;
+    let allDbSongs = [];
+    let selectedReqSongObj = null;
+
+    try {
+      const sessionStr = localStorage.getItem('lsh_session');
+      currentUser = sessionStr ? JSON.parse(sessionStr) : { nickname: 'OatSim', role: 'member', emoji: '😎', username: 'oat' };
+      let rawRoom = localStorage.getItem('lsh_selected_room') || (currentUser && currentUser.room) || 'PGL8';
+      selectedRoom = rawRoom.trim().toUpperCase();
+    } catch(e) {
+      currentUser = { nickname: 'สมาชิก', role: 'guest', emoji: '🎵', username: 'guest' };
+      selectedRoom = 'PGL8';
+    }
+
+    function initTelegramConfig() {
+      const tgStatus = document.getElementById('tgStatusText');
+      const tgToggle = document.getElementById('tgToggle');
+      if (!tgStatus || !tgToggle) return;
+
+      if (typeof db !== 'undefined') {
+        db.ref(`roomConfig/${selectedRoom}`).on('value', (snapshot) => {
+          const cfg = snapshot.val() || {};
+          botToken = cfg.BotToken;
+          chatId = cfg.ChatID;
+
+          if (botToken && chatId) {
+            tgStatus.innerText = `พร้อมใช้งาน (ห้อง ${selectedRoom})`;
+            tgStatus.style.color = '#00f2d1';
+            tgToggle.disabled = false;
+          } else {
+            tgStatus.innerText = `ห้อง ${selectedRoom} ยังไม่ได้ตั้งค่า BotToken/ChatID`;
+            tgStatus.style.color = '#ef4444';
+            tgToggle.disabled = true;
+            tgToggle.checked = false;
+            isTgEnabled = false;
+          }
+        });
+      }
+    }
+
+    function initQuickCommands() {
+      const defaultBtns = [
+        { name: 'ขอเวลานอก', action: 'ขอเวลานอกสักแป๊บครับ', color: '#1e202c' },
+        { name: 'ขอข้ามเพลงถัดไป', action: 'เพลงถัดไปยังไม่พร้อมครับ ขอข้ามก่อน', color: '#1e202c' },
+        { name: 'เพลงนี้คีย์อะไร', action: 'เพลงนี้เล่นคีย์อะไร?', color: '#1e202c' },
+        { name: 'นับให้หน่อย', action: 'ช่วยนับขึ้นเพลงให้หน่อย', color: '#1e202c' }
+      ];
+
+      const isMember = currentUser && currentUser.role !== 'guest';
+      const notice = document.getElementById('quickLimitNotice');
+
+      if (!isMember) {
+        if (notice) notice.style.display = 'none';
+        renderQuickButtons(defaultBtns);
+      } else if (typeof db !== 'undefined') {
+        if (notice) notice.style.display = 'block';
+        db.ref(`users/${currentUser.username}/talkbackCommands`).on('value', (snap) => {
+          const cmds = snap.val() || [];
+          let customBtns = [];
+          for (let i = 0; i < 6; i++) {
+            if (cmds[i] && cmds[i].name && cmds[i].action) {
+              customBtns.push(cmds[i]);
+            }
+          }
+          renderQuickButtons(customBtns.length > 0 ? customBtns : defaultBtns);
+        });
+      }
+    }
+
+    function renderQuickButtons(buttons) {
+      const container = document.getElementById('quickButtonsContainer');
+      if (!container) return;
+      container.innerHTML = '';
+      buttons.forEach(btn => {
+        const b = document.createElement('button');
+        b.className = 'btn-quick';
+        if (btn.color) b.style.background = btn.color;
+        b.innerText = btn.name;
+        b.onclick = () => setInputValue(btn.action);
+        container.appendChild(b);
+      });
+    }
+
+    function setInputValue(text) {
+      const input = document.getElementById('talkbackInput');
+      if (input) {
+        input.value = text;
+        input.focus();
+      }
+    }
+
+    function initDbSongs() {
+      if (typeof db !== 'undefined') {
+        db.ref('songs').on('value', (snap) => {
+          const data = snap.val() || {};
+          allDbSongs = Object.keys(data).map(k => ({ id: k, ...data[k] }));
+        });
+      }
+    }
+
+    // 4. Actions: ลูกค้าขอเพลง (เพิ่ม Auto Focus)
+    function openRequestModal() {
+      document.getElementById('requestModal').classList.remove('hidden');
+      const input = document.getElementById('reqSearchInput');
+      input.value = '';
+      document.getElementById('reqDbList').innerHTML = ''; // เคลียร์รายการ ไม่แสดงอะไรจนกว่าจะพิมพ์
+      selectedReqSongObj = null;
+
+      // สั่ง Auto Focus ให้พิมพ์ได้ทันทีหลังหน้าต่างสไลด์ลงมา
+      setTimeout(() => {
+        input.focus();
+      }, 100);
+    }
+
+    function closeRequestModal(e) {
+      if (!e || e.target.id === 'requestModal' || e.target.id === 'btnCloseRequestModal') {
+        document.getElementById('requestModal').classList.add('hidden');
+      }
+    }
+
+    function filterReqSongs() {
+      const input = document.getElementById('reqSearchInput');
+      const container = document.getElementById('reqDbList');
+      if (!input || !container) return;
+
+      const kw = input.value.toLowerCase().trim();
+      
+      // ถ้ายังไม่ได้พิมพ์อะไร ให้ล้างรายการซ่อนไว้
+      if (kw === '') {
+        container.innerHTML = '';
+        return;
+      }
+
+      let prefixList = [], containsList = [];
+      allDbSongs.forEach(s => {
+        let t = (s.title || '').toLowerCase();
+        if (t.startsWith(kw)) prefixList.push(s);
+        else if (t.includes(kw)) containsList.push(s);
+      });
+
+      let results = [...prefixList, ...containsList];
+      container.innerHTML = '';
+
+      if (results.length === 0) {
+        container.innerHTML = '<div style="color:#666; font-size:11px; text-align:center; padding: 12px;">ไม่พบเพลงในระบบ (กด ✓ เพื่อนำชื่อนี้ไปใส่ช่องท็อคแบค)</div>';
+        return;
+      }
+
+      results.slice(0, 15).forEach(s => {
+        const div = document.createElement('div');
+        div.className = 'db-song-item';
+        div.innerHTML = `<b>${s.title}</b> - ${s.artist} <span style="color:#f59e0b;">(${s.key || '-'})</span>`;
+        div.onclick = () => {
+          document.getElementById('reqSearchInput').value = `${s.title} - ${s.artist}`;
+          selectedReqSongObj = s;
+        };
+        container.appendChild(div);
+      });
+    }
+
+    function applyReqSongToInput() {
+      const val = document.getElementById('reqSearchInput').value.trim();
+      if (!val) return;
+
+      // 1. ย้ายข้อความไปใส่ช่องท็อคแบคด้านล่าง
+      setInputValue(`ลูกค้าขอเพลง : ${val}`);
+
+      // 2. เคลียร์ช่องค้นหา + ปิด Modal ทันที (ยังไม่ push ลง Firebase)
+      document.getElementById('reqSearchInput').value = '';
+      document.getElementById('reqDbList').innerHTML = '';
+      document.getElementById('requestModal').classList.add('hidden');
+    }
+
+    // 5. ส่งข้อความ Talkback (แก้ไขโครงสร้าง try...catch ให้ถูกต้องแล้วครับ)
+    async function sendTalkback() {
+      const input = document.getElementById('talkbackInput');
+      if (!input || !input.value.trim()) return;
+
+      const msgText = input.value.trim();
+      const formattedMsg = `${currentUser.emoji || '🎵'} ${currentUser.nickname} : ${msgText}`;
+
+      if (typeof db !== 'undefined') {
+        // บันทึกเข้าห้องแชต Talkback เสมอ
+        db.ref(`rooms/${selectedRoom}/talkbacks`).push({
+          sender: currentUser.nickname,
+          emoji: currentUser.emoji || '🎵',
+          message: msgText,
+          timestamp: Date.now()
+        });
+        db.ref(`rooms/${selectedRoom}/latestTalkback`).set(formattedMsg);
+
+        // 📌 เช็กเฉพาะกรณี "ลูกค้าขอเพลง :" เท่านั้น ถึงจะ Push ลง Request Queue & Stats และบันทึกแยกตามชื่อร้าน
+        if (msgText.startsWith('ลูกค้าขอเพลง :')) {
+          const songNameOnly = msgText.replace('ลูกค้าขอเพลง :', '').trim();
+          
+          const reqItem = {
+            id: 'req_' + Date.now(),
+            title: selectedReqSongObj ? selectedReqSongObj.title : songNameOnly,
+            artist: selectedReqSongObj ? selectedReqSongObj.artist : '-',
+            key: selectedReqSongObj ? (selectedReqSongObj.key || '-') : '-',
+            bpm: selectedReqSongObj ? (selectedReqSongObj.bpm || '-') : '-',
+            status: 'request',
+            timestamp: Date.now()
+          };
+
+          // บันทึกลง requestQueue ปกติ
+          db.ref(`rooms/${selectedRoom}/queue/requestQueue`).push(reqItem);
+
+          // บันทึกลง requestStats ปกติ
+          const statsPayload = {
+            title: reqItem.title,
+            artist: selectedReqSongObj ? (selectedReqSongObj.artist || '-') : '-',
+            key: selectedReqSongObj ? (selectedReqSongObj.key || '-') : '-',
+            bpm: selectedReqSongObj ? (selectedReqSongObj.bpm || '-') : '-',
+            songID: selectedReqSongObj ? (selectedReqSongObj.id || '-') : '-',
+            time: Date.now()
+          };
+          db.ref(`rooms/${selectedRoom}/requestStats`).push(statsPayload);
+          
+          // 📌 ดึงชื่อร้านจากชุดลิสต์เพลงที่ใช้งานอยู่ เพื่อนำมาบันทึกสถิติแยกตามร้าน
+          db.ref(`rooms/${selectedRoom}/queue/activeSetlistId`).once('value', async (snapSetlistId) => {
+            const activeSetlistId = snapSetlistId.val();
+            let venueName = 'ร้านทั่วไป'; // ค่าสำรองถ้ายังไม่ได้เลือกชุดลิสต์เพลง
+
+            if (activeSetlistId && activeSetlistId !== '-') {
+              try {
+                const venueSnap = await db.ref(`rooms/${selectedRoom}/setlists/${activeSetlistId}/venue`).once('value');
+                const rawVenue = venueSnap.val();
+                if (rawVenue) {
+                  // ตัดวันที่ออกจากชื่อลิสต์เพลง
+                  venueName = rawVenue.split(/[-–—]/)[0].trim();
+                } else {
+                  venueName = activeSetlistId.trim();
+                }
+              } catch (err) {
+                venueName = activeSetlistId.trim();
+              }
+            }
+
+            // เตรียมข้อมูลสำหรับบันทึกสะสมในโหนด request ของร้านนั้นๆ (ใช้ Push Key)
+            const venueRecord = {
+              title: reqItem.title,
+              artist: selectedReqSongObj ? (selectedReqSongObj.artist || '-') : '-',
+              songID: selectedReqSongObj ? (selectedReqSongObj.id || '-') : '-',
+              date: new Date().toISOString().split('T')[0] // วันที่ขอ (YYYY-MM-DD)
+            };
+
+            // บันทึกลงโหนด rooms/{selectedRoom}/request/{ชื่อร้าน}/ แบบ Push Key
+            db.ref(`rooms/${selectedRoom}/request/${venueName}`).push(venueRecord);
+          });
+
+          // ล้างตัวแปรเก็บวัตถุเพลง
+          selectedReqSongObj = null;
+        }
+      }
+
+      // ส่งเข้า Telegram Bot (ถ้าเปิดใช้งานอยู่)
+      if (isTgEnabled && botToken && chatId) {
+        try {
+          fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ chat_id: chatId, text: formattedMsg })
+          });
+        } catch(e) { console.error('Telegram Error:', e); }
+      }
+
+      input.value = '';
+    }
+
+    function listenRealtimeData() {
+      if (typeof db === 'undefined') return;
+
+      db.ref(`rooms/${selectedRoom}/latestTalkback`).on('value', (snap) => {
+        const topEl = document.getElementById('tbTopTalkback');
+        if (topEl && snap.val()) topEl.innerText = snap.val();
+      });
+
+      db.ref(`rooms/${selectedRoom}/queue/songs`).on('value', (snap) => {
+        const songs = snap.val() || [];
+        const nextSong = songs.find(s => s.status === 'next');
+        const topNext = document.getElementById('tbTopNext');
+        if (topNext) {
+          topNext.innerText = nextSong ? `${nextSong.title} - ${nextSong.artist}` : '-';
+        }
+      });
+
+      // ดึงข้อมูลแชต Realtime และ Scroll ลงล่างสุดเสมอ
+      db.ref(`rooms/${selectedRoom}/talkbacks`).limitToLast(30).on('value', (snap) => {
+        const chatBox = document.getElementById('chatBox');
+        if (!chatBox) return;
+
+        const data = snap.val() || {};
+        let html = '';
+
+        Object.keys(data).forEach(k => {
+          const item = data[k];
+          const isSelf = item.sender === currentUser.nickname;
+          const bubbleClass = isSelf ? 'self' : 'other';
+          html += `
+            <div class="chat-bubble ${bubbleClass}">
+              <div class="chat-sender">${item.emoji || '🎵'} ${item.sender}</div>
+              <div>${item.message}</div>
+            </div>
+          `;
+        });
+
+        chatBox.innerHTML = html;
+        
+        // 📌 บังคับ Scroll ลงมาล่างสุดที่แชตล่าสุดเสมอ (ใช้ setTimeout เพื่อรอให้ DOM Render เสร็จ 100%)
+        setTimeout(() => {
+          chatBox.scrollTop = chatBox.scrollHeight;
+        }, 50);
+      });
+    }
+
+    document.getElementById('tgToggle').onchange = function() { isTgEnabled = this.checked; };
+    document.getElementById('btnSendTalkback').onclick = sendTalkback;
+    document.getElementById('talkbackInput').onkeydown = function(e) { if (e.key === 'Enter') sendTalkback(); };
+
+    document.getElementById('btnOpenFeel').onclick = () => document.getElementById('feelModal').classList.remove('hidden');
+    document.getElementById('btnCancelFeel').onclick = () => document.getElementById('feelModal').classList.add('hidden');
+    document.querySelectorAll('.btn-feel-item').forEach(item => {
+      item.onclick = function() {
+        setInputValue(this.getAttribute('data-act'));
+        document.getElementById('feelModal').classList.add('hidden');
+      };
+    });
+
+    document.getElementById('btnOpenRequest').onclick = openRequestModal;
+    document.getElementById('btnCloseRequestModal').onclick = closeRequestModal;
+    document.getElementById('reqSearchInput').oninput = filterReqSongs;
+    document.getElementById('btnApplyReqSong').onclick = applyReqSongToInput;
+
+    // ผูกฟังก์ชัน closeRequestModal แบบ global เพื่อให้ HTML inline onclick ทำงานได้
+    window.closeRequestModal = closeRequestModal;
+
+    initTelegramConfig();
+    initQuickCommands();
+    initDbSongs();
+    listenRealtimeData();
+  };
+// ฟังก์ชันปิด Modal ตัดเพลง/เปลี่ยนฟีล (เช็กการแตะพื้นที่ภายนอก)
+    function closeFeelModal(e) {
+      if (!e || e.target.id === 'feelModal' || e.target.id === 'btnCancelFeel') {
+        document.getElementById('feelModal').classList.add('hidden');
+      }
+    }
+
+    // ผูก Event ปุ่มเปิด-ปิด Modal
+    document.getElementById('btnOpenFeel').onclick = () => document.getElementById('feelModal').classList.remove('hidden');
+    document.getElementById('btnCancelFeel').onclick = closeFeelModal;
+
+    // ผูกฟังก์ชันไว้ที่ window เพื่อให้ HTML inline onclick เรียกใช้ได้
+    window.closeFeelModal = closeFeelModal;
+  window.initTalkbackPageModule();
+</script>

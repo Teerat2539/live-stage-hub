@@ -1,0 +1,787 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Live Stage Hub</title>
+  <style>
+    /* Layout หลัก กำหนด % ความสูงตามสเปก */
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { height: 100%; font-family: sans-serif; background-color: #111319; color: #fff; overflow: hidden; }
+    
+    .hidden { display: none !important; }
+    
+    /* Header 8% */
+    header { height: 8vh; background: #1e1f26; display: flex; align-items: center; justify-content: space-between; padding: 0 12px; border-bottom: 1px solid #333; }
+    .header-left, .header-right { display: flex; align-items: center; gap: 10px; }
+    
+    /* สไตล์ข้อความยูสเซอร์มุมซ้ายบน */
+    .user-info-text { font-size: 13px; font-weight: bold; color: #00f2d1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 180px; }
+    
+    .ping-badge { font-size: 10px; padding: 2px 6px; border-radius: 4px; font-weight: bold; }
+    .ping-green { background: #10b981; color: #000; }
+    .ping-yellow { background: #f59e0b; color: #000; }
+    .ping-red { background: #ef4444; color: #fff; }
+
+    /* Main Area (พื้นที่ตรงกลาง 80%) */
+    main { height: 80vh; overflow-y: auto; padding: 12px; }
+
+    /* Footer Navigation 12% */
+    nav { height: 12vh; background: #1e1f26; border-top: 1px solid #333; display: grid; grid-template-columns: repeat(4, 1fr); }
+    nav button { background: none; border: none; color: #a0a0ab; font-size: 12px; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; }
+    nav button.active { color: #00f2d1; font-weight: bold; }
+
+    /* Overlay / Modals */
+    .overlay { position: fixed; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.7); display:flex; justify-content:center; align-items:center; z-index: 999; }
+    .box { background: #1e1f26; padding: 20px; border-radius: 12px; width: 300px; border: 1px solid #333; text-align: center; }
+    .box button { margin: 5px; padding: 8px 16px; border-radius: 6px; border: none; cursor: pointer; }
+
+    /* Slide Drawer ด้านซ้าย */
+    .drawer { position: fixed; top:0; left:-280px; width: 280px; height:100%; background: #181920; border-right: 1px solid #333; transition: left 0.3s ease; z-index: 1000; display: flex; flex-direction: column; }
+    .drawer.open { left: 0; }
+    .drawer-header { padding: 16px; background: #111319; border-bottom: 1px solid #333; }
+    .drawer-menu { display: flex; flex-direction: column; padding: 10px 0; }
+    .drawer-menu button { background: none; border: none; color: #fff; padding: 14px 20px; text-align: left; font-size: 14px; cursor: pointer; border-bottom: 1px solid #222; }
+    .drawer-menu button:hover { background: #252732; color: #00f2d1; }
+  
+    /* 📌 สไตล์สำหรับตารางเลือกวงแบบสี่เหลี่ยมจัตุรัส 2 คอลัมน์ */
+    .room-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin-top: 10px; }
+    .room-square-btn { aspect-ratio: 1; background: #00f2d1; color: #000; border-radius: 8px; border: none; font-weight: bold; cursor: pointer; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 5px; font-size: 13px; word-break: break-word; }
+    .room-full-btn { grid-column: span 2; background: #555; color: #fff; width: 100%; padding: 10px; border-radius: 8px; border: none; font-weight: bold; cursor: pointer; margin-top: 4px; }
+  </style>
+
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"></script>
+</head>
+<body>
+
+  <!-- ========================================== -->
+  <!-- 1. SLIDE DRAWER เมนูด้านซ้าย                 -->
+  <!-- ========================================== -->
+  <div id="drawerOverlay" class="overlay hidden" onclick="toggleDrawer(false)"></div>
+  <aside id="sideDrawer" class="drawer">
+    <div class="drawer-header">
+      <div style="font-size:12px; color:#a0a0ab;">เวลา Session ที่เหลืออยู่:</div>
+      <div id="sessionCountdown" style="font-size:18px; font-weight:bold; color:#00f2d1; margin-top:4px;">--:--:--</div>
+    </div>
+    <div class="drawer-menu">
+      <button onclick="menuAction('แฟ้มลิสต์เพลง')">📁 แฟ้มลิสต์เพลง</button>
+      <button onclick="menuAction('เพลงทั้งหมด')">🎵 เพลงทั้งหมด</button>
+      <button onclick="menuAction('รายการเพลงรีเควส')">📩 รายการเพลงรีเควส</button>
+      <button onclick="openClearQueueConfirm()">🧹 เคลียร์คิว</button>
+      <button onclick="menuAction('ตั้งค่า')">⚙️ ตั้งค่า</button>
+      <button onclick="openLogoutConfirm()" style="color:#ef4444;">🚪 ออกจากระบบ</button>
+    </div>
+  </aside>
+
+  <!-- ========================================== -->
+  <!-- 2. POPUPS & MODALS                         -->
+  <!-- ========================================== -->
+  
+  <!-- POPUP ยืนยันออกจากระบบ -->
+  <div id="logoutConfirmModal" class="overlay hidden">
+    <div class="box">
+      <h3 style="margin-bottom:10px;">ออกจากระบบ</h3>
+      <p style="font-size:13px; color:#aaa; margin-bottom:15px;">คุณต้องการออกจากระบบและสลับห้องใช่หรือไม่?</p>
+      <button onclick="confirmLogout()" style="background:#ef4444; color:#fff;">ยืนยัน</button>
+      <button onclick="closeLogoutModal()" style="background:#333; color:#fff;">ยกเลิก</button>
+    </div>
+  </div>
+
+  <!-- POPUP ยืนยันเคลียร์คิว -->
+  <div id="clearQueueConfirmModal" class="overlay hidden" onclick="closeClearQueueModal()">
+    <div class="box" onclick="event.stopPropagation()">
+      <h3 style="margin-bottom:10px; color:#ff5451;">🧹 เคลียร์คิวและข้อมูลโชว์</h3>
+      <p style="font-size:13px; color:#aaa; margin-bottom:15px;">คุณต้องการล้างคิวเพลง, ท็อคแบค และรีเควสทั้งหมด เพื่อเริ่มโชว์ใหม่ใช่หรือไม่?</p>
+      <button onclick="confirmClearQueue()" style="background:#ef4444; color:#fff;">ยืนยันเคลียร์</button>
+      <button onclick="closeClearQueueModal()" style="background:#333; color:#fff;">ยกเลิก</button>
+    </div>
+  </div>
+
+  <!-- POPUP ล็อกอินเลือกวง -->
+  <div id="roomModal" class="overlay">
+    <div class="box" id="roomModalBox">
+      <h3>กำลังโหลดรายชื่อวง...</h3>
+    </div>
+  </div>
+
+  <!-- POPUP ถามสิทธิ์วงเฉพาะกิจ -->
+  <div id="guestQuestionModal" class="overlay hidden" onclick="cancelToRoomSelect()">
+    <div class="box" onclick="event.stopPropagation()">
+      <h3>วงเฉพาะกิจ</h3>
+      <p style="font-size:13px; margin:10px 0;">คุณเป็นสมาชิกของระบบหรือไม่?</p>
+      <button onclick="openMemberLogin()" style="background:#00f2d1; color:#000;">เป็นสมาชิก</button>
+      <button onclick="openGuestForm()" style="background:#555; color:#fff;">ไม่ได้เป็นสมาชิก</button><br><br>
+      <button onclick="cancelToRoomSelect()" style="background:none; color:#aaa;">ยกเลิก</button>
+    </div>
+  </div>
+
+  <!-- POPUP ล็อกอินสมาชิก -->
+  <div id="memberLoginModal" class="overlay hidden" onclick="cancelToRoomSelect()">
+    <div class="box" onclick="event.stopPropagation()">
+      <h3>เข้าสู่ระบบสมาชิก</h3>
+      <p style="font-size:12px; color:#aaa; margin:5px 0;">วง: <b id="loginRoomLabel"></b></p>
+      <input type="text" id="usernameInput" placeholder="Username" style="width:100%; padding:8px; margin:5px 0;"><br>
+      <input type="password" id="pinInput" inputmode="numeric" pattern="[0-9]*" maxlength="4" placeholder="PIN 4 หลัก" style="width:100%; padding:8px; margin:5px 0; font-size:16px;"><br><br>
+      <button onclick="submitMemberLogin()" style="background:#00f2d1; color:#000;">ยืนยัน</button>
+      <button onclick="cancelToRoomSelect()" style="background:#333; color:#fff;">ยกเลิก</button>
+    </div>
+  </div>
+
+  <!-- POPUP ฟอร์ม Guest -->
+  <div id="guestFormModal" class="overlay hidden" onclick="cancelToRoomSelect()">
+    <div class="box" onclick="event.stopPropagation()">
+      <h3>กรอกชื่อเข้าใช้งาน</h3>
+      <input type="text" id="guestNameInput" placeholder="ใส่ชื่อเล่นของคุณ" style="width:100%; padding:8px; margin:10px 0;"><br><br>
+      <button onclick="submitGuestLogin()" style="background:#00f2d1; color:#000;">ยืนยัน</button>
+      <button onclick="cancelToRoomSelect()" style="background:#333; color:#fff;">ยกเลิก</button>
+    </div>
+  </div>
+
+  <!-- POPUP หมดเวลาใช้งาน -->
+  <div id="sessionExpiredModal" class="overlay hidden">
+    <div class="box">
+      <h3>หมดเวลาการใช้งาน</h3>
+      <p id="expiredReasonText" style="font-size:12px; color:#aaa; margin:10px 0;">กรุณาล็อกอินใหม่เพื่อใช้งานต่อ</p>
+      <button onclick="confirmReLogin()" style="background:#00f2d1; color:#000;">ตกลง</button>
+    </div>
+  </div>
+
+  <!-- POPUP รายการเพลงรีเควสแยกตามร้าน -->
+  <div id="requestHistoryModal" class="overlay hidden" onclick="closeRequestHistoryModal(event)">
+    <div class="box" onclick="event.stopPropagation()" style="width: 90%; max-width: 400px; max-height: 80vh; display: flex; flex-direction: column; text-align: left;">
+      <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #333; padding-bottom: 8px; margin-bottom: 10px;">
+        <h3 style="color: #00f2d1; font-size: 16px; margin: 0;">📩 ประวัติเพลงรีเควสแยกตามร้าน</h3>
+        <button onclick="closeRequestHistoryModal()" style="background: none; border: none; color: #aaa; font-size: 18px; cursor: pointer; padding: 0;">✕</button>
+      </div>
+      <div id="requestHistoryContent" style="flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; padding-right: 4px;">
+        <div style="text-align: center; color: #888; padding: 20px;">กำลังโหลดข้อมูล...</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- POPUP ยืนยันการลบร้าน -->
+  <div id="deleteRoomConfirmModal" class="overlay hidden" onclick="closeDeleteRoomModal(event)">
+    <div class="box" onclick="event.stopPropagation()">
+      <h3 style="margin-bottom: 10px; color: #ef4444;">🗑️ ยืนยันการลบข้อมูลร้าน</h3>
+      <p id="deleteRoomText" style="font-size: 13px; color: #aaa; margin-bottom: 15px;">คุณต้องการลบข้อมูลรีเควสทั้งหมดของร้านนี้ใช่หรือไม่?</p>
+      <button onclick="executeDeleteRoom()" style="background: #ef4444; color: #fff;">ยืนยันลบ</button>
+      <button onclick="closeDeleteRoomModal()" style="background: #333; color: #fff;">ยกเลิก</button>
+    </div>
+  </div>
+
+  <!-- ========================================== -->
+  <!-- 3. โครงสร้างหลัก (TOP HEADER + MAIN + NAV) -->
+  <!-- ========================================== -->
+  
+  <!-- Header 8% -->
+  <header>
+    <div class="header-left">
+      <button onclick="toggleDrawer(true)" style="background:none; border:none; color:#fff; font-size:20px; cursor:pointer;">☰</button>
+      <span id="displayUserInfo" class="user-info-text">ยังไม่ได้เลือกห้อง</span>
+      <span id="pingBadge" class="ping-badge ping-green">-- ms</span>
+    </div>
+    <div class="header-right">
+      <span id="clockDisplay" style="font-size:13px; font-weight:bold; font-family:monospace;">00:00:00</span>
+      <span id="userEmojiDisplay" style="font-size:18px;">👤</span>
+    </div>
+  </header>
+
+  <!-- Main Content 80% -->
+  <main id="mainContentArea">
+    <p style="text-align:center; color:#666; margin-top:40px;">กรุณาล็อกอินเพื่อเริ่มใช้งาน...</p>
+  </main>
+
+  <!-- Footer Navigation 12% -->
+  <nav>
+    <button id="nav-monitor" onclick="setActiveNav('monitor')">
+      <span style="font-size:16px;">📺</span>
+      <span>หน้าจอหลัก</span>
+    </button>
+    <button id="nav-search" onclick="setActiveNav('search')">
+      <span style="font-size:16px;">🔍</span>
+      <span>ค้นหาคอร์ด</span>
+    </button>
+    <button id="nav-talkback" onclick="setActiveNav('talkback')">
+      <span style="font-size:16px;">🎙️</span>
+      <span>ท็อคแบ็ค</span>
+    </button>
+    <button id="nav-queue" onclick="setActiveNav('queue')">
+      <span style="font-size:16px;">📋</span>
+      <span>จัดคิว</span>
+    </button>
+  </nav>
+
+  <!-- ========================================== -->
+  <!-- 4. CORE JAVASCRIPT LOGIC                   -->
+  <!-- ========================================== -->
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyCPhWAt54G2EZaSuiaTFmj-vv_nrrLQl_I",
+      authDomain: "pgl8vtb.firebaseapp.com",
+      databaseURL: "https://pgl8vtb-default-rtdb.asia-southeast1.firebasedatabase.app",
+      projectId: "pgl8vtb",
+      storageBucket: "pgl8vtb.firebasestorage.app",
+      messagingSenderId: "784490899763",
+      appId: "1:784490899763:web:22ade92223d1edccfaf646",
+      measurementId: "G-SPP3J32W79"
+    };
+
+    if (!firebase.apps.length) {
+      firebase.initializeApp(firebaseConfig);
+    }
+    const db = firebase.database();
+
+    let selectedRoom = '';
+    let targetRoomToDelete = null;
+
+    window.onload = function() {
+      startClock();
+      startPingCheck();
+      checkSession();
+      setInterval(checkSessionExpiry, 1000);
+    };
+
+    function startClock() {
+      setInterval(() => {
+        const now = new Date();
+        document.getElementById('clockDisplay').innerText = now.toTimeString().split(' ')[0];
+      }, 1000);
+    }
+
+    function startPingCheck() {
+      setInterval(async () => {
+        const start = Date.now();
+        try {
+          await db.ref('.info/connected').once('value');
+          const ping = Date.now() - start;
+          const badge = document.getElementById('pingBadge');
+          badge.innerText = ping + ' ms';
+          badge.className = 'ping-badge ' + (ping < 100 ? 'ping-green' : ping < 300 ? 'ping-yellow' : 'ping-red');
+        } catch(e) {
+          document.getElementById('pingBadge').className = 'ping-badge ping-red';
+          document.getElementById('pingBadge').innerText = 'Offline';
+        }
+      }, 5000);
+    }
+
+    function toggleDrawer(open) {
+      const drawer = document.getElementById('sideDrawer');
+      const overlay = document.getElementById('drawerOverlay');
+      if (open) {
+        drawer.classList.add('open');
+        overlay.classList.remove('hidden');
+      } else {
+        drawer.classList.remove('open');
+        overlay.classList.add('hidden');
+      }
+    }
+
+    function menuAction(title) {
+      toggleDrawer(false);
+      const sessionStr = localStorage.getItem('lsh_session');
+      const session = sessionStr ? JSON.parse(sessionStr) : {};
+      
+      if (title === 'ตั้งค่า') {
+        if (session.userType === 'guest' || !session.username) {
+          alert('เฉพาะสมาชิกเท่านั้นจึงจะสามารถเข้าใช้งานหน้าตั้งค่าได้ครับ!');
+          return;
+        }
+        localStorage.setItem('lsh_last_page', 'settings');
+        loadPage('settings');
+        return;
+      }
+
+      document.querySelectorAll('nav button').forEach(btn => btn.classList.remove('active'));
+
+      if (title === 'เพลงทั้งหมด') {
+        localStorage.setItem('lsh_last_page', 'songs');
+        loadPage('songs');
+      } else if (title === 'แฟ้มลิสต์เพลง') {
+        localStorage.setItem('lsh_last_page', 'setlists');
+        loadPage('setlists');
+      } else if (title === 'รายการเพลงรีเควส') {
+        openRequestHistoryModal();
+      } else {
+        alert('กดเมนู: ' + title + ' (เตรียมระบบเร็วๆ นี้)');
+      }
+    }
+
+    function openClearQueueConfirm() {
+      toggleDrawer(false);
+      document.getElementById('clearQueueConfirmModal').classList.remove('hidden');
+    }
+
+    function closeClearQueueModal(e) {
+      if (!e || e.target.id === 'clearQueueConfirmModal') {
+        document.getElementById('clearQueueConfirmModal').classList.add('hidden');
+      }
+    }
+
+    async function confirmClearQueue() {
+      const sessionStr = localStorage.getItem('lsh_session');
+      if (!sessionStr) {
+        alert('กรุณาล็อกอินก่อนใช้งาน');
+        return;
+      }
+      const session = JSON.parse(sessionStr);
+      const room = session.room;
+
+      if (!room) {
+        alert('ไม่พบข้อมูลห้องปัจจุบัน');
+        return;
+      }
+
+      try {
+        const updates = {};
+        updates[`rooms/${room}/queue/songs`] = null;
+        updates[`rooms/${room}/queue/activeSetlistId`] = null;
+        updates[`rooms/${room}/queue/updatedAt`] = null;
+        updates[`rooms/${room}/talkbacks`] = null;
+        updates[`rooms/${room}/latestTalkback`] = "สแตนบายรอคำสั่ง...";
+        updates[`rooms/${room}/currentCue`] = null;
+        updates[`rooms/${room}/requestStats`] = null;
+
+        await db.ref().update(updates);
+        localStorage.removeItem('lsh_queue_data');
+
+        document.getElementById('clearQueueConfirmModal').classList.add('hidden');
+        alert('เคลียร์คิว, ล้างเพลง และรีเซ็ตสถานะ queue เรียบร้อยแล้ว พร้อมเริ่มโชว์ใหม่!');
+        loadPage(localStorage.getItem('lsh_last_page') || 'monitor');
+      } catch (error) {
+        alert('เกิดข้อผิดพลาดในการเคลียร์คิว: ' + error.message);
+      }
+    }
+
+    function openLogoutConfirm() {
+      toggleDrawer(false);
+      document.getElementById('logoutConfirmModal').classList.remove('hidden');
+    }
+
+    function closeLogoutModal() {
+      document.getElementById('logoutConfirmModal').classList.add('hidden');
+    }
+
+    function confirmLogout() {
+      closeLogoutModal();
+      logout();
+    }
+
+    function selectRoom(roomName, isMainBand) {
+      selectedRoom = roomName;
+      document.getElementById('roomModal').classList.add('hidden');
+
+      if (isMainBand) {
+        document.getElementById('loginRoomLabel').innerText = roomName;
+        document.getElementById('memberLoginModal').classList.remove('hidden');
+      } else {
+        document.getElementById('guestQuestionModal').classList.remove('hidden');
+      }
+    }
+
+    function openMemberLogin() {
+      document.getElementById('guestQuestionModal').classList.add('hidden');
+      document.getElementById('loginRoomLabel').innerText = 'วงเฉพาะกิจ';
+      document.getElementById('memberLoginModal').classList.remove('hidden');
+    }
+
+    function openGuestForm() {
+      document.getElementById('guestQuestionModal').classList.add('hidden');
+      document.getElementById('guestFormModal').classList.remove('hidden');
+    }
+
+    async function submitMemberLogin() {
+      const uName = document.getElementById('usernameInput').value.trim().toLowerCase();
+      const pin = document.getElementById('pinInput').value.trim();
+
+      if (!uName || !pin) {
+        alert('กรุณากรอก Username และ PIN ให้ครบถ้วน');
+        return;
+      }
+
+      try {
+        const snapshot = await db.ref('users/' + uName).once('value');
+        if (snapshot.exists()) {
+          const userData = snapshot.val();
+          if (String(userData.pin) === String(pin)) {
+            saveSession(
+              selectedRoom, 
+              userData.nickname || uName, 
+              userData.role || 'Member', 
+              'member', 
+              uName,
+              userData.emoji || '👤'
+            );
+            closeAllModals();
+            applySession();
+          } else {
+            alert('รหัส PIN ไม่ถูกต้อง!');
+          }
+        } else {
+          alert('ไม่พบ Username นี้ในระบบ!');
+        }
+      } catch (error) {
+        alert('เกิดข้อผิดพลาดในการเชื่อมต่อ: ' + error.message);
+      }
+    }
+
+    function submitGuestLogin() {
+      const gName = document.getElementById('guestNameInput').value.trim();
+      if (!gName) {
+        alert('กรุณากรอกชื่อเล่น');
+        return;
+      }
+      saveSession('วงเฉพาะกิจ', gName, 'Guest', 'guest', '', '🎸');
+      closeAllModals();
+      applySession();
+    }
+
+    function saveSession(room, nickname, role, userType, username, emoji) {
+      const now = new Date();
+      const sessionData = {
+        room: room,
+        nickname: nickname,
+        role: role,
+        userType: userType,
+        username: username,
+        emoji: emoji,
+        loginTimestamp: now.getTime(),
+        loginDateStr: now.toDateString()
+      };
+      localStorage.setItem('lsh_session', JSON.stringify(sessionData));
+    }
+
+    function checkSession() {
+      const sessionStr = localStorage.getItem('lsh_session');
+      if (!sessionStr) {
+        showRoomModal();
+        return;
+      }
+      if (checkSessionExpiry()) {
+        closeAllModals();
+        applySession();
+      }
+    }
+
+    function checkSessionExpiry() {
+      const sessionStr = localStorage.getItem('lsh_session');
+      if (!sessionStr) return false;
+
+      const session = JSON.parse(sessionStr);
+      const now = new Date();
+      const loginTime = session.loginTimestamp;
+      const sixHoursInMs = 6 * 60 * 60 * 1000;
+      const timeDiff = now.getTime() - loginTime;
+
+      const remainingMs = Math.max(0, sixHoursInMs - timeDiff);
+      const hours = Math.floor(remainingMs / (1000 * 60 * 60));
+      const mins = Math.floor((remainingMs % (1000 * 60 * 60)) / (1000 * 60));
+      const secs = Math.floor((remainingMs % (1000 * 60)) / 1000);
+      
+      document.getElementById('sessionCountdown').innerText = 
+        `${String(hours).padStart(2,'0')}:${String(mins).padStart(2,'0')}:${String(secs).padStart(2,'0')}`;
+
+      if (timeDiff >= sixHoursInMs) {
+        triggerExpire('ครบกำหนดเวลาใช้งาน 6 ชั่วโมง กรุณาล็อกอินใหม่');
+        return false;
+      }
+
+      if (session.userType === 'guest') {
+        if (now.toDateString() !== session.loginDateStr && now.getHours() >= 6) {
+          triggerExpire('ระบบทำการรีเซ็ตผู้ใช้งานทั่วไปประจำวัน (06:00 น.)');
+          return false;
+        }
+      }
+
+      return true;
+    }
+
+    function triggerExpire(reason) {
+      localStorage.removeItem('lsh_session');
+      document.getElementById('expiredReasonText').innerText = reason;
+      closeAllModals();
+      document.getElementById('sessionExpiredModal').classList.remove('hidden');
+    }
+
+    function confirmReLogin() {
+      document.getElementById('sessionExpiredModal').classList.add('hidden');
+      showRoomModal();
+    }
+
+    function applySession() {
+      const session = JSON.parse(localStorage.getItem('lsh_session'));
+      if (!session) return;
+
+      const userDisplayText = `${session.nickname} ${session.role} : ${session.room}`;
+      document.getElementById('displayUserInfo').innerText = userDisplayText;
+      document.getElementById('userEmojiDisplay').innerText = session.emoji || '👤';
+
+      const lastPage = localStorage.getItem('lsh_last_page') || 'monitor';
+      const isNavPage = ['monitor', 'search', 'talkback', 'queue'].includes(lastPage);
+  
+      if (isNavPage) {
+        setActiveNav(lastPage);
+      } else {
+        document.querySelectorAll('nav button').forEach(btn => btn.classList.remove('active'));
+        loadPage(lastPage);
+      }
+    }
+
+    function cancelToRoomSelect() {
+      closeAllModals();
+      showRoomModal();
+    }
+
+    function closeAllModals() {
+      document.getElementById('roomModal').classList.add('hidden');
+      document.getElementById('guestQuestionModal').classList.add('hidden');
+      document.getElementById('memberLoginModal').classList.add('hidden');
+      document.getElementById('guestFormModal').classList.add('hidden');
+      document.getElementById('sessionExpiredModal').classList.add('hidden');
+      document.getElementById('logoutConfirmModal').classList.add('hidden');
+      
+      document.getElementById('usernameInput').value = '';
+      document.getElementById('pinInput').value = '';
+      document.getElementById('guestNameInput').value = '';
+    }
+
+    async function showRoomModal() {
+      closeAllModals();
+      const modal = document.getElementById('roomModal');
+      const box = document.getElementById('roomModalBox');
+      
+      if (!modal) return;
+      modal.classList.remove('hidden');
+      if (box) box.innerHTML = '<h3 style="color:#00f2d1;">กำลังโหลดรายชื่อวง...</h3>';
+
+      const renderRoomButtons = (roomKeys) => {
+        if (!box) return;
+        
+        let html = '<h3 style="margin-bottom:10px; color:#00f2d1;">เลือกวงดนตรี</h3>';
+        html += '<div class="room-grid">';
+        
+        const mainRooms = roomKeys.filter(r => r !== 'วงเฉพาะกิจ');
+        
+        mainRooms.forEach(rName => {
+          html += `<button onclick="selectRoom(\`${rName}\`, true)" class="room-square-btn">${rName}<br><span style="font-size:10px; font-weight:normal;">(สำหรับสมาชิก)</span></button>`;
+        });
+        
+        html += '</div>';
+        html += `<button onclick="selectRoom('วงเฉพาะกิจ', false)" class="room-full-btn">วงเฉพาะกิจ (Public)</button>`;
+
+        box.innerHTML = html;
+      };
+
+      try {
+        if (typeof db !== 'undefined') {
+          const snapshot = await db.ref('rooms').once('value');
+          const rooms = snapshot.val();
+          if (rooms && typeof rooms === 'object') {
+            renderRoomButtons(Object.keys(rooms));
+          } else {
+            renderRoomButtons(['PGL8', "It's P"]);
+          }
+        } else {
+          renderRoomButtons(['PGL8', "It's P"]);
+        }
+      } catch (e) {
+        renderRoomButtons(['PGL8', "It's P"]);
+      }
+    }
+
+    function logout() {
+      localStorage.removeItem('lsh_session');
+      localStorage.setItem('lsh_last_page', 'monitor');
+      document.getElementById('displayUserInfo').innerText = 'ยังไม่ได้เลือกห้อง';
+      document.getElementById('mainContentArea').innerHTML = '<p style="text-align:center; color:#666; margin-top:40px;">กรุณาล็อกอินเพื่อเริ่มใช้งาน...</p>';
+      showRoomModal();
+    }
+
+    function setActiveNav(pageName) {
+      document.querySelectorAll('nav button').forEach(btn => btn.classList.remove('active'));
+      const activeBtn = document.getElementById('nav-' + pageName);
+      if (activeBtn) activeBtn.classList.add('active');
+
+      localStorage.setItem('lsh_last_page', pageName);
+      loadPage(pageName);
+    }
+
+    async function loadPage(pageName) {
+      const sessionStr = localStorage.getItem('lsh_session');
+      if (!sessionStr) {
+        showRoomModal();
+        return;
+      }
+
+      const session = JSON.parse(sessionStr);
+      if (pageName === 'settings' && (session.userType === 'guest' || !session.username)) {
+        alert('เฉพาะสมาชิกเท่านั้นจึงจะสามารถเข้าใช้งานหน้าตั้งค่าได้ครับ!');
+        setActiveNav('monitor');
+        return;
+      }
+
+      const container = document.getElementById('mainContentArea');
+      container.innerHTML = '<p style="text-align:center; color:#aaa; margin-top:20px;">กำลังโหลดหน้า ' + pageName + '...</p>';
+
+      try {
+        const response = await fetch(pageName + '.html');
+        if (!response.ok) throw new Error('ยังไม่มีไฟล์ ' + pageName + '.html');
+        const html = await response.text();
+        container.innerHTML = html;
+
+        const scripts = Array.from(container.querySelectorAll('script'));
+        for (const oldScript of scripts) {
+          const newScript = document.createElement('script');
+          Array.from(oldScript.attributes).forEach(attr => newScript.setAttribute(attr.name, attr.value));
+          
+          if (oldScript.src) {
+            await new Promise((resolve, reject) => {
+              newScript.onload = resolve;
+              newScript.onerror = reject;
+              document.head.appendChild(newScript);
+            });
+          } else {
+            newScript.appendChild(document.createTextNode(oldScript.innerHTML));
+            oldScript.parentNode.replaceChild(newScript, oldScript);
+          }
+        }
+
+      } catch (err) {
+        container.innerHTML = `<p style="color:#ef4444; text-align:center; margin-top:20px;">เกิดข้อผิดพลาด: ${err.message}</p>`;
+      }
+    }
+
+    // เปิดหน้าต่าง Pop-up ประวัติเพลงรีเควส
+    async function openRequestHistoryModal() {
+      const sessionStr = localStorage.getItem('lsh_session');
+      if (!sessionStr) {
+        alert('กรุณาล็อกอินก่อนใช้งาน');
+        return;
+      }
+      const session = JSON.parse(sessionStr);
+      const room = session.room || 'PGL8';
+
+      const modal = document.getElementById('requestHistoryModal');
+      const contentContainer = document.getElementById('requestHistoryContent');
+      modal.classList.remove('hidden');
+      contentContainer.innerHTML = '<div style="text-align: center; color: #888; padding: 20px;">กำลังโหลดข้อมูล...</div>';
+
+      try {
+        const snapshot = await db.ref(`rooms/${room}/request`).once('value');
+        const storesData = snapshot.val();
+
+        if (!storesData || Object.keys(storesData).length === 0) {
+          contentContainer.innerHTML = '<div style="text-align: center; color: #666; padding: 20px;">ไม่มีประวัติเพลงรีเควสในขณะนี้</div>';
+          return;
+        }
+
+        let storeList = [];
+        for (let storeName in storesData) {
+          let songsObj = storesData[storeName];
+          let latestTime = 0;
+          let songsArray = [];
+
+          for (let pushKey in songsObj) {
+            let songInfo = songsObj[pushKey];
+            let songTime = songInfo.timestamp || songInfo.time || 0;
+            if (songTime > latestTime) latestTime = songTime;
+            songsArray.push({
+              id: pushKey,
+              ...songInfo
+            });
+          }
+          storeList.push({
+            storeName: storeName,
+            latestTime: latestTime,
+            songs: songsArray
+          });
+        }
+
+        storeList.sort((a, b) => b.latestTime - a.latestTime);
+
+        let html = '';
+        storeList.forEach(store => {
+          html += `
+            <div style="background: #111319; border: 1px solid #333; border-radius: 8px; padding: 10px;">
+              <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #222; padding-bottom: 6px; margin-bottom: 8px;">
+                <span style="font-weight: bold; color: #00f2d1; font-size: 14px;">🏠 ${store.storeName}</span>
+                <button onclick="confirmDeleteRoom('${store.storeName}')" style="background: #2a1515; border: 1px solid #ef4444; color: #ef4444; font-size: 10px; padding: 3px 8px; border-radius: 4px; cursor: pointer;">🗑️ ลบร้าน</button>
+              </div>
+              <div style="display: flex; flex-direction: column; gap: 6px;">
+          `;
+
+          if (store.songs.length === 0) {
+            html += `<div style="font-size: 12px; color: #666; padding: 4px;">ไม่มีเพลงในร้านนี้</div>`;
+          } else {
+            store.songs.forEach(song => {
+              let artistText = song.artist && song.artist !== '-' ? ` - ${song.artist}` : '';
+              
+              // 📌 ดึงวันที่จากโหนด date โดยตรง (เช่น "15/10/2569" หรือรูปแบบที่บันทึกไว้)
+              let dateStr = song.date || '-';
+
+              html += `
+                <div style="background: #181920; padding: 6px 8px; border-radius: 6px; font-size: 12px; display: flex; justify-content: space-between; align-items: center; gap: 8px;">
+                  <div style="overflow: hidden;">
+                    <span style="color: #fff; font-weight: bold; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block;">${song.title || 'ไม่ระบุชื่อเพลง'}${artistText}</span>
+                    <div style="font-size: 10px; color: #f59e0b; margin-top: 2px;">คีย์: ${song.key || '-'}</div>
+                  </div>
+                  <div style="font-size: 11px; color: #888; white-space: nowrap; background: #111319; padding: 3px 6px; border-radius: 4px; border: 1px solid #222;">
+                    📅 ${dateStr}
+                  </div>
+                </div>
+              `;
+            });
+          }
+
+          html += `</div></div>`;
+        });
+
+        contentContainer.innerHTML = html;
+
+      } catch (error) {
+        contentContainer.innerHTML = `<div style="color: #ef4444; text-align: center; padding: 20px;">เกิดข้อผิดพลาด: ${error.message}</div>`;
+      }
+    }
+
+    // ปิด Pop-up ประวัติเพลงรีเควส (รองรับการแตะพื้นที่นอกกล่อง)
+    function closeRequestHistoryModal(e) {
+      if (!e || e.target.id === 'requestHistoryModal') {
+        document.getElementById('requestHistoryModal').classList.add('hidden');
+      }
+    }
+
+    // เปิด Pop-up ยืนยันการลบข้อมูลร้าน
+    function confirmDeleteRoom(storeName) {
+      targetRoomToDelete = storeName;
+      document.getElementById('deleteRoomText').innerText = `คุณต้องการลบข้อมูลรีเควสทั้งหมดของร้าน "${storeName}" ใช่หรือไม่?`;
+      document.getElementById('deleteRoomConfirmModal').classList.remove('hidden');
+    }
+
+    // ปิด Pop-up ยืนยันการลบร้าน (รองรับการแตะพื้นที่นอกกล่อง)
+    function closeDeleteRoomModal(e) {
+      if (!e || e.target.id === 'deleteRoomConfirmModal') {
+        document.getElementById('deleteRoomConfirmModal').classList.add('hidden');
+        targetRoomToDelete = null;
+      }
+    }
+
+    // ดำเนินการลบร้านออกจาก Firebase จริง
+    async function executeDeleteRoom() {
+      if (!targetRoomToDelete) return;
+
+      const sessionStr = localStorage.getItem('lsh_session');
+      const session = sessionStr ? JSON.parse(sessionStr) : {};
+      const room = session.room || 'PGL8';
+
+      try {
+        await db.ref(`rooms/${room}/request/${targetRoomToDelete}`).remove();
+        document.getElementById('deleteRoomConfirmModal').classList.add('hidden');
+        targetRoomToDelete = null;
+        openRequestHistoryModal();
+      } catch (error) {
+        alert('เกิดข้อผิดพลาดในการลบข้อมูลร้าน: ' + error.message);
+      }
+    }
+  </script>
+</body>
+</html>

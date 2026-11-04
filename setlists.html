@@ -1,0 +1,1062 @@
+<!-- ========================================== -->
+<!-- หน้าเบื้องหลัง: แฟ้มลิสต์เพลง (setlists.html)    -->
+<!-- ========================================== -->
+<style>
+  .setlists-page { padding: 10px; color: #fff; font-family: sans-serif; position: relative; }
+  .setlists-page .hidden { display: none !important; }
+
+  /* แถบ Header บรรทัดบนสุด */
+  .setlists-page .top-action-bar {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 12px;
+  }
+  .setlists-page .btn-action-primary {
+    flex: 1;
+    padding: 12px;
+    background: #00f2d1;
+    color: #00382f;
+    font-weight: bold;
+    border: none;
+    border-radius: 10px;
+    font-size: 14px;
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(0,242,209,0.2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+  }
+  .setlists-page .btn-action-icon {
+    width: 46px;
+    padding: 12px;
+    background: #222430;
+    border: 1px solid #333;
+    color: #00f2d1;
+    border-radius: 10px;
+    font-size: 16px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* รายการแฟ้มลิสต์ */
+  .setlists-page .playlist-list { display: flex; flex-direction: column; gap: 10px; }
+  .setlists-page .playlist-card {
+    background: #1e202c;
+    border: 1px solid #333;
+    border-radius: 12px;
+    padding: 14px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    cursor: pointer;
+  }
+  .setlists-page .playlist-card.favorite { border-color: #f59e0b; }
+  .setlists-page .star-btn { background: none; border: none; font-size: 18px; cursor: pointer; color: #666; }
+  .setlists-page .star-btn.active { color: #f59e0b; }
+
+  /* Modals & Overlays เฉพาะหน้า Setlist */
+  .setlists-page .setlist-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 12000; display: flex; justify-content: center; align-items: center; }
+  .setlists-page .setlist-slide-panel { position: fixed; bottom: -100%; left: 0; right: 0; background: #1e202c; border-top: 2px solid #00f2d1; border-radius: 16px 16px 0 0; padding: 16px; z-index: 13000; transition: bottom 0.3s cubic-bezier(0.4, 0, 0.2, 1); max-height: 85vh; overflow-y: auto; }
+  .setlists-page .setlist-slide-panel.open { bottom: 0 !important; }
+
+  /* Editor List Item */
+  .setlists-page .editor-song-item {
+    background: #111319;
+    border: 1px solid #333;
+    border-radius: 10px;
+    padding: 10px;
+    margin-bottom: 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .setlists-page .song-note-text { font-size: 11px; color: #f59e0b; background: #262115; padding: 2px 6px; border-radius: 4px; display: inline-block; }
+
+  /* Calendar Widget UI */
+  .cal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+  .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; text-align: center; }
+  .cal-day-label { font-size: 11px; color: #aaa; padding-bottom: 4px; font-weight: bold; }
+  .cal-cell {
+    aspect-ratio: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    border-radius: 8px;
+    background: #12131a;
+    border: 1px solid #222;
+    cursor: pointer;
+    position: relative;
+  }
+  .cal-cell.empty { background: transparent; border: none; cursor: default; }
+  .cal-cell.has-data::after {
+    content: '';
+    width: 4px;
+    height: 4px;
+    background: #f59e0b;
+    border-radius: 50%;
+    position: absolute;
+    bottom: 3px;
+  }
+  .cal-cell.selected {
+    background: #00f2d1 !important;
+    color: #000 !important;
+    font-weight: bold;
+    box-shadow: 0 0 8px rgba(0,242,209,0.5);
+  }
+
+  /* Key Selector 12 Grid */
+  .setlists-page .key-grid-container {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+    margin-top: 12px;
+  }
+  .setlists-page .key-grid-btn {
+    padding: 10px;
+    background: #222430;
+    border: 1px solid #333;
+    color: #fff;
+    border-radius: 8px;
+    font-weight: bold;
+    font-size: 14px;
+    cursor: pointer;
+  }
+  .setlists-page .key-grid-btn.active {
+    border-color: #00f2d1;
+    background: #1a3a3a;
+    color: #00f2d1;
+    box-shadow: 0 0 8px rgba(0,242,209,0.4);
+  }
+
+  /* Form Box */
+  .setlists-page .setlist-form-box { background: #1e202c; padding: 20px; border-radius: 12px; width: 320px; border: 1px solid #444; }
+  .setlists-page .form-group { margin-bottom: 12px; text-align: left; }
+  .setlists-page .form-group label { display: block; font-size: 12px; color: #aaa; margin-bottom: 4px; }
+  .setlists-page .form-group input, .setlists-page .form-group select { width: 100%; padding: 10px; border-radius: 6px; border: 1px solid #333; background: #12131a; color: #fff; box-sizing: border-box; font-size: 14px; }
+
+  /* สีประจำ Set 1 - 5 */
+  .set-color-1 { border-left: 4px solid #00f2d1 !important; }
+  .set-color-2 { border-left: 4px solid #3b82f6 !important; }
+  .set-color-3 { border-left: 4px solid #f59e0b !important; }
+  .set-color-4 { border-left: 4px solid #ec4899 !important; }
+  .set-color-5 { border-left: 4px solid #8b5cf6 !important; }
+</style>
+
+<div class="setlists-page">
+  <!-- แถบควบคุมด้านบนสุด -->
+  <div class="top-action-bar">
+    <button id="btnOpenCreatePlaylist" class="btn-action-primary">➕ สร้างลิสต์เพลงใหม่</button>
+    <button id="btnOpenCalendar" class="btn-action-icon" title="ค้นหาตามวันที่">📅</button>
+  </div>
+
+  <!-- แถบแจ้งสถานะการกรองวันที่ -->
+  <div id="filterDateNotice" class="hidden" style="display:flex; justify-content:space-between; align-items:center; background:#1e202c; padding:8px 12px; border-radius:8px; margin-bottom:12px; border:1px solid #00f2d1;">
+    <span style="font-size:12px; color:#00f2d1;">📅 กรองแสดงเฉพาะ: <b id="selectedDateText">-</b></span>
+    <button id="btnClearDateFilter" style="background:none; border:none; color:#ef4444; font-size:12px; cursor:pointer; font-weight:bold;">✖ เคลียร์การกรอง</button>
+  </div>
+  
+  <!-- รายการแฟ้มลิสต์เพลง -->
+  <div id="masterPlaylistList" class="playlist-list">
+    <p style="text-align:center; color:#666; margin-top:20px;">กำลังโหลดแฟ้มลิสต์เพลง...</p>
+  </div>
+
+  <!-- ================= MODALS & DRAWERS ================= -->
+
+  <!-- 1. Pop-up เลือกวันที่จากปฏิทิน (Multi-Date Selector) -->
+  <div id="calendarModal" class="setlist-overlay hidden" onclick="window.closeCalendarModalAndFilter()">
+    <div class="setlist-form-box" onclick="event.stopPropagation()" style="width:310px;">
+      <div class="cal-header">
+        <button id="btnCalPrev" style="background:#222430; border:1px solid #333; color:#00f2d1; padding:4px 10px; border-radius:6px; cursor:pointer;">◄</button>
+        <span id="calMonthYearTitle" style="font-weight:bold; color:#fff; font-size:14px;">-</span>
+        <button id="btnCalNext" style="background:#222430; border:1px solid #333; color:#00f2d1; padding:4px 10px; border-radius:6px; cursor:pointer;">►</button>
+      </div>
+
+      <!-- ปฏิทิน Grid -->
+      <div id="calendarGrid" class="cal-grid"></div>
+
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-top:15px; border-top:1px solid #333; padding-top:10px;">
+        <button id="btnClearCalSelections" style="background:none; border:none; color:#ef4444; font-size:12px; cursor:pointer;">ล้างการเลือกวัน</button>
+        <button onclick="window.closeCalendarModalAndFilter()" style="padding:6px 14px; border-radius:6px; border:none; background:#00f2d1; color:#000; font-weight:bold; cursor:pointer; font-size:12px;">ตกลง</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 2. Pop-up สร้างลิสต์เพลงใหม่ -->
+  <div id="createPlaylistModal" class="setlist-overlay hidden" onclick="window.closeCreateModal()">
+    <div class="setlist-form-box" onclick="event.stopPropagation()">
+      <h3 style="color:#00f2d1; margin-bottom:12px;">สร้างแฟ้มลิสต์เพลงใหม่</h3>
+      <div class="form-group">
+        <label>ชื่อร้าน / สถานที่ *</label>
+        <input type="text" id="inputPlaylistVenue" placeholder="เช่น ร้านระเบียงไม้">
+      </div>
+      <div class="form-group">
+        <label>วันที่เล่น *</label>
+        <input type="date" id="inputPlaylistDate">
+      </div>
+      <div style="display:flex; justify-content:flex-end; gap:8px; margin-top:15px;">
+        <button id="btnSubmitCreatePlaylist" style="padding:10px 18px; border-radius:6px; border:none; background:#00f2d1; color:#000; font-weight:bold; cursor:pointer;">สร้างและจัดเพลง</button>
+        <button onclick="window.closeCreateModal()" style="padding:10px 18px; border-radius:6px; border:none; background:#333; color:#fff; cursor:pointer;">ยกเลิก</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 3. Drawer ดูรายละเอียดลิสต์เพลง (Bottom Sheet) -->
+  <div id="playlistDetailOverlay" class="setlist-overlay hidden" onclick="window.closePlaylistDetailDrawer()">
+    <div id="playlistDetailDrawer" class="setlist-slide-panel" onclick="event.stopPropagation()">
+      <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #333; padding-bottom:10px; margin-bottom:12px;">
+        <!-- ซ้าย: ชื่อร้าน-วันที่ + ปุ่ม Play -->
+        <div style="display:flex; align-items:center; gap:8px;">
+          <div>
+            <h3 id="detailVenueTitle" style="color:#00f2d1; margin:0; font-size:15px;">-</h3>
+            <span id="detailDateSubtitle" style="font-size:11px; color:#aaa;">-</span>
+          </div>
+          <button id="btnPlayLiveSet" style="background:#00f2d1; border:none; color:#00382f; font-weight:bold; padding:6px 10px; border-radius:6px; font-size:12px; cursor:pointer; display:flex; align-items:center; gap:4px;">
+            ▶ เลือกเล่นลิสต์นี้
+          </button>
+        </div>
+
+        <!-- ขวา: ดาว / ดินสอ / ถังขยะ -->
+        <div style="display:flex; align-items:center; gap:8px;">
+          <button id="btnDetailStar" style="background:none; border:none; font-size:18px; cursor:pointer; color:#666;">★</button>
+          <button id="btnDetailEdit" style="background:none; border:none; font-size:18px; cursor:pointer;">✏️</button>
+          <button id="btnDetailDelete" style="background:none; border:none; font-size:18px; cursor:pointer;">🗑️</button>
+        </div>
+      </div>
+
+      <div id="detailSongsListContainer" style="display:flex; flex-direction:column; gap:8px;"></div>
+    </div>
+  </div>
+
+  <!-- 4. Drawer หน้าสร้าง/แก้ไขจัดคิวเพลง (Playlist Editor Screen) -->
+  <div id="playlistEditorOverlay" class="setlist-overlay hidden" onclick="window.handleEditorOverlayClick()">
+    <div id="playlistEditorDrawer" class="setlist-slide-panel" onclick="event.stopPropagation()">
+      <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #333; padding-bottom:10px; margin-bottom:12px;">
+        <div>
+          <h3 id="editorVenueTitle" style="color:#00f2d1; margin:0; font-size:16px;">แก้ไขลิสต์</h3>
+          <span id="editorDateSubtitle" style="font-size:12px; color:#aaa;">-</span>
+        </div>
+        <button id="btnOpenSaveConfirm" style="padding:8px 16px; border-radius:6px; border:none; background:#00f2d1; color:#000; font-weight:bold; cursor:pointer;">💾 บันทึก</button>
+      </div>
+
+      <button id="btnOpenSongSelector" style="width:100%; padding:10px; background:#222430; border:1px dashed #00f2d1; color:#00f2d1; border-radius:8px; font-weight:bold; cursor:pointer; margin-bottom:12px;">+ เลือกเพลงจากคลังใส่ลิสต์</button>
+
+      <div id="editorSongsContainer"></div>
+    </div>
+  </div>
+
+  <!-- 5. Drawer เลือกเพลงจากคลังกลาง (สไลด์จากซ้ายไปขวา) -->
+  <div id="songSelectorOverlay" class="setlist-overlay hidden" onclick="window.closeSongSelectorDrawer()" style="z-index:14000;">
+    <div id="songSelectorDrawer" class="setlist-slide-panel" onclick="event.stopPropagation()" style="z-index:14001; top:0; bottom:0; left:-100%; width:88%; max-height:100vh; border-radius:0 16px 16px 0; border-top:none; border-right:2px solid #00f2d1; transition:left 0.3s ease; padding:12px;">
+      
+      <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #333; padding-bottom:8px; margin-bottom:8px;">
+        <h3 style="color:#00f2d1; margin:0; font-size:15px;">เลือกเพลงใส่แฟ้มลิสต์</h3>
+        <button onclick="window.closeSongSelectorDrawer()" style="background:none; border:none; color:#aaa; font-size:18px; cursor:pointer;">✖</button>
+      </div>
+
+      <div style="display:flex; gap:6px; margin-bottom:6px;">
+        <input type="text" id="selectorSearchInput" placeholder="พิมพ์ชื่อเพลง/ศิลปิน..." style="flex:1; padding:8px 10px; border-radius:6px; border:1px solid #333; background:#12131a; color:#fff; font-size:13px;">
+        <button id="btnToggleSelectorLine2" style="padding:6px 10px; border-radius:6px; border:1px solid #333; background:#222430; color:#00f2d1; font-size:11px; cursor:pointer;">▼</button>
+      </div>
+
+      <div id="selectorLine2" style="display:flex; justify-content:space-between; align-items:center; background:#1e202c; padding:6px 8px; border-radius:6px; border:1px solid #333; gap:6px; margin-bottom:8px;" class="hidden">
+        <label style="font-size:11px; color:#aaa; display:flex; align-items:center; gap:4px;">
+          คีย์:
+          <select id="selectorKeyFilterSelect" style="padding:4px; border-radius:4px; border:1px solid #333; background:#12131a; color:#00f2d1; font-weight:bold; font-size:11px;">
+            <option value="ALL">ทั้งหมด (All)</option>
+          </select>
+        </label>
+
+        <label style="font-size:11px; color:#aaa; display:flex; align-items:center; gap:4px;">
+          จัดเรียง:
+          <select id="selectorSortSelect" style="padding:4px; border-radius:4px; border:1px solid #333; background:#12131a; color:#fff; font-size:11px;">
+            <option value="title">ชื่อเพลง</option>
+            <option value="artist">ชื่อศิลปิน</option>
+            <option value="key">คีย์</option>
+            <option value="bpm">BPM</option>
+            <option value="playCount">เล่นบ่อยสุด</option>
+          </select>
+        </label>
+      </div>
+
+      <div id="selectorSongsContainer" style="display:flex; flex-direction:column; gap:6px; overflow-y:auto; max-height:calc(100vh - 120px);"></div>
+    </div>
+  </div>
+
+  <!-- Pop-up ยืนยันเมื่อมีข้อมูลยังไมเค้าบันทึก (Unsaved Warning) -->
+  <div id="unsavedWarningModal" class="setlist-overlay hidden" style="z-index:15500;">
+    <div class="setlist-form-box" style="text-align:center;">
+      <h3 style="color:#f59e0b; margin-bottom:10px;">⚠️ ยังไม่ได้บันทึกข้อมูล</h3>
+      <p style="font-size:13px; color:#ccc; margin-bottom:15px;">คุณต้องการออกจากหน้านี้โดยไม่บันทึกใช่หรือไม่?</p>
+      <div style="display:flex; justify-content:center; gap:10px;">
+        <button id="btnConfirmDiscardEditor" style="padding:8px 16px; border-radius:6px; border:none; background:#ef4444; color:#fff; font-weight:bold; cursor:pointer;">ยืนยัน (ไม่บันทึก)</button>
+        <button onclick="window.closeUnsavedModal()" style="padding:8px 16px; border-radius:6px; border:none; background:#333; color:#fff; cursor:pointer;">แก้ไขต่อ</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Pop-up ยืนยันการบันทึก -->
+  <div id="saveConfirmModal" class="setlist-overlay hidden" style="z-index:15000;">
+    <div class="setlist-form-box" style="text-align:center;">
+      <h3 style="color:#00f2d1; margin-bottom:10px;">💾 ยืนยันการบันทึก</h3>
+      <p style="font-size:13px; color:#ccc; margin-bottom:15px;">ต้องการบันทึกการเปลี่ยนแปลงแฟ้มลิสต์เพลงนี้ใช่หรือไม่?</p>
+      <div style="display:flex; justify-content:center; gap:10px;">
+        <button id="btnExecuteSavePlaylist" style="padding:8px 18px; border-radius:6px; border:none; background:#00f2d1; color:#000; font-weight:bold; cursor:pointer;">ยืนยันบันทึก</button>
+        <button onclick="window.closeSaveModal()" style="padding:8px 18px; border-radius:6px; border:none; background:#333; color:#fff; cursor:pointer;">ยกเลิก</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Pop-up ยืนยันการลบลิสต์ -->
+  <div id="deleteConfirmModal" class="setlist-overlay hidden" style="z-index:15000;">
+    <div class="setlist-form-box" style="text-align:center;">
+      <h3 style="color:#ef4444; margin-bottom:10px;">🗑️ ยืนยันการลบลิสต์เพลง</h3>
+      <p style="font-size:13px; color:#ccc; margin-bottom:15px;">ต้องการลบแฟ้มลิสต์เพลงนี้ออกจากระบบใช่หรือไม่?</p>
+      <div style="display:flex; justify-content:center; gap:10px;">
+        <button id="btnExecuteDeletePlaylist" style="padding:8px 18px; border-radius:6px; border:none; background:#ef4444; color:#fff; font-weight:bold; cursor:pointer;">ยืนยันลบ</button>
+        <button onclick="window.closeDeleteModal()" style="padding:8px 18px; border-radius:6px; border:none; background:#333; color:#fff; cursor:pointer;">ยกเลิก</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Pop-up เลือกคีย์ 12 ปุ่ม -->
+  <div id="keySelectorModal" class="setlist-overlay hidden" onclick="window.closeKeyModal()" style="z-index:16000;">
+    <div class="setlist-form-box" onclick="event.stopPropagation()" style="text-align:center; width:300px;">
+      <h3 style="color:#00f2d1; margin-bottom:4px;">เลือกคีย์เพลง</h3>
+      <p style="font-size:12px; color:#aaa; margin-bottom:10px;">เลือกคีย์เฉพาะสำหรับโชว์นี้</p>
+      <div id="keyGrid" class="key-grid-container"></div>
+      <button onclick="window.closeKeyModal()" style="margin-top:15px; width:100%; padding:8px; border-radius:6px; border:none; background:#333; color:#fff; cursor:pointer;">ยกเลิก</button>
+    </div>
+  </div>
+
+  <!-- Pop-up กรอกโน้ตประจำเพลง -->
+  <div id="noteModal" class="setlist-overlay hidden" onclick="window.closeNoteModal()" style="z-index:16000;">
+    <div class="setlist-form-box" onclick="event.stopPropagation()">
+      <h3 style="color:#f59e0b; margin-bottom:10px;">📝 โน้ตบันทึกพิเศษ</h3>
+      <div class="form-group">
+        <label>ข้อความโน้ต (เช่น อินโทรเปียโนก่อน, ดรอปคีย์)</label>
+        <input type="text" id="inputSongNote" placeholder="พิมพ์โน้ตประจำโชว์นี้...">
+      </div>
+      <div style="display:flex; justify-content:flex-end; gap:8px; margin-top:15px;">
+        <button id="btnSaveNote" style="padding:8px 16px; border-radius:6px; border:none; background:#f59e0b; color:#000; font-weight:bold; cursor:pointer;">ตกลง</button>
+        <button onclick="window.closeNoteModal()" style="padding:8px 16px; border-radius:6px; border:none; background:#333; color:#fff; cursor:pointer;">ยกเลิก</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  (function() {
+    let allSongsData = {};
+    let allPlaylistsData = {};
+    
+    const sessionStr = localStorage.getItem('lsh_session');
+    const session = sessionStr ? JSON.parse(sessionStr) : {};
+    let selectedRoom = session.room || 'PGL8';
+    
+    let currentPlaylistId = null;
+    let selectedDatesSet = new Set(); // เก็บรายการวันที่ที่เลือกจากปฏิทิน
+    let editorSongsList = [];
+    let isEditorDirty = false; // ตัวแปรเช็กว่ามีการแก้ไขใน Editor หรือยัง
+
+    let currentCalYear = new Date().getFullYear();
+    let currentCalMonth = new Date().getMonth();
+
+    let editingSongIndexForKey = null;
+    let editingSongIndexForNote = null;
+
+    const majorKeys = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+    const minorKeys = ['Cm', 'C#m', 'Dm', 'D#m', 'Em', 'Fm', 'F#m', 'Gm', 'G#m', 'Am', 'A#m', 'Bm'];
+
+    if (typeof db !== 'undefined') {
+      db.ref('songs').on('value', (snapshot) => {
+        allSongsData = snapshot.val() || {};
+        renderPlaylistsList();
+      });
+
+      db.ref(`rooms/${selectedRoom}/setlists`).on('value', (snapshot) => {
+        allPlaylistsData = snapshot.val() || {};
+        renderPlaylistsList();
+      });
+    }
+
+    function renderPlaylistsList() {
+      const container = document.getElementById('masterPlaylistList');
+      if (!container) return;
+
+      let list = Object.keys(allPlaylistsData).map(id => ({
+        id: id,
+        ...allPlaylistsData[id]
+      }));
+
+      // กรองตามปฏิทิน (ถ้าเลือกไว้หลายวัน)
+      if (selectedDatesSet.size > 0) {
+        list = list.filter(item => selectedDatesSet.has(item.date));
+      }
+
+      list.sort((a, b) => {
+        const favA = a.favorite ? 1 : 0;
+        const favB = b.favorite ? 1 : 0;
+        if (favA !== favB) return favB - favA;
+        return new Date(b.date) - new Date(a.date);
+      });
+
+      if (list.length === 0) {
+        container.innerHTML = `
+          <div style="text-align:center; padding:40px 20px; background:#181a24; border-radius:12px; border:1px dashed #333;">
+            <div style="font-size:32px; margin-bottom:8px;">📂</div>
+            <div style="color:#00f2d1; font-weight:bold;">${selectedDatesSet.size > 0 ? 'ไม่พบลิสต์เพลงในวันที่เลือก' : 'ยังไม่มีแฟ้มลิสต์เพลง'}</div>
+            <div style="color:#aaa; font-size:12px; margin-top:4px;">กดปุ่ม + ด้านบนเพื่อเริ่มสร้างแฟ้มลิสต์เพลงแรกของคุณ</div>
+          </div>
+        `;
+        return;
+      }
+
+      let html = '';
+      list.forEach(item => {
+        const songsObj = item.songs || {};
+        const songKeys = Object.keys(songsObj);
+        const songCount = songKeys.length;
+        const isFav = item.favorite || false;
+
+        let previewTitles = [];
+        for (let i = 0; i < Math.min(3, songCount); i++) {
+          const sId = songsObj[songKeys[i]].songId;
+          if (allSongsData[sId] && allSongsData[sId].title) {
+            previewTitles.push(allSongsData[sId].title);
+          }
+        }
+        const previewStr = previewTitles.length > 0 ? previewTitles.join(', ') + (songCount > 3 ? '...' : '') : 'ยังไม่มีเพลงในลิสต์';
+
+        html += `
+          <div class="playlist-card ${isFav ? 'favorite' : ''}" onclick="window.openPlaylistDetailDrawer('${item.id}')">
+            <div style="display:flex; align-items:center; gap:10px; flex:1;">
+              <button class="star-btn ${isFav ? 'active' : ''}" onclick="event.stopPropagation(); window.toggleFavSetlist('${item.id}', ${isFav})">★</button>
+              <div>
+                <div style="font-weight:bold; color:#fff; font-size:15px;">${item.venue || 'ไม่ระบุสถานที่'} - <span style="color:#00f2d1;">${item.date || '-'}</span></div>
+                <div style="font-size:12px; color:#aaa; margin-top:2px;">${previewStr}</div>
+              </div>
+            </div>
+            <div style="font-size:12px; font-weight:bold; color:#00f2d1; background:#12131a; padding:4px 8px; border-radius:6px; border:1px solid #333;">
+              ${songCount} เพลง
+            </div>
+          </div>
+        `;
+      });
+      container.innerHTML = html;
+    }
+
+    window.toggleFavSetlist = function(plId, currentFav) {
+      db.ref(`rooms/${selectedRoom}/setlists/${plId}/favorite`).set(!currentFav);
+    };
+
+    // --- ระบบ Calendar Multi-Date Selector ---
+    function renderCalendarGrid() {
+      const titleEl = document.getElementById('calMonthYearTitle');
+      const gridEl = document.getElementById('calendarGrid');
+      if (!titleEl || !gridEl) return;
+
+      const monthNames = ["มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน", "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"];
+      titleEl.innerText = `${monthNames[currentCalMonth]} ${currentCalYear + 543}`;
+
+      // รวมวันที่ที่มีลิสต์เพลงอยู่
+      const existingDates = new Set();
+      Object.keys(allPlaylistsData).forEach(id => {
+        if (allPlaylistsData[id].date) existingDates.add(allPlaylistsData[id].date);
+      });
+
+      const firstDay = new Date(currentCalYear, currentCalMonth, 1).getDay();
+      const daysInMonth = new Date(currentCalYear, currentCalMonth + 1, 0).getDate();
+
+      let html = `
+        <div class="cal-day-label">อา</div><div class="cal-day-label">จ</div><div class="cal-day-label">อ</div>
+        <div class="cal-day-label">พ</div><div class="cal-day-label">พฤ</div><div class="cal-day-label">ศ</div><div class="cal-day-label">ส</div>
+      `;
+
+      for (let i = 0; i < firstDay; i++) {
+        html += `<div class="cal-cell empty"></div>`;
+      }
+
+      for (let day = 1; day <= daysInMonth; day++) {
+        const dStr = `${currentCalYear}-${String(currentCalMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+        const hasData = existingDates.has(dStr);
+        const isSelected = selectedDatesSet.has(dStr);
+
+        html += `
+          <div class="cal-cell ${hasData ? 'has-data' : ''} ${isSelected ? 'selected' : ''}" onclick="window.toggleCalDateSelect('${dStr}')">
+            ${day}
+          </div>
+        `;
+      }
+      gridEl.innerHTML = html;
+    }
+
+    window.toggleCalDateSelect = function(dateStr) {
+      if (selectedDatesSet.has(dateStr)) {
+        selectedDatesSet.delete(dateStr);
+      } else {
+        selectedDatesSet.add(dateStr);
+      }
+      renderCalendarGrid();
+    };
+
+    document.getElementById('btnCalPrev').onclick = function() {
+      currentCalMonth--;
+      if (currentCalMonth < 0) { currentCalMonth = 11; currentCalYear--; }
+      renderCalendarGrid();
+    };
+
+    document.getElementById('btnCalNext').onclick = function() {
+      currentCalMonth++;
+      if (currentCalMonth > 11) { currentCalMonth = 0; currentCalYear++; }
+      renderCalendarGrid();
+    };
+
+    document.getElementById('btnClearCalSelections').onclick = function() {
+      selectedDatesSet.clear();
+      renderCalendarGrid();
+    };
+
+    document.getElementById('btnOpenCalendar').onclick = function() {
+      renderCalendarGrid();
+      document.getElementById('calendarModal').classList.remove('hidden');
+    };
+
+    window.closeCalendarModalAndFilter = function() {
+      document.getElementById('calendarModal').classList.add('hidden');
+      if (selectedDatesSet.size > 0) {
+        document.getElementById('selectedDateText').innerText = Array.from(selectedDatesSet).join(', ');
+        document.getElementById('filterDateNotice').classList.remove('hidden');
+      } else {
+        document.getElementById('filterDateNotice').classList.add('hidden');
+      }
+      renderPlaylistsList();
+    };
+
+    document.getElementById('btnClearDateFilter').onclick = function() {
+      selectedDatesSet.clear();
+      document.getElementById('filterDateNotice').classList.add('hidden');
+      renderPlaylistsList();
+    };
+
+    // --- Drawer ดูรายละเอียดลิสต์เพลง (Bottom Sheet) ---
+    window.openPlaylistDetailDrawer = function(plId) {
+      currentPlaylistId = plId;
+      const pl = allPlaylistsData[plId];
+      if (!pl) return;
+
+      document.getElementById('detailVenueTitle').innerText = pl.venue || 'ไม่ระบุสถานที่';
+      document.getElementById('detailDateSubtitle').innerText = 'วันที่: ' + (pl.date || '-');
+
+      const starBtn = document.getElementById('btnDetailStar');
+      if (pl.favorite) {
+        starBtn.classList.add('active');
+        starBtn.style.color = '#f59e0b';
+      } else {
+        starBtn.classList.remove('active');
+        starBtn.style.color = '#666';
+      }
+
+      const container = document.getElementById('detailSongsListContainer');
+      const songsObj = pl.songs || {};
+      const keys = Object.keys(songsObj);
+
+      if (keys.length === 0) {
+        container.innerHTML = '<p style="text-align:center; color:#666; font-size:13px; margin:20px 0;">ยังไม่มีเพลงในลิสต์นี้</p>';
+      } else {
+        let html = '';
+        keys.forEach((k, idx) => {
+          const item = songsObj[k];
+          const songMaster = allSongsData[item.songId] || {};
+          const title = songMaster.title || 'เพลงถูกลบแล้ว';
+          const artist = songMaster.artist || 'ไม่ระบุศิลปิน';
+          const bpm = songMaster.bpm || '-';
+          const displayKey = item.key || songMaster.key || '-';
+          const setNum = (item.set || 'Set 1').replace('Set ', '');
+
+          html += `
+            <div class="editor-song-item set-color-${setNum}">
+              <div style="display:flex; justify-content:space-between; align-items:center;">
+                <div>
+                  <b style="color:#fff; font-size:14px;">${idx + 1}. ${title}</b>
+                  <span style="color:#aaa; font-size:12px;"> (${artist})</span>
+                </div>
+                <span style="color:#00f2d1; font-weight:bold; font-size:13px;">คีย์: ${displayKey}</span>
+              </div>
+              <div style="display:flex; justify-content:space-between; align-items:center; font-size:12px; color:#aaa;">
+                <span>BPM: ${bpm}</span>
+                <span style="color:#666;">Set ${setNum}</span>
+              </div>
+              ${item.note ? `<div><span class="song-note-text">📝 ${item.note}</span></div>` : ''}
+            </div>
+          `;
+        });
+        container.innerHTML = html;
+      }
+
+      document.getElementById('playlistDetailOverlay').classList.remove('hidden');
+      setTimeout(() => {
+        document.getElementById('playlistDetailDrawer').classList.add('open');
+      }, 10);
+    };
+
+    window.closePlaylistDetailDrawer = function() {
+      document.getElementById('playlistDetailDrawer').classList.remove('open');
+      setTimeout(() => {
+        document.getElementById('playlistDetailOverlay').classList.add('hidden');
+      }, 300);
+    };
+
+    // 🎵 กดปุ่มเล่นลิสต์นี้ -> เคลียร์คิวและท็อคแบคเก่าทิ้ง แล้วบันทึกข้อมูลลิสต์ใหม่ลงฐานข้อมูลห้อง
+    document.getElementById('btnPlayLiveSet').onclick = async function() {
+      if (!currentPlaylistId) return;
+      const pl = allPlaylistsData[currentPlaylistId];
+      if (!pl || !pl.songs) {
+        alert('ในแฟ้มลิสต์นี้ยังไม่มีเพลง กรุณาเพิ่มเพลงก่อนเล่นครับ');
+        return;
+      }
+
+      // แปลงข้อมูลเพลงในเซ็ตลิสต์ โดยถ้าไม่มี BPM ให้ใส่เครื่องหมาย '-' แทน
+      let queuePayload = [];
+      Object.keys(pl.songs).forEach((k, idx) => {
+        const item = pl.songs[k];
+        const songMaster = allSongsData[item.songId] || {};
+        
+        let rawBpm = songMaster.bpm;
+        let finalBpm = (rawBpm !== undefined && rawBpm !== null && String(rawBpm).trim() !== '') ? rawBpm : '-';
+        
+        queuePayload.push({
+          id: 'q_' + idx,
+          songId: item.songId,
+          title: songMaster.title || 'ไม่ระบุชื่อเพลง',
+          artist: songMaster.artist || 'ไม่ระบุศิลปิน',
+          key: item.key || songMaster.key || '-',
+          bpm: finalBpm,
+          note: item.note || '-',
+          set: item.set || 'Set 1',
+          status: idx === 0 ? 'playing' : (idx === 1 ? 'next' : (idx === 2 ? 'standby' : 'normal')),
+          type: 'normal'
+        });
+      });
+
+      try {
+        // เตรียมชุดคำสั่งอัปเดตข้อมูลแบบล้างค่าคิวและท็อคแบคเก่าออกทั้งหมดในครั้งเดียว
+        const updates = {};
+        
+        // 1. ตั้งค่าคิวเพลงใหม่ (เขียนทับคิวเก่า)
+        updates[`rooms/${selectedRoom}/queue`] = {
+          activeSetlistId: currentPlaylistId,
+          venue: pl.venue || '',
+          date: pl.date || '',
+          songs: queuePayload,
+          updatedAt: Date.now()
+        };
+
+        // 2. เคลียร์ท็อคแบคและสถานะเก่าของงานก่อนหน้าทิ้งทั้งหมด
+        updates[`rooms/${selectedRoom}/talkbacks`] = null;
+        updates[`rooms/${selectedRoom}/latestTalkback`] = "สแตนบายรอคำสั่ง...";
+        updates[`rooms/${selectedRoom}/currentCue`] = null;
+        updates[`rooms/${selectedRoom}/requestStats`] = null;
+
+        // ส่งคำสั่งอัปเดตเข้า Firebase พร้อมกัน
+        await db.ref().update(updates);
+
+        // บันทึกสำรองลง LocalStorage ไว้ใช้งาน
+        localStorage.setItem('lsh_active_setlist_id', currentPlaylistId);
+        localStorage.setItem('lsh_active_queue', JSON.stringify(queuePayload));
+        localStorage.removeItem('lsh_queue_data');
+
+        // ปิด Drawer และเปลี่ยนหน้าไปที่หน้าจัดคิว
+        closePlaylistDetailDrawer();
+        
+        if (typeof window.setActiveNav === 'function') {
+          window.setActiveNav('queue');
+        } else {
+          location.href = 'queue.html';
+        }
+      } catch (e) {
+        alert('เกิดข้อผิดพลาดในการตั้งค่าคิว: ' + e.message);
+      }
+    };
+
+    document.getElementById('btnDetailStar').onclick = function() {
+      if (!currentPlaylistId) return;
+      const currentFav = allPlaylistsData[currentPlaylistId]?.favorite || false;
+      window.toggleFavSetlist(currentPlaylistId, currentFav);
+      openPlaylistDetailDrawer(currentPlaylistId);
+    };
+
+    document.getElementById('btnDetailEdit').onclick = function() {
+      closePlaylistDetailDrawer();
+      openPlaylistEditor(currentPlaylistId);
+    };
+
+    document.getElementById('btnDetailDelete').onclick = function() {
+      document.getElementById('deleteConfirmModal').classList.remove('hidden');
+    };
+
+    // --- หน้าแก้ไขจัดคิวเพลง (Playlist Editor) + ระบบ Unsaved Check ---
+    function openPlaylistEditor(plId) {
+      currentPlaylistId = plId;
+      const pl = allPlaylistsData[plId];
+      if (!pl) return;
+
+      document.getElementById('editorVenueTitle').innerText = pl.venue || 'แก้ไขลิสต์';
+      document.getElementById('editorDateSubtitle').innerText = 'วันที่: ' + (pl.date || '-');
+
+      editorSongsList = [];
+      if (pl.songs) {
+        Object.keys(pl.songs).forEach(k => {
+          editorSongsList.push({ ...pl.songs[k] });
+        });
+      }
+
+      isEditorDirty = false; // รีเซ็ต Flag
+      renderEditorSongsList();
+      
+      document.getElementById('playlistEditorOverlay').classList.remove('hidden');
+      setTimeout(() => {
+        document.getElementById('playlistEditorDrawer').classList.add('open');
+      }, 10);
+    }
+
+    window.handleEditorOverlayClick = function() {
+      if (isEditorDirty) {
+        document.getElementById('unsavedWarningModal').classList.remove('hidden');
+      } else {
+        closePlaylistEditorDrawerDirect();
+      }
+    };
+
+    function closePlaylistEditorDrawerDirect() {
+      document.getElementById('playlistEditorDrawer').classList.remove('open');
+      setTimeout(() => {
+        document.getElementById('playlistEditorOverlay').classList.add('hidden');
+      }, 300);
+    }
+
+    window.closeUnsavedModal = function() {
+      document.getElementById('unsavedWarningModal').classList.add('hidden');
+    };
+
+    document.getElementById('btnConfirmDiscardEditor').onclick = function() {
+      closeUnsavedModal();
+      closePlaylistEditorDrawerDirect();
+    };
+
+    function renderEditorSongsList() {
+      const container = document.getElementById('editorSongsContainer');
+      if (!container) return;
+
+      if (editorSongsList.length === 0) {
+        container.innerHTML = '<p style="text-align:center; color:#666; font-size:13px; margin:20px 0;">ยังไม่มีเพลงในลิสต์นี้</p>';
+        return;
+      }
+
+      let html = '';
+      editorSongsList.forEach((item, idx) => {
+        const songMaster = allSongsData[item.songId] || {};
+        const title = songMaster.title || 'เพลงถูกลบแล้ว';
+        const artist = songMaster.artist || 'ไม่ระบุศิลปิน';
+        const displayKey = item.key || songMaster.key || '-';
+        const setVal = item.set || 'Set 1';
+        const setNum = setVal.replace('Set ', '');
+
+        html += `
+          <div class="editor-song-item set-color-${setNum}">
+            <div>
+              <b style="color:#fff; font-size:14px;">${idx + 1}. ${title}</b>
+              <span style="color:#aaa; font-size:12px;"> (${artist})</span>
+              ${item.note ? `<div><span class="song-note-text">📝 ${item.note}</span></div>` : ''}
+            </div>
+
+            <div style="display:flex; justify-content:space-between; align-items:center; gap:4px; margin-top:2px;">
+              <div style="display:flex; gap:2px;">
+                <button onclick="window.moveSetlistSong(${idx}, -1)" ${idx === 0 ? 'disabled' : ''} style="background:#222430; border:1px solid #444; color:#fff; border-radius:4px; padding:4px 6px; cursor:pointer;">▲</button>
+                <button onclick="window.moveSetlistSong(${idx}, 1)" ${idx === editorSongsList.length - 1 ? 'disabled' : ''} style="background:#222430; border:1px solid #444; color:#fff; border-radius:4px; padding:4px 6px; cursor:pointer;">▼</button>
+              </div>
+
+              <button onclick="window.openSetlistKeyModal(${idx})" style="background:#1a3a3a; border:1px solid #00f2d1; color:#00f2d1; font-weight:bold; padding:4px 8px; border-radius:4px; cursor:pointer; font-size:12px;">
+                ${displayKey}
+              </button>
+
+              <button onclick="window.openSetlistNoteModal(${idx})" style="background:#222430; border:1px solid #444; color:#f59e0b; border-radius:4px; padding:4px 8px; cursor:pointer; font-size:12px;">📝</button>
+
+              <select onchange="window.changeSetlistSet(${idx}, this.value)" style="background:#222430; border:1px solid #444; color:#fff; border-radius:4px; padding:3px; font-size:11px;">
+                <option value="Set 1" ${setVal === 'Set 1' ? 'selected' : ''}>Set 1</option>
+                <option value="Set 2" ${setVal === 'Set 2' ? 'selected' : ''}>Set 2</option>
+                <option value="Set 3" ${setVal === 'Set 3' ? 'selected' : ''}>Set 3</option>
+                <option value="Set 4" ${setVal === 'Set 4' ? 'selected' : ''}>Set 4</option>
+                <option value="Set 5" ${setVal === 'Set 5' ? 'selected' : ''}>Set 5</option>
+              </select>
+
+              <button onclick="window.removeSetlistSong(${idx})" style="background:#3a1a1a; border:1px solid #ef4444; color:#ef4444; border-radius:4px; padding:4px 8px; cursor:pointer;">🗑️</button>
+            </div>
+          </div>
+        `;
+      });
+      container.innerHTML = html;
+    }
+
+    window.moveSetlistSong = function(idx, dir) {
+      const target = idx + dir;
+      if (target < 0 || target >= editorSongsList.length) return;
+      const temp = editorSongsList[idx];
+      editorSongsList[idx] = editorSongsList[target];
+      editorSongsList[target] = temp;
+      isEditorDirty = true;
+      renderEditorSongsList();
+    };
+
+    window.changeSetlistSet = function(idx, val) {
+      editorSongsList[idx].set = val;
+      isEditorDirty = true;
+      renderEditorSongsList();
+    };
+
+    window.removeSetlistSong = function(idx) {
+      editorSongsList.splice(idx, 1);
+      isEditorDirty = true;
+      renderEditorSongsList();
+    };
+
+    // --- Controls & Pop-ups ---
+    document.getElementById('btnOpenCreatePlaylist').onclick = function() {
+      document.getElementById('inputPlaylistVenue').value = '';
+      document.getElementById('inputPlaylistDate').value = new Date().toISOString().split('T')[0];
+      document.getElementById('createPlaylistModal').classList.remove('hidden');
+    };
+
+    window.closeCreateModal = function() {
+      document.getElementById('createPlaylistModal').classList.add('hidden');
+    };
+
+    document.getElementById('btnSubmitCreatePlaylist').onclick = async function() {
+      const venue = document.getElementById('inputPlaylistVenue').value.trim();
+      const date = document.getElementById('inputPlaylistDate').value;
+      if (!venue || !date) {
+        alert('กรุณากรอกชื่อร้านและเลือกวันที่เล่น');
+        return;
+      }
+
+      const newRef = db.ref(`rooms/${selectedRoom}/setlists`).push();
+      await newRef.set({
+        venue: venue,
+        date: date,
+        favorite: false,
+        createdAt: Date.now(),
+        songs: {}
+      });
+
+      closeCreateModal();
+      openPlaylistEditor(newRef.key);
+    };
+
+    document.getElementById('btnOpenSaveConfirm').onclick = function() {
+      document.getElementById('saveConfirmModal').classList.remove('hidden');
+    };
+
+    window.closeSaveModal = function() {
+      document.getElementById('saveConfirmModal').classList.add('hidden');
+    };
+
+    document.getElementById('btnExecuteSavePlaylist').onclick = async function() {
+      if (!currentPlaylistId) return;
+
+      let songsPayload = {};
+      editorSongsList.forEach((item, i) => {
+        songsPayload['s_' + i] = {
+          songId: item.songId,
+          set: item.set || 'Set 1',
+          key: item.key || (allSongsData[item.songId] ? allSongsData[item.songId].key : ''),
+          note: item.note || ''
+        };
+      });
+
+      try {
+        await db.ref(`rooms/${selectedRoom}/setlists/${currentPlaylistId}/songs`).set(songsPayload);
+
+        for (let item of editorSongsList) {
+          if (item.songId && allSongsData[item.songId]) {
+            const currentCount = allSongsData[item.songId].playCount || 0;
+            db.ref(`songs/${item.songId}/playCount`).set(currentCount + 1);
+          }
+        }
+
+        isEditorDirty = false;
+        closeSaveModal();
+        closePlaylistEditorDrawerDirect();
+      } catch (e) {
+        alert('เกิดข้อผิดพลาดในการบันทึก: ' + e.message);
+      }
+    };
+
+    window.closeDeleteModal = function() {
+      document.getElementById('deleteConfirmModal').classList.add('hidden');
+    };
+
+    document.getElementById('btnExecuteDeletePlaylist').onclick = async function() {
+      if (!currentPlaylistId) return;
+      try {
+        await db.ref(`rooms/${selectedRoom}/setlists/${currentPlaylistId}`).remove();
+        closeDeleteModal();
+        closePlaylistDetailDrawer();
+      } catch (e) {
+        alert('เกิดข้อผิดพลาดในการลบ: ' + e.message);
+      }
+    };
+
+    // --- เลือกเพลงจากคลัง (สไลด์จากซ้ายไปขวา) ---
+    function populateSelectorKeyFilter() {
+      const selectEl = document.getElementById('selectorKeyFilterSelect');
+      if (!selectEl) return;
+      let html = '<option value="ALL">ทั้งหมด (All)</option>';
+      majorKeys.concat(minorKeys).forEach(k => {
+        html += `<option value="${k}">${k}</option>`;
+      });
+      selectEl.innerHTML = html;
+      selectEl.onchange = renderSelectorList;
+    }
+
+    document.getElementById('btnToggleSelectorLine2').onclick = function() {
+      const line2 = document.getElementById('selectorLine2');
+      line2.classList.toggle('hidden');
+      this.innerText = line2.classList.contains('hidden') ? '▼' : '▲';
+    };
+
+    document.getElementById('selectorSortSelect').onchange = renderSelectorList;
+
+    document.getElementById('btnOpenSongSelector').onclick = function() {
+      populateSelectorKeyFilter();
+      renderSelectorList();
+      document.getElementById('songSelectorOverlay').classList.remove('hidden');
+      setTimeout(() => {
+        document.getElementById('songSelectorDrawer').style.left = '0';
+      }, 10);
+    };
+
+    window.closeSongSelectorDrawer = function() {
+      document.getElementById('songSelectorDrawer').style.left = '-100%';
+      setTimeout(() => {
+        document.getElementById('songSelectorOverlay').classList.add('hidden');
+      }, 300);
+    };
+
+    document.getElementById('selectorSearchInput').oninput = renderSelectorList;
+
+    function renderSelectorList() {
+      const container = document.getElementById('selectorSongsContainer');
+      const q = document.getElementById('selectorSearchInput').value.trim().toLowerCase();
+      const selectedKey = document.getElementById('selectorKeyFilterSelect').value;
+      const sortOption = document.getElementById('selectorSortSelect').value;
+
+      let list = Object.keys(allSongsData).map(id => ({ id: id, ...allSongsData[id] }));
+
+      if (selectedKey !== 'ALL') {
+        list = list.filter(s => s.key && s.key.trim().toLowerCase() === selectedKey.toLowerCase());
+      }
+
+      if (q) {
+        list = list.filter(s => (s.title || '').toLowerCase().includes(q) || (s.artist || '').toLowerCase().includes(q));
+      }
+
+      list.sort((a, b) => {
+        if (sortOption === 'title') return (a.title || '').localeCompare(b.title || '', 'th');
+        if (sortOption === 'artist') return (a.artist || '').localeCompare(b.artist || '', 'th');
+        if (sortOption === 'key') return (a.key || '').localeCompare(b.key || '');
+        if (sortOption === 'bpm') return (b.bpm || 0) - (a.bpm || 0);
+        if (sortOption === 'playCount') return (b.playCount || 0) - (a.playCount || 0);
+        return 0;
+      });
+
+      if (list.length === 0) {
+        container.innerHTML = '<p style="text-align:center; color:#666; font-size:12px; margin-top:20px;">ไม่พบเพลงตามเงื่อนไขที่เลือก</p>';
+        return;
+      }
+
+      let html = '';
+      list.forEach(song => {
+        html += `
+          <div style="background:#1e202c; padding:10px; border-radius:6px; display:flex; justify-content:space-between; align-items:center; cursor:pointer;" onclick="window.addSongToSetlist('${song.id}')">
+            <div>
+              <b style="color:#fff; font-size:13px;">${song.title}</b>
+              <span style="color:#aaa; font-size:11px;"> (${song.artist || '-'})</span>
+              <div style="font-size:11px; color:#00f2d1; margin-top:2px;">คีย์: ${song.key || '-'} | BPM: ${song.bpm || '-'}</div>
+            </div>
+            <span style="color:#00f2d1; font-weight:bold; font-size:12px; background:#12131a; padding:4px 8px; border-radius:4px; border:1px solid #333;">+ เพิ่ม</span>
+          </div>
+        `;
+      });
+      container.innerHTML = html;
+    }
+
+    window.addSongToSetlist = function(songId) {
+      const master = allSongsData[songId];
+      editorSongsList.push({
+        songId: songId,
+        set: 'Set 1',
+        key: master ? master.key : 'C',
+        note: ''
+      });
+      isEditorDirty = true;
+      renderEditorSongsList();
+    };
+
+    // --- Pop-ups คีย์ และ โน้ต ---
+    window.openSetlistKeyModal = function(idx) {
+      editingSongIndexForKey = idx;
+      const item = editorSongsList[idx];
+      const songMaster = allSongsData[item.songId] || {};
+      const baseKey = item.key || songMaster.key || 'C';
+      
+      const isMinor = baseKey.endsWith('m');
+      const keyList = isMinor ? minorKeys : majorKeys;
+
+      const grid = document.getElementById('keyGrid');
+      let html = '';
+      keyList.forEach(k => {
+        const isActive = k === baseKey;
+        html += `<button class="key-grid-btn ${isActive ? 'active' : ''}" onclick="window.selectSetlistKey('${k}')">${k}</button>`;
+      });
+      grid.innerHTML = html;
+
+      document.getElementById('keySelectorModal').classList.remove('hidden');
+    };
+
+    window.closeKeyModal = function() {
+      document.getElementById('keySelectorModal').classList.add('hidden');
+    };
+
+    window.selectSetlistKey = function(keyVal) {
+      if (editingSongIndexForKey !== null) {
+        editorSongsList[editingSongIndexForKey].key = keyVal;
+        isEditorDirty = true;
+        renderEditorSongsList();
+      }
+      closeKeyModal();
+    };
+
+    window.openSetlistNoteModal = function(idx) {
+      editingSongIndexForNote = idx;
+      document.getElementById('inputSongNote').value = editorSongsList[idx].note || '';
+      document.getElementById('noteModal').classList.remove('hidden');
+    };
+
+    window.closeNoteModal = function() {
+      document.getElementById('noteModal').classList.add('hidden');
+    };
+
+    document.getElementById('btnSaveNote').onclick = function() {
+      if (editingSongIndexForNote !== null) {
+        editorSongsList[editingSongIndexForNote].note = document.getElementById('inputSongNote').value.trim();
+        isEditorDirty = true;
+        renderEditorSongsList();
+      }
+      closeNoteModal();
+    };
+  })();
+</script>

@@ -1,0 +1,1443 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Live Stage Hub - จัดคิวเพลง</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: sans-serif; }
+    body { background: #12131a; color: #fff; height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
+
+    /* ================= Top Bar (10%) ================= */
+    .queue-top-bar {
+      height: 10vh;
+      background: #1e202c;
+      border-bottom: 1px solid #333;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      padding: 8px 12px;
+      align-items: center;
+    }
+    .top-box {
+      background: #12131a;
+      border: 1px solid #333;
+      border-radius: 6px;
+      padding: 6px 10px;
+      font-size: 11px;
+      overflow: hidden;
+      white-space: nowrap;
+      position: relative;
+    }
+    .top-title { color: #888; font-size: 9px; display: block; margin-bottom: 2px; }
+    .top-content { color: #00f2d1; font-weight: bold; display: inline-block; }
+
+    /* ================= Main Display Area (62%) ================= */
+    .queue-main-content {
+      height: 62vh;
+      overflow-y: auto;
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    /* สไตล์การ์ดเพลงทั่วไป */
+    .song-card {
+      background: #1e202c;
+      border: 1px solid #333;
+      border-radius: 8px;
+      padding: 12px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      transition: all 0.2s;
+      cursor: pointer;
+    }
+    .song-card.played {
+      opacity: 0.5;
+      text-decoration: line-through;
+      border-style: dashed;
+      cursor: default;
+    }
+
+    /* 🌟 เพลงถัดไป (ไซส์ใหญ่เด่นชัด) */
+    .song-card.next-song {
+      background: #1a3a3a;
+      border: 2px solid #00f2d1;
+      padding: 18px 14px;
+      transform: scale(1.02);
+      box-shadow: 0 4px 20px rgba(0,242,209,0.25);
+    }
+    .song-card.next-song .song-title-main {
+      font-size: 18px !important;
+    }
+
+    /* สีประจำ Set 1 - 5 */
+    .set-color-1 { border-left: 4px solid #00f2d1 !important; }
+    .set-color-1 .song-title-main { color: #00f2d1 !important; }
+
+    .set-color-2 { border-left: 4px solid #3b82f6 !important; }
+    .set-color-2 .song-title-main { color: #3b82f6 !important; }
+
+    .set-color-3 { border-left: 4px solid #f59e0b !important; }
+    .set-color-3 .song-title-main { color: #f59e0b !important; }
+
+    .set-color-4 { border-left: 4px solid #ec4899 !important; }
+    .set-color-4 .song-title-main { color: #ec4899 !important; }
+
+    .set-color-5 { border-left: 4px solid #8b5cf6 !important; }
+    .set-color-5 .song-title-main { color: #8b5cf6 !important; }
+
+    /* 🌟 เพิ่มสีประจำเซ็ตสำหรับเพลงรีเควส (สีเหลือง) และเพลงแทรก (สีเขียวอ่อน) */
+    .song-card.inserted-request { 
+      background: #2b2615 !important; 
+      border-left: 4px solid #f59e0b !important; 
+      border-color: #f59e0b; 
+    }
+    .song-card.inserted-request .song-title-main { color: #f59e0b !important; }
+
+    .song-card.inserted-custom { 
+      background: #142820 !important; 
+      border-left: 4px solid #10b981 !important; 
+      border-color: #10b981; 
+    }
+    .song-card.inserted-custom .song-title-main { color: #10b981 !important; }
+
+    .badge-tag { font-size: 10px; padding: 2px 6px; border-radius: 4px; font-weight: bold; margin-left: 6px; }
+    .badge-request { background: #f59e0b; color: #000; }
+    .badge-custom { background: #10b981; color: #000; }
+
+    /* การ์ดพิเศษ (เตรียมพร้อม / จบการแสดง) */
+    .special-card {
+      background: #161822;
+      border: 1px dashed #555;
+      border-radius: 8px;
+      padding: 10px 14px;
+      text-align: center;
+      font-weight: bold;
+      font-size: 13px;
+      color: #aaa;
+    }
+
+    /* จัดระเบียบปุ่มด้านขวาของการ์ด */
+    .song-actions { display: flex; align-items: center; gap: 6px; }
+    .move-buttons { display: flex; flex-direction: column; gap: 2px; }
+    .btn-move {
+      background: #222;
+      border: 1px solid #444;
+      color: #fff;
+      padding: 4px 8px;
+      font-size: 11px;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+
+    /* ================= Bottom Control Bar (8%) ================= */
+    .queue-bottom-bar {
+      height: 8vh;
+      min-height: 55px;
+      background: #1e202c;
+      border-top: 1px solid #333;
+      display: flex;
+      gap: 8px;
+      padding: 10px 12px;
+      align-items: center;
+    }
+    .btn-control {
+      border: none;
+      border-radius: 8px;
+      font-weight: bold;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      height: 100%;
+      transition: all 0.2s;
+    }
+    .btn-prev { flex: 0.8; background: #222; border: 1px solid #444; color: #555; font-size: 11px; }
+    .btn-insert { flex: 1.5; background: #222430; border: 1px solid #00f2d1; color: #00f2d1; font-size: 13px; }
+    .btn-next { flex: 1.5; background: #00f2d1; border: 1px solid #00f2d1; color: #00382f; font-size: 13px; }
+
+    /* ================= Slide Modal Overlay & Pop-ups ================= */
+    .slide-modal-overlay {
+      position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(0,0,0,0.75); z-index: 9999;
+      display: flex; flex-direction: column; justify-content: flex-end;
+    }
+    .slide-modal-overlay.hidden { display: none; }
+    .slide-modal-content {
+      background: #1e202c;
+      border-top: 2px solid #00f2d1;
+      border-radius: 16px 16px 0 0;
+      height: 85vh;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    /* Action Modal / Dialog Card */
+    .popup-dialog {
+      background: #1e202c;
+      border: 1px solid #00f2d1;
+      border-radius: 12px;
+      width: 90%;
+      max-width: 360px;
+      margin: auto;
+      padding: 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.8);
+    }
+    .popup-btn {
+      width: 100%;
+      padding: 12px;
+      border-radius: 8px;
+      font-weight: bold;
+      font-size: 14px;
+      border: none;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+    .popup-btn-move { background: #3b82f6; color: #fff; }
+    .popup-btn-skip { background: #f59e0b; color: #000; }
+    .popup-btn-delete { background: #ef4444; color: #fff; }
+    .popup-btn-cancel { background: #333; color: #ccc; margin-top: 4px; }
+
+    .key-filter-bar { display: flex; gap: 4px; overflow-x: auto; padding-bottom: 4px; }
+    .key-btn {
+      background: #12131a; border: 1px solid #333; color: #fff;
+      padding: 4px 8px; font-size: 11px; border-radius: 4px; cursor: pointer; white-space: nowrap;
+    }
+    .key-btn.active { background: #00f2d1; color: #00382f; border-color: #00f2d1; font-weight: bold; }
+  </style>
+</head>
+<body>
+
+  <!-- 1. แถบด้านบน (10%) -->
+  <div class="queue-top-bar">
+    <div id="topTalkbackBox" class="top-box">
+      <span class="top-title">🎙️ ท็อคแบคล่าสุด</span>
+      <div id="topTalkbackText" class="top-content">สแตนบายรอคำสั่ง...</div>
+    </div>
+    <div id="topNextBox" class="top-box">
+      <span class="top-title">🎵 เพลงถัดไป</span>
+      <div id="topNextText" class="top-content">-</div>
+    </div>
+  </div>
+
+  <!-- 2. พื้นที่แสดงผลหลัก (62%) -->
+  <div class="queue-main-content" id="queueContainer"></div>
+
+  <!-- 3. แถบควบคุมด้านล่าง (8%) -->
+  <div class="queue-bottom-bar">
+    <button class="btn-control btn-prev" onclick="prevSong()">◀️ ก่อนหน้า</button>
+    <button class="btn-control btn-insert" onclick="openInsertModal()">➕ แทรกเพลง</button>
+    <button class="btn-control btn-next" onclick="nextSong()">▶️ เพลงถัดไป</button>
+  </div>
+
+  <!-- 4. หน้าต่างสไลด์ "แทรกเพลง" -->
+  <div id="insertModal" class="slide-modal-overlay hidden" onclick="closeInsertModal(event)">
+    <div class="slide-modal-content" onclick="event.stopPropagation()">
+      <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #333; padding-bottom: 8px;">
+        <h3 style="color: #00f2d1; font-size: 16px;">➕ แทรกเพลง / จัดการรีเควส</h3>
+        <button onclick="closeInsertModal()" style="background: none; border: none; color: #aaa; font-size: 18px; cursor: pointer;">✕</button>
+      </div>
+
+      <div>
+        <div style="font-size: 12px; color: #f59e0b; font-weight: bold; margin-bottom: 6px;">📥 เพลงรีเควสจากลูกค้า (รอจัดคิว)</div>
+        <div id="requestSongList" style="background: #12131a; border: 1px solid #333; border-radius: 6px; padding: 8px; min-height: 45px; max-height: 100px; overflow-y: auto; font-size: 12px; color: #ccc;">
+          ไม่มีคำขอเพลงใหม่จากลูกค้าในขณะนี้
+        </div>
+      </div>
+
+      <div style="flex: 1; display: flex; flex-direction: column; overflow: hidden;">
+        <div style="font-size: 12px; color: #00f2d1; font-weight: bold; margin-bottom: 6px;" id="recommendLabel">🔍 ค้นหาเพลงจากคลัง / เพลงแนะนำ</div>
+        
+        <div class="key-filter-bar" id="keyFilterContainer">
+          <button class="key-btn active" onclick="filterByKey('ALL')">ALL</button>
+          <button class="key-btn" onclick="filterByKey('C')">C/Am</button>
+          <button class="key-btn" onclick="filterByKey('Db')">Db/Bbm</button>
+          <button class="key-btn" onclick="filterByKey('D')">D/Bm</button>
+          <button class="key-btn" onclick="filterByKey('Eb')">Eb/Cm</button>
+          <button class="key-btn" onclick="filterByKey('E')">E/C#m</button>
+          <button class="key-btn" onclick="filterByKey('F')">F/Dm</button>
+          <button class="key-btn" onclick="filterByKey('F#')">F#/D#m</button>
+          <button class="key-btn" onclick="filterByKey('G')">G/Em</button>
+          <button class="key-btn" onclick="filterByKey('Ab')">Ab/Fm</button>
+          <button class="key-btn" onclick="filterByKey('A')">A/F#m</button>
+          <button class="key-btn" onclick="filterByKey('Bb')">Bb/Gm</button>
+          <button class="key-btn" onclick="filterByKey('B')">B/G#m</button>
+        </div>
+
+        <input type="text" id="searchSongInput" placeholder="พิมพ์ค้นหาชื่อเพลง หรือศิลปิน..." oninput="filterBySearch()" style="width: 100%; padding: 8px; background: #12131a; border: 1px solid #333; border-radius: 6px; color: #fff; font-size: 13px; margin: 6px 0;">
+        <div id="recommendSongList" style="flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 6px;"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 5. Pop-up เมนูคำสั่งหลักของการ์ดเพลงในคิว -->
+  <div id="actionModal" class="slide-modal-overlay hidden" onclick="closeActionModal(event)">
+    <div class="popup-dialog" onclick="event.stopPropagation()">
+      <div style="text-align: center; border-bottom: 1px solid #333; padding-bottom: 8px;">
+        <div style="font-size: 11px; color: #00f2d1;">เมนูคำสั่งเพลง</div>
+        <div id="actionSongTitle" style="font-size: 16px; font-weight: bold; color: #fff; margin-top: 2px;">-</div>
+      </div>
+      <button class="popup-btn popup-btn-move" onclick="openMoveTargetModal()">📌 ย้ายเพลง</button>
+      <button class="popup-btn popup-btn-skip" onclick="confirmSkipSong()">⏭️ ข้ามเพลงมาเล่นเพลงนี้</button>
+      <button class="popup-btn popup-btn-delete" onclick="confirmDeleteSong()">🗑️ ลบเพลงออกจากคิว</button>
+      <button class="popup-btn popup-btn-cancel" onclick="closeActionModal()">ยกเลิก</button>
+    </div>
+  </div>
+
+  <!-- 6. Pop-up เลือกลิสต์ย้ายเพลงไปต่อท้าย -->
+  <div id="moveTargetModal" class="slide-modal-overlay hidden" onclick="closeMoveTargetModal(event)">
+    <div class="popup-dialog" style="max-height: 80vh;" onclick="event.stopPropagation()">
+      <div style="text-align: center; border-bottom: 1px solid #333; padding-bottom: 8px;">
+        <div style="font-size: 14px; font-weight: bold; color: #00f2d1;">📌 เลือกเพลงที่ต้องการย้ายไปต่อท้าย</div>
+        <div style="font-size: 11px; color: #888; margin-top: 2px;">แตะที่เพลงเป้าหมายเพื่อย้ายทันที</div>
+      </div>
+      <div id="moveTargetList" style="display: flex; flex-direction: column; gap: 8px; overflow-y: auto; max-height: 50vh; padding: 4px 0;"></div>
+      <button class="popup-btn popup-btn-cancel" onclick="closeMoveTargetModal()">ยกเลิก</button>
+    </div>
+  </div>
+
+  <!-- 7. Pop-up ยืนยันการทำงาน (ข้ามเพลง / ลบเพลง) -->
+  <div id="confirmModal" class="slide-modal-overlay hidden" onclick="closeConfirmModal(event)">
+    <div class="popup-dialog" onclick="event.stopPropagation()">
+      <div style="text-align: center;">
+        <div id="confirmIcon" style="font-size: 32px; margin-bottom: 4px;">⚠️</div>
+        <div id="confirmTitle" style="font-size: 16px; font-weight: bold; color: #fff;">ยืนยันการทำรายการ</div>
+        <div id="confirmMessage" style="font-size: 12px; color: #aaa; margin-top: 6px;">-</div>
+      </div>
+      <div style="display: flex; gap: 8px; margin-top: 8px;">
+        <button class="popup-btn popup-btn-cancel" style="flex: 1;" onclick="closeConfirmModal()">ยกเลิก</button>
+        <button id="confirmExecuteBtn" class="popup-btn" style="flex: 1; background: #00f2d1; color: #00382f;">ตกลง</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 8. Pop-up ย่อยสำหรับการแทรกเพลง (2 ปุ่มเลือก: เล่นต่อจากเพลงกำลังเล่น / ย้ายเข้าคิว) -->
+  <div id="insertOptionsModal" class="slide-modal-overlay hidden" onclick="closeInsertOptionsModal(event)">
+    <div class="popup-dialog" onclick="event.stopPropagation()">
+      <div style="text-align: center; border-bottom: 1px solid #333; padding-bottom: 8px;">
+        <div style="font-size: 11px; color: #00f2d1;">➕ ตัวเลือกการแทรกเพลง</div>
+        <div id="insertOptionsSongTitle" style="font-size: 15px; font-weight: bold; color: #fff; margin-top: 2px;">-</div>
+      </div>
+      <button class="popup-btn" style="background: #00f2d1; color: #00382f;" onclick="executeInsertAfterPlaying()">⏩ เล่นต่อจากเพลงที่กำลังเล่น</button>
+      <button class="popup-btn popup-btn-move" onclick="openInsertTargetModal()">📌 ย้ายเข้าคิว (เลือกเพลงเป้าหมาย)</button>
+      <button class="popup-btn popup-btn-cancel" onclick="closeInsertOptionsModal()">ยกเลิก</button>
+    </div>
+  </div>
+
+  <!-- 9. Pop-up ย่อยสำหรับเลือกเพลงเป้าหมายย้ายแทรกเข้าคิว -->
+  <div id="insertTargetModal" class="slide-modal-overlay hidden" onclick="closeInsertTargetModal(event)">
+    <div class="popup-dialog" style="max-height: 80vh;" onclick="event.stopPropagation()">
+      <div style="text-align: center; border-bottom: 1px solid #333; padding-bottom: 8px;">
+        <div style="font-size: 14px; font-weight: bold; color: #00f2d1;">📌 แทรกต่อท้ายเพลงใดในคิว?</div>
+        <div style="font-size: 11px; color: #888; margin-top: 2px;">แตะเลือกเพลงเป้าหมายเพื่อแทรกต่อท้ายทันที</div>
+      </div>
+      <div id="insertTargetList" style="display: flex; flex-direction: column; gap: 8px; overflow-y: auto; max-height: 50vh; padding: 4px 0;"></div>
+      <button class="popup-btn popup-btn-cancel" onclick="closeInsertTargetModal()">ยกเลิก</button>
+    </div>
+  </div>
+
+  <script>
+    window.initQueuePageModule = function() {
+      window.songLibrary = JSON.parse(localStorage.getItem('lsh_songs')) || [];
+      window.requestQueue = JSON.parse(localStorage.getItem('lsh_request_queue')) || [];
+      window.currentKeyFilter = 'ALL';
+      window.queueData = window.queueData || [];
+      window.firebaseSyncTimer = window.firebaseSyncTimer || null;
+
+      window.selectedSongId = null; 
+      window.pendingInsertSongObj = null; 
+
+      // Map คีย์คู่ขนาน (Relative Keys)
+      const relativeKeyMap = {
+        'C': 'Am', 'Am': 'C', 'G': 'Em', 'Em': 'G', 'D': 'Bm', 'Bm': 'D',
+        'A': 'F#m', 'F#m': 'A', 'E': 'C#m', 'C#m': 'E', 'B': 'G#m', 'G#m': 'B',
+        'F': 'Dm', 'Dm': 'F', 'Bb': 'Gm', 'Gm': 'Bb', 'Eb': 'Cm', 'Cm': 'Eb',
+        'Ab': 'Fm', 'Fm': 'Ab', 'Db': 'Bbm', 'Bbm': 'Db', 'C#': 'A#m', 'A#m': 'C#',
+        'F#': 'D#m', 'D#m': 'F#', 'Gb': 'Ebm', 'Ebm': 'Gb'
+      };
+      // 📌 ดึงและฟังข้อมูลท็อคแบคล่าสุดจาก Firebase โหนด 'latestTalkback'
+      function initFirebaseLatestTalkbackListener() {
+        const sessionStr = localStorage.getItem('lsh_session');
+        const session = sessionStr ? JSON.parse(sessionStr) : {};
+        const selectedRoom = session.room || localStorage.getItem('lsh_selected_room') || 'PGL8';
+
+        if (typeof db !== 'undefined' && db && db.ref) {
+          db.ref(`rooms/${selectedRoom}/latestTalkback`).off('value');
+          db.ref(`rooms/${selectedRoom}/latestTalkback`).on('value', (snapshot) => {
+            const val = snapshot.val();
+            const topTalkbackText = document.getElementById('topTalkbackText');
+            if (topTalkbackText) {
+              topTalkbackText.innerText = val ? val : 'สแตนบายรอคำสั่ง...';
+            }
+          });
+        }
+      }
+// 📌 ดึงรายการเพลงรีเควสจากโหนด requestStats ของห้องปัจจุบัน
+      function initFirebaseRequestStatsListener() {
+        const sessionStr = localStorage.getItem('lsh_session');
+        const session = sessionStr ? JSON.parse(sessionStr) : {};
+        const selectedRoom = session.room || localStorage.getItem('lsh_selected_room') || 'PGL8';
+
+        if (typeof db !== 'undefined' && db && db.ref) {
+          db.ref(`rooms/${selectedRoom}/requestStats`).off('value');
+          db.ref(`rooms/${selectedRoom}/requestStats`).on('value', (snapshot) => {
+            const val = snapshot.val() || {};
+            window.requestQueue = Object.keys(val).map(id => ({
+              id: id, // Push ID เช่น -P5VjHEiWT8vSigEb_gn
+              ...val[id]
+            }));
+            localStorage.setItem('lsh_request_queue', JSON.stringify(window.requestQueue));
+
+            // ถือโอกาสรีเฟรชหน้าต่างแทรกเพลงถ้าเปิดอยู่
+            const insertModal = document.getElementById('insertModal');
+            if (insertModal && !insertModal.classList.contains('hidden')) {
+              renderRequestList();
+            }
+          });
+        }
+      }
+      // 📌 ดึงคลังเพลงจาก Firebase โหนด 'songs'
+      window.initFirebaseSongListener = function() {
+        if (typeof db !== 'undefined' && db && db.ref) {
+          db.ref('songs').off('value');
+          db.ref('songs').on('value', (snapshot) => {
+            const val = snapshot.val() || {};
+            let loadedSongs = Object.keys(val).map(id => ({
+              id: id,
+              ...val[id]
+            }));
+            window.songLibrary = loadedSongs;
+            localStorage.setItem('lsh_songs', JSON.stringify(window.songLibrary));
+
+            const insertModal = document.getElementById('insertModal');
+            if (insertModal && !insertModal.classList.contains('hidden')) {
+              renderSongLibrary();
+            }
+          });
+        }
+      }
+        
+      // 📌 1. โหลดคิวเพลง (ปรับปรุงใหม่ให้อ่านตามสถานะ Firebase ทันที)
+      window.initQueuePage = async function() {
+        initFirebaseSongListener();
+        initFirebaseRequestStatsListener();
+        initFirebaseLatestTalkbackListener();
+
+        // 1. ดึงข้อมูลคิวล่าสุดจาก Firebase ของห้องปัจจุบัน
+        const sessionStr = localStorage.getItem('lsh_session');
+        const session = sessionStr ? JSON.parse(sessionStr) : {};
+        const selectedRoom = session.room || localStorage.getItem('lsh_selected_room') || 'PGL8';
+
+        try {
+          if (typeof db !== 'undefined' && db && db.ref) {
+            const snapshot = await db.ref(`rooms/${selectedRoom}/queue`).once('value');
+            const firebaseQueueData = snapshot.val();
+
+            // เช็คว่าถ้าใน Firebase ไม่มีเพลง หรือ activeSetlistId เป็น "-" (ถูกเคลียร์แล้ว)
+            if (!firebaseQueueData || !firebaseQueueData.songs || firebaseQueueData.activeSetlistId === '-' || firebaseQueueData.songs.length === 0) {
+              // เคลียร์ค่าใน LocalStorage ให้เกลี้ยงตามกัน
+              localStorage.removeItem('lsh_queue_data');
+              localStorage.removeItem('lsh_queue_setlist_id');
+              localStorage.removeItem('lsh_active_queue');
+              
+              window.queueData = [];
+              renderQueue();
+              return;
+            }
+          }
+        } catch (e) {
+          console.error('Error fetching queue from Firebase:', e);
+        }
+
+        // 2. กรณีมีข้อมูลปกติ (โหลดตามเดิม)
+        let storedQueueData = null;
+        let rawQueueData = null;
+        
+        try {
+          storedQueueData = JSON.parse(localStorage.getItem('lsh_queue_data'));
+          rawQueueData = JSON.parse(localStorage.getItem('lsh_active_queue'));
+        } catch(e) { 
+          console.error('Error parsing LocalStorage:', e); 
+        }
+
+        let storedSetlistId = localStorage.getItem('lsh_queue_setlist_id');
+        let activeSetlistId = localStorage.getItem('lsh_active_setlist_id');
+
+        const isSetlistChanged = (activeSetlistId !== storedSetlistId);
+
+        if ((isSetlistChanged || !storedQueueData || storedQueueData.length === 0) && rawQueueData && rawQueueData.length > 0) {
+          let mappedSongs = rawQueueData.map((song, idx) => {
+            return {
+              id: song.id || 'q_' + idx,
+              songId: song.songId || '',
+              title: song.title || 'ไม่ระบุชื่อเพลง',
+              artist: song.artist || 'ไม่ระบุศิลปิน',
+              key: song.key || '-',
+              bpm: song.bpm !== undefined && song.bpm !== null && String(song.bpm).trim() !== '' ? song.bpm : '-',
+              note: song.note || '-',
+              set: song.set || 'Set 1',
+              status: 'normal',
+              type: song.type || 'normal',
+              originalIndex: idx
+            };
+          });
+
+          window.queueData = [
+            { id: 'dummy_start', title: '🔴 เตรียมพร้อมสำหรับการแสดง', artist: '', status: 'playing', type: 'dummy_start' },
+            ...mappedSongs,
+            { id: 'dummy_end', title: '🏁 จบการแสดง', artist: '', status: 'normal', type: 'dummy_end' }
+          ];
+
+          localStorage.setItem('lsh_queue_setlist_id', activeSetlistId || 'default');
+          saveQueueToStorage(false);
+        } else if (storedQueueData && storedQueueData.length > 0) {
+          window.queueData = storedQueueData;
+        } else {
+          window.queueData = [];
+        }
+
+        if (window.queueData.length > 0) {
+          const hasStart = window.queueData.some(i => i.type === 'dummy_start');
+          const hasEnd = window.queueData.some(i => i.type === 'dummy_end');
+
+          if (!hasStart) {
+            window.queueData.unshift({ id: 'dummy_start', title: '🔴 เตรียมพร้อมสำหรับการแสดง', artist: '', status: 'playing', type: 'dummy_start' });
+          }
+          if (!hasEnd) {
+            window.queueData.push({ id: 'dummy_end', title: '🏁 จบการแสดง', artist: '', status: 'normal', type: 'dummy_end' });
+          }
+
+          let hasPlaying = window.queueData.some(i => i.status === 'playing' && i.status !== 'removed');
+          if (!hasPlaying) {
+            window.queueData[0].status = 'playing';
+          }
+        }
+
+        renderQueue();
+      };
+
+      function saveQueueToStorage(triggerFirebaseSync = true) {
+        localStorage.setItem('lsh_queue_data', JSON.stringify(window.queueData));
+
+        if (triggerFirebaseSync) {
+          if (window.firebaseSyncTimer) clearTimeout(window.firebaseSyncTimer);
+          
+          window.firebaseSyncTimer = setTimeout(() => {
+            syncQueueToFirebase();
+          }, 3000);
+        }
+      }
+
+      async function syncQueueToFirebase() {
+        try {
+          const sessionStr = localStorage.getItem('lsh_session');
+          const session = sessionStr ? JSON.parse(sessionStr) : {};
+          const selectedRoom = session.room || localStorage.getItem('lsh_selected_room') || 'PGL8';
+          const activeSetlistId = localStorage.getItem('lsh_active_setlist_id') || '';
+
+          if (typeof db !== 'undefined' && db && db.ref) {
+            await db.ref(`rooms/${selectedRoom}/queue`).set({
+              activeSetlistId: activeSetlistId,
+              songs: window.queueData,
+              updatedAt: Date.now()
+            });
+          }
+        } catch (e) {
+          console.error('เกิดข้อผิดพลาดในการซิงค์คิวลง Firebase:', e);
+        }
+      }
+
+      // 📌 2. ฟังก์ชัน renderQueue
+      function renderQueue() {
+        const container = document.getElementById('queueContainer');
+        if (!container) return;
+
+        if (!window.queueData || window.queueData.length === 0) {
+          container.innerHTML = `
+            <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; gap: 16px; text-align: center; padding: 20px;">
+              <div style="font-size: 40px;">🎵</div>
+              <div style="font-size: 16px; font-weight: bold; color: #ccc;">ยังไม่มีการเลือกลิสต์เพลงสำหรับจัดคิว</div>
+              <div style="font-size: 12px; color: #888; max-width: 280px;">กรุณากลับไปที่หน้าแฟ้มลิสต์เพลง แล้วกดปุ่ม Play เพื่อเลือกเซ็ตลิสต์สำหรับการแสดง</div>
+            </div>
+          `;
+          let topNext = document.getElementById('topNextText');
+          if (topNext) topNext.innerText = '-';
+          updateControlButtons();
+          return;
+        }
+
+        recalculateQueueStatuses();
+
+        let playedList = window.queueData.filter(item => item.status === 'played');
+        let playingItem = window.queueData.find(item => item.status === 'playing');
+        let nextItem = window.queueData.find(item => item.status === 'next');
+        let standbyItem = window.queueData.find(item => item.status === 'standby');
+        let normalList = window.queueData.filter(item => item.status === 'normal' && item.type !== 'dummy_end');
+        let dummyEndItem = window.queueData.find(item => item.type === 'dummy_end');
+        let removedList = window.queueData.filter(item => item.status === 'removed');
+
+        let orderedFlow = [...playedList];
+        if (playingItem) orderedFlow.push(playingItem);
+        if (nextItem) orderedFlow.push(nextItem);
+        if (standbyItem) orderedFlow.push(standbyItem);
+        
+        normalList.forEach(item => {
+          if (!orderedFlow.includes(item)) orderedFlow.push(item);
+        });
+        
+        if (dummyEndItem && !orderedFlow.includes(dummyEndItem)) {
+          orderedFlow.push(dummyEndItem);
+        }
+
+        let html = '';
+        let realSongIndex = 0;
+
+        orderedFlow.forEach((song) => {
+          if (song.type === 'dummy_start' || song.type === 'dummy_end') {
+            let stateLabel = '';
+            let highlightStyle = '';
+
+            if (song.status === 'playing') {
+              stateLabel = ' (กำลังสแตนบายหน้าเวที)';
+              highlightStyle = 'border: 2px solid #00f2d1; color: #00f2d1; background: #1a3a3a; padding: 14px; font-size: 15px;';
+            } else if (song.status === 'next') {
+              stateLabel = ' (เพลงถัดไป)';
+              highlightStyle = 'border: 2px solid #00f2d1; color: #00f2d1; background: #142828; padding: 14px;';
+            } else if (song.status === 'played') {
+              stateLabel = ' (เริ่มแสดงแล้ว)';
+              highlightStyle = 'opacity: 0.5; text-decoration: line-through;';
+            }
+
+            html += `<div class="special-card" style="${highlightStyle}">${song.title}${stateLabel}</div>`;
+          } else {
+            if (song.status !== 'removed') realSongIndex++;
+            html += createSongCardHtml(song, realSongIndex, song.status);
+          }
+        });
+
+        removedList.forEach(song => {
+          html += createRemovedSongCardHtml(song);
+        });
+
+        container.innerHTML = html;
+        updateTopBarNext(nextItem);
+        updateControlButtons();
+        saveQueueToStorage(true);
+      }
+
+      // 📌 3. การสร้าง HTML ของการ์ดเพลง
+      function createSongCardHtml(song, indexLabel, stateClass) {
+        let customClass = '';
+        let badgeHtml = '';
+
+        let setVal = song.set || 'Set 1';
+        let setNum = setVal.replace('Set ', '');
+        let setColorClass = `set-color-${setNum}`;
+
+        if (song.type === 'inserted-custom') {
+          customClass = 'inserted-custom';
+          badgeHtml = '<span class="badge-tag badge-custom">[เพลงแทรก]</span>';
+        } else if (song.type === 'inserted-request') {
+          customClass = 'inserted-request';
+          badgeHtml = '<span class="badge-tag badge-request">[ลูกค้ารีเควส]</span>';
+        }
+
+        if (stateClass === 'next') customClass += ' next-song';
+        if (stateClass === 'played') customClass += ' played';
+
+        let bpmDisplay = (song.bpm && song.bpm !== '-') ? ` | BPM: ${song.bpm}` : '';
+
+        let actionsHtml = '';
+        if (stateClass === 'playing') {
+          actionsHtml = `<div style="font-size: 11px; color: #00f2d1; font-weight: bold; background: #1a3a3a; padding: 4px 8px; border-radius: 4px; border: 1px solid #00f2d1;">กำลังเล่น</div>`;
+        } else {
+          let movableSongs = window.queueData.filter(i => 
+            i.status !== 'removed' && 
+            i.status !== 'played' && 
+            i.status !== 'playing' && 
+            i.type !== 'dummy_start' && 
+            i.type !== 'dummy_end'
+          );
+
+          let movableIndex = movableSongs.findIndex(i => i.id === song.id);
+          let isFirstMovable = (movableIndex === 0);
+          let isLastMovable = (movableIndex === movableSongs.length - 1);
+
+          let btnActiveStyle = `background: #222; border: 1px solid #444; color: #fff; cursor: pointer;`;
+          let btnDisabledStyle = `background: #181920; border: 1px solid #2a2c38; color: #444; cursor: not-allowed;`;
+
+          let upBtnAttr = isFirstMovable 
+            ? `disabled style="${btnDisabledStyle}"` 
+            : `onclick="event.stopPropagation(); moveSongUp('${song.id}')" style="${btnActiveStyle}"`;
+
+          let downBtnAttr = isLastMovable 
+            ? `disabled style="${btnDisabledStyle}"` 
+            : `onclick="event.stopPropagation(); moveSongDown('${song.id}')" style="${btnActiveStyle}"`;
+
+          actionsHtml = `
+            <div class="song-actions">
+              <div class="move-buttons">
+                <button class="btn-move" ${upBtnAttr}>▲</button>
+                <button class="btn-move" ${downBtnAttr}>▼</button>
+              </div>
+            </div>
+          `;
+        }
+
+        let cardClickAttr = stateClass !== 'playing' ? `onclick="openActionModal('${song.id}')"` : '';
+
+        return `
+          <div class="song-card ${setColorClass} ${customClass}" ${cardClickAttr}>
+            <div style="flex: 1;">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2px;">
+                <div style="font-size: 10px; color: #888;">
+                  ${stateClass.toUpperCase()} ${badgeHtml}
+                </div>
+                <div style="font-size: 10px; color: #00f2d1; font-weight: bold; background: #12131a; padding: 2px 6px; border-radius: 4px; border: 1px solid #333;">
+                  ${setVal}
+                </div>
+              </div>
+              <div style="font-size: 12px; color: #aaa;">
+                ${indexLabel}. ลำดับคิว
+              </div>
+              <div class="song-title-main" style="font-size: 16px; font-weight: bold; margin: 2px 0;">
+                ${song.title} <span style="font-size:12px; color:#fff; font-weight:normal;">- ${song.artist}</span>
+              </div>
+              <div style="font-size: 12px; color: #f59e0b;">
+                คีย์: ${song.key}${bpmDisplay} | โน้ต: ${song.note}
+              </div>
+            </div>
+            ${actionsHtml}
+          </div>
+        `;
+      }
+
+      function createRemovedSongCardHtml(song) {
+        return `
+          <div class="song-card" style="border-style: dashed; opacity: 0.6; cursor: default;">
+            <div style="flex: 1;">
+              <div style="font-size: 11px; color: #ef4444; font-weight: bold;">[ถูกนำออกจากคิว]</div>
+              <div style="font-size: 14px; font-weight: bold; color: #fff;">${song.title} - ${song.artist}</div>
+            </div>
+            <div>
+              <button onclick="restoreSong('${song.id}')" style="background:#00f2d1; border:none; color:#000; font-weight:bold; padding:6px 12px; border-radius:4px; cursor:pointer;">↩️ กู้เพลงกลับ</button>
+            </div>
+          </div>
+        `;
+      }
+
+      // 📌 4. ระบบ Action Modal ในคิวหลัก
+      window.openActionModal = function(songId) {
+        const song = window.queueData.find(i => i.id === songId);
+        if (!song) return;
+
+        window.selectedSongId = songId;
+        document.getElementById('actionSongTitle').innerText = `${song.title} - ${song.artist}`;
+        document.getElementById('actionModal').classList.remove('hidden');
+      };
+
+      window.closeActionModal = function(event) {
+        if (!event || event.target.id === 'actionModal' || event.target.tagName === 'BUTTON') {
+          document.getElementById('actionModal').classList.add('hidden');
+        }
+      };
+
+      window.openMoveTargetModal = function() {
+        closeActionModal();
+        const container = document.getElementById('moveTargetList');
+        if (!container) return;
+
+        let targetCandidates = window.queueData.filter(i => 
+          i.status !== 'removed' && 
+          i.status !== 'played' && 
+          i.status !== 'playing' && 
+          i.type !== 'dummy_start' && 
+          i.type !== 'dummy_end' &&
+          i.id !== window.selectedSongId
+        );
+
+        if (targetCandidates.length === 0) {
+          container.innerHTML = '<div style="color: #666; text-align: center; padding: 12px;">ไม่มีเพลงอื่นให้เลือกลายย้าย</div>';
+        } else {
+          let html = '';
+          targetCandidates.forEach(song => {
+            html += `
+              <div onclick="moveSongAfter('${song.id}')" style="background: #12131a; border: 1px solid #333; padding: 10px; border-radius: 6px; cursor: pointer; display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                  <div style="font-weight: bold; font-size: 13px; color: #fff;">${song.title} - ${song.artist}</div>
+                  <div style="font-size: 10px; color: #888;">${song.set || 'Set 1'} | คีย์: ${song.key || '-'}</div>
+                </div>
+                <div style="color: #3b82f6; font-size: 12px; font-weight: bold;">ย้ายมาต่อท้าย ▶</div>
+              </div>
+            `;
+          });
+          container.innerHTML = html;
+        }
+
+        document.getElementById('moveTargetModal').classList.remove('hidden');
+      };
+
+      window.closeMoveTargetModal = function(event) {
+        if (!event || event.target.id === 'moveTargetModal' || event.target.tagName === 'BUTTON') {
+          document.getElementById('moveTargetModal').classList.add('hidden');
+        }
+      };
+
+      window.moveSongAfter = function(targetId) {
+        let fromIdx = window.queueData.findIndex(i => i.id === window.selectedSongId);
+        let toIdx = window.queueData.findIndex(i => i.id === targetId);
+
+        if (fromIdx !== -1 && toIdx !== -1) {
+          let [movedSong] = window.queueData.splice(fromIdx, 1);
+          let newTargetIdx = window.queueData.findIndex(i => i.id === targetId);
+          window.queueData.splice(newTargetIdx + 1, 0, movedSong);
+
+          renderQueue();
+        }
+        closeMoveTargetModal();
+      };
+
+      window.confirmSkipSong = function() {
+        closeActionModal();
+        const song = window.queueData.find(i => i.id === window.selectedSongId);
+        if (!song) return;
+
+        document.getElementById('confirmIcon').innerText = '⏭️';
+        document.getElementById('confirmTitle').innerText = 'ยืนยันข้ามเพลง';
+        document.getElementById('confirmMessage').innerText = `คุณต้องการข้ามเพลงทั้งหมดมาที่ "${song.title}" ใช่หรือไม่? (เพลงที่ถูกข้ามจะย้ายลงใต้จบการแสดง)`;
+        
+        const execBtn = document.getElementById('confirmExecuteBtn');
+        execBtn.style.background = '#f59e0b';
+        execBtn.style.color = '#000';
+        execBtn.onclick = () => {
+          skipToSong(window.selectedSongId);
+          closeConfirmModal();
+        };
+
+        document.getElementById('confirmModal').classList.remove('hidden');
+      };
+
+      function skipToSong(targetId) {
+        let activeQueue = window.queueData.filter(i => i.status !== 'removed');
+        let playingIdx = activeQueue.findIndex(i => i.status === 'playing');
+        let targetIdx = activeQueue.findIndex(i => i.id === targetId);
+
+        if (playingIdx !== -1 && targetIdx > playingIdx + 1) {
+          for (let i = playingIdx + 1; i < targetIdx; i++) {
+            let songToSkip = activeQueue[i];
+            let mainSong = window.queueData.find(s => s.id === songToSkip.id);
+            if (mainSong && mainSong.type !== 'dummy_end') {
+              mainSong.oldStatus = mainSong.status;
+              mainSong.status = 'removed';
+            }
+          }
+          renderQueue();
+        }
+      }
+
+      window.confirmDeleteSong = function() {
+        closeActionModal();
+        const song = window.queueData.find(i => i.id === window.selectedSongId);
+        if (!song) return;
+
+        document.getElementById('confirmIcon').innerText = '🗑️';
+        document.getElementById('confirmTitle').innerText = 'ยืนยันลบเพลง';
+        document.getElementById('confirmMessage').innerText = `คุณต้องการลบเพลง "${song.title}" ออกจากคิวใช่หรือไม่? (ย้ายลงใต้การ์ดจบการแสดง)`;
+        
+        const execBtn = document.getElementById('confirmExecuteBtn');
+        execBtn.style.background = '#ef4444';
+        execBtn.style.color = '#fff';
+        execBtn.onclick = () => {
+          removeSongWithConfirm(window.selectedSongId);
+          closeConfirmModal();
+        };
+
+        document.getElementById('confirmModal').classList.remove('hidden');
+      };
+
+      function removeSongWithConfirm(id) {
+        let song = window.queueData.find(i => i.id === id);
+        if (song && song.status !== 'playing') {
+          song.oldStatus = song.status;
+          song.status = 'removed';
+          renderQueue();
+        }
+      }
+
+      window.closeConfirmModal = function(event) {
+        if (!event || event.target.id === 'confirmModal' || event.target.tagName === 'BUTTON') {
+          document.getElementById('confirmModal').classList.add('hidden');
+        }
+      };
+
+      window.restoreSong = function(id) {
+        let song = window.queueData.find(i => i.id === id);
+        if (!song) return;
+
+        let playingItem = window.queueData.find(i => i.status === 'playing');
+        let playingIdx = playingItem ? window.queueData.findIndex(i => i.id === playingItem.id) : 0;
+
+        let targetIndex = song.originalIndex !== undefined ? song.originalIndex + 1 : -1;
+
+        if (targetIndex > playingIdx && targetIndex < window.queueData.length - 1) {
+          song.status = 'normal';
+        } else {
+          song.status = 'normal';
+          let dummyEndIdx = window.queueData.findIndex(i => i.type === 'dummy_end');
+          let currentIdx = window.queueData.findIndex(i => i.id === id);
+
+          if (dummyEndIdx !== -1 && currentIdx !== -1) {
+            let [restored] = window.queueData.splice(currentIdx, 1);
+            let newEndIdx = window.queueData.findIndex(i => i.type === 'dummy_end');
+            window.queueData.splice(newEndIdx, 0, restored);
+          }
+        }
+
+        renderQueue();
+      };
+
+      // 📌 5. ระบบหน้าต่างสไลด์แทรกเพลง
+      window.openInsertModal = function() {
+        renderRequestList();
+        
+        if (!window.songLibrary || window.songLibrary.length === 0) {
+          window.songLibrary = JSON.parse(localStorage.getItem('lsh_songs')) || [];
+        }
+
+        const modal = document.getElementById('insertModal');
+        if (modal) modal.classList.remove('hidden');
+
+        setTimeout(() => {
+          renderSongLibrary();
+        }, 50);
+      };
+
+      window.closeInsertModal = function(event) {
+        if (!event || event.target.id === 'insertModal' || event.target.tagName === 'BUTTON') {
+          document.getElementById('insertModal').classList.add('hidden');
+        }
+      };
+
+      window.selectInsertSong = function(songObj, insertType, reqIdToDelete = null) {
+        window.pendingInsertSongObj = {
+          songId: songObj.id || songObj.songId || '',
+          title: songObj.title,
+          artist: songObj.artist,
+          key: songObj.key || '-',
+          bpm: songObj.bpm || '-',
+          note: songObj.note || '-',
+          type: insertType,
+          reqIdToDelete: reqIdToDelete
+        };
+
+        document.getElementById('insertOptionsSongTitle').innerText = `${songObj.title} - ${songObj.artist}`;
+        document.getElementById('insertOptionsModal').classList.remove('hidden');
+      };
+
+      window.closeInsertOptionsModal = function(event) {
+        if (!event || event.target.id === 'insertOptionsModal' || event.target.tagName === 'BUTTON') {
+          document.getElementById('insertOptionsModal').classList.add('hidden');
+        }
+      };
+
+      window.openInsertTargetModal = function() {
+        closeInsertOptionsModal();
+
+        const container = document.getElementById('insertTargetList');
+        if (!container) return;
+
+        let targetCandidates = window.queueData.filter(i => 
+          i.status !== 'removed' && 
+          i.status !== 'played' && 
+          i.type !== 'dummy_end'
+        );
+
+        if (targetCandidates.length === 0) {
+          container.innerHTML = '<div style="color: #666; text-align: center; padding: 12px;">ไม่มีเพลงในคิวให้เลือกแทรกต่อท้าย</div>';
+        } else {
+          let html = '';
+          targetCandidates.forEach(song => {
+            let label = song.type === 'dummy_start' ? '🔴 เตรียมพร้อมสำหรับการแสดง' : `${song.title} - ${song.artist}`;
+            html += `
+              <div onclick="executeInsertAfterTarget('${song.id}')" style="background: #12131a; border: 1px solid #333; padding: 10px; border-radius: 6px; cursor: pointer; display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                  <div style="font-weight: bold; font-size: 13px; color: #fff;">${label}</div>
+                  <div style="font-size: 10px; color: #888;">${song.set || ''} | คีย์: ${song.key || '-'}</div>
+                </div>
+                <div style="color: #00f2d1; font-size: 12px; font-weight: bold;">แทรกต่อท้าย ▶</div>
+              </div>
+            `;
+          });
+          container.innerHTML = html;
+        }
+
+        document.getElementById('insertTargetModal').classList.remove('hidden');
+      };
+
+      window.closeInsertTargetModal = function(event) {
+        if (!event || event.target.id === 'insertTargetModal' || event.target.tagName === 'BUTTON') {
+          document.getElementById('insertTargetModal').classList.add('hidden');
+        }
+      };
+
+      window.executeInsertAfterTarget = function(targetId) {
+        if (!window.pendingInsertSongObj) return;
+
+        let p = window.pendingInsertSongObj;
+        let newSong = {
+          id: 'ins_' + Date.now(),
+          songId: p.songId,
+          title: p.title,
+          artist: p.artist,
+          key: p.key,
+          bpm: p.bpm,
+          note: p.note,
+          set: p.type === 'custom' ? 'Set เพลงแทรก' : 'Set รีเควส',
+          status: 'normal',
+          type: p.type === 'custom' ? 'inserted-custom' : 'inserted-request'
+        };
+
+        let targetIdx = window.queueData.findIndex(i => i.id === targetId);
+        if (targetIdx !== -1) {
+          window.queueData.splice(targetIdx + 1, 0, newSong);
+        } else {
+          window.queueData.push(newSong);
+        }
+
+        if (p.reqIdToDelete) {
+          window.requestQueue = window.requestQueue.filter(i => i.id !== p.reqIdToDelete);
+        }
+
+        renderQueue();
+        closeInsertTargetModal();
+        closeInsertModal();
+      };
+
+      function renderRequestList() {
+        const container = document.getElementById('requestSongList');
+        if (!container) return;
+        
+        if (!window.requestQueue || window.requestQueue.length === 0) {
+          container.innerHTML = '<div style="color: #666; text-align: center; padding: 4px;">ไม่มีคำขอเพลงใหม่จากลูกค้า</div>';
+          return;
+        }
+
+        let html = '';
+        window.requestQueue.forEach(req => {
+          let reqJson = JSON.stringify(req).replace(/"/g, '&quot;');
+          let artistText = req.artist && req.artist !== '-' ? ` - ${req.artist}` : '';
+          let keyText = req.key && req.key !== '-' ? ` (คีย์: ${req.key})` : '';
+          
+          html += `
+            <div onclick="selectInsertSong(${reqJson}, 'request', '${req.id}')" style="display: flex; justify-content: space-between; align-items: center; background: #1a1c24; padding: 8px; border-radius: 4px; margin-bottom: 4px; cursor: pointer; border: 1px solid #333;">
+              <div>
+                <span style="font-weight: bold; color: #fff;">${req.title}${artistText}</span>
+                <span style="font-size: 10px; color: #f59e0b; margin-left: 6px;">${keyText}</span>
+              </div>
+              <div style="font-size: 11px; color: #ec4899; font-weight: bold;">📥 แตะเพื่อแทรก</div>
+            </div>
+          `;
+        });
+        container.innerHTML = html;
+      }
+window.executeInsertAfterPlaying = function() {
+        if (!window.pendingInsertSongObj) return;
+
+        let p = window.pendingInsertSongObj;
+        let newSong = {
+          id: 'ins_' + Date.now(),
+          songId: p.songId,
+          title: p.title,
+          artist: p.artist,
+          key: p.key,
+          bpm: p.bpm,
+          note: p.note,
+          set: p.type === 'custom' ? 'Set เพลงแทรก' : 'Set รีเควส',
+          status: 'next',
+          type: p.type === 'custom' ? 'inserted-custom' : 'inserted-request'
+        };
+
+        let playingIdx = window.queueData.findIndex(i => i.status === 'playing');
+        if (playingIdx !== -1) {
+          window.queueData.splice(playingIdx + 1, 0, newSong);
+        } else {
+          window.queueData.push(newSong);
+        }
+
+        // 📌 ลบข้อมูลออกจาก Firebase requestStats ตาม reqIdToDelete (Push ID)
+        if (p.reqIdToDelete) {
+          const sessionStr = localStorage.getItem('lsh_session');
+          const session = sessionStr ? JSON.parse(sessionStr) : {};
+          const selectedRoom = session.room || localStorage.getItem('lsh_selected_room') || 'PGL8';
+
+          if (typeof db !== 'undefined' && db && db.ref) {
+            db.ref(`rooms/${selectedRoom}/requestStats/${p.reqIdToDelete}`).remove();
+          }
+        }
+
+        renderQueue();
+        closeInsertOptionsModal();
+        closeInsertModal();
+      };
+      window.filterByKey = function(key) {
+        window.currentKeyFilter = key;
+        document.querySelectorAll('#keyFilterContainer .key-btn').forEach(btn => {
+          let btnText = btn.innerText.split('/')[0];
+          if (key === 'ALL' && btn.innerText === 'ALL') btn.classList.add('active');
+          else if (btnText === key) btn.classList.add('active');
+          else btn.classList.remove('active');
+        });
+        renderSongLibrary();
+      };
+
+      window.filterBySearch = function() {
+        renderSongLibrary();
+      };
+
+      // 🌟 ฟังก์ชันเรนเดอร์คลังเพลงและ 6 เพลงแนะนำอัจฉริยะ
+      window.renderSongLibrary = function() {
+        const container = document.getElementById('recommendSongList');
+        const searchInput = document.getElementById('searchSongInput');
+        const labelEl = document.getElementById('recommendLabel');
+        if (!container || !searchInput) return;
+
+        const searchKeyword = searchInput.value.toLowerCase().trim();
+
+        let songLib = (window.songLibrary && window.songLibrary.length > 0) 
+          ? window.songLibrary 
+          : (JSON.parse(localStorage.getItem('lsh_songs')) || []);
+
+        if (!songLib || songLib.length === 0) {
+          container.innerHTML = '<div style="color: #888; text-align: center; padding: 20px;">⏳ กำลังโหลดคลังเพลงจากระบบ...</div>';
+          return;
+        }
+
+        let activeQueueSongIds = window.queueData.filter(i => i.status !== 'removed').map(i => i.songId || i.title);
+        let availableSongs = songLib.filter(song => {
+          let identifier = song.id || song.title;
+          return !activeQueueSongIds.includes(identifier);
+        });
+
+        if (searchKeyword !== '' || window.currentKeyFilter !== 'ALL') {
+          if (labelEl) labelEl.innerText = '🔍 ผลการค้นหาจากคลังเพลง';
+
+          let keyFiltered = availableSongs;
+          if (window.currentKeyFilter !== 'ALL') {
+            let allowedKeys = new Set();
+            allowedKeys.add(window.currentKeyFilter.toLowerCase());
+            if (relativeKeyMap[window.currentKeyFilter]) {
+              allowedKeys.add(relativeKeyMap[window.currentKeyFilter].toLowerCase());
+            }
+            keyFiltered = availableSongs.filter(song => song.key && allowedKeys.has(song.key.trim().toLowerCase()));
+          }
+
+          let finalResult = [];
+          if (searchKeyword !== '') {
+            let group1Prefix = [];
+            let group2TitleContains = [];
+            let group3ArtistContains = [];
+
+            keyFiltered.forEach(song => {
+              const titleLower = (song.title || '').toLowerCase();
+              const artistLower = (song.artist || '').toLowerCase();
+
+              if (titleLower.startsWith(searchKeyword)) {
+                group1Prefix.push(song);
+              } else if (titleLower.includes(searchKeyword)) {
+                group2TitleContains.push(song);
+              } else if (artistLower.includes(searchKeyword)) {
+                group3ArtistContains.push(song);
+              }
+            });
+
+            finalResult = [...group1Prefix, ...group2TitleContains, ...group3ArtistContains];
+          } else {
+            finalResult = keyFiltered;
+          }
+
+          if (finalResult.length === 0) {
+            container.innerHTML = '<div style="color: #666; text-align: center; padding: 12px;">ไม่พบเพลงที่ค้นหาในคลัง</div>';
+            return;
+          }
+
+          let html = '';
+          finalResult.forEach(song => {
+            let songJson = JSON.stringify(song).replace(/"/g, '&quot;');
+            html += `
+              <div onclick="selectInsertSong(${songJson}, 'custom')" style="background: #12131a; padding: 8px; border-radius: 6px; border: 1px solid #333; display: flex; justify-content: space-between; align-items: center; cursor: pointer;">
+                <div>
+                  <div style="font-size: 13px; font-weight: bold; color: #fff;">${song.title} - ${song.artist}</div>
+                  <div style="font-size: 11px; color: #888;">คีย์: ${song.key || '-'} | ${song.bpm || '-'} BPM</div>
+                </div>
+                <div style="color: #00f2d1; font-size: 11px; font-weight: bold;">▶ แตะเพื่อแทรก</div>
+              </div>
+            `;
+          });
+          container.innerHTML = html;
+          return;
+        }
+
+        if (labelEl) labelEl.innerText = '✨ 6 เพลงแนะนำ';
+
+        let playingSong = window.queueData.find(i => i.status === 'playing');
+        let isDummyStart = Boolean(playingSong && playingSong.type === 'dummy_start');
+
+        function shuffleArray(array) {
+          let arr = [...array];
+          for (let i = arr.length - 1; i > 0; i--) {
+            let j = Math.floor(Math.random() * (i + 1));
+            [arr[i], arr[j]] = [arr[j], arr[i]];
+          }
+          return arr;
+        }
+
+        let recommendedList = [];
+
+        if (isDummyStart || !playingSong) {
+          recommendedList = shuffleArray(availableSongs).slice(0, 6);
+        } else {
+          let targetKey = playingSong.key;
+          let targetBpm = playingSong.bpm && playingSong.bpm !== '-' ? parseFloat(playingSong.bpm) : null;
+
+          if (targetKey && targetKey !== '-') {
+            let allowedKeys = new Set();
+            allowedKeys.add(targetKey.trim().toLowerCase());
+            if (relativeKeyMap[targetKey.trim()]) {
+              allowedKeys.add(relativeKeyMap[targetKey.trim()].toLowerCase());
+            }
+
+            let bothMatch = [];
+            let keyMatch = [];
+            let bpmMatch = [];
+
+            availableSongs.forEach(song => {
+              let sKey = song.key ? song.key.trim().toLowerCase() : '';
+              let sBpm = song.bpm && song.bpm !== '-' ? parseFloat(song.bpm) : null;
+
+              let isKeySame = allowedKeys.has(sKey);
+              let isBpmClose = (targetBpm !== null && sBpm !== null && Math.abs(sBpm - targetBpm) <= 10);
+
+              if (isKeySame && isBpmClose) bothMatch.push(song);
+              else if (isKeySame) keyMatch.push(song);
+              else if (isBpmClose) bpmMatch.push(song);
+            });
+
+            bothMatch = shuffleArray(bothMatch);
+            keyMatch = shuffleArray(keyMatch);
+            bpmMatch = shuffleArray(bpmMatch);
+
+            if (targetBpm !== null) {
+              let pickedBoth = bothMatch.slice(0, 2);
+              let pickedKey = keyMatch.slice(0, 2);
+              let pickedBpm = bpmMatch.slice(0, 2);
+
+              recommendedList = [...pickedBoth, ...pickedKey, ...pickedBpm];
+            } else {
+              recommendedList = [...bothMatch, ...keyMatch].slice(0, 6);
+            }
+
+            if (recommendedList.length < 6) {
+              let usedIds = recommendedList.map(i => i.id || i.title);
+              let others = shuffleArray(availableSongs.filter(s => !usedIds.includes(s.id || s.title)));
+              recommendedList = [...recommendedList, ...others].slice(0, 6);
+            }
+          } else {
+            recommendedList = shuffleArray(availableSongs).slice(0, 6);
+          }
+        }
+
+        if (recommendedList.length === 0) {
+          container.innerHTML = '<div style="color: #666; text-align: center; padding: 12px;">ไม่พบเพลงในคลัง</div>';
+          return;
+        }
+
+        let html = '';
+        recommendedList.forEach(song => {
+          let songJson = JSON.stringify(song).replace(/"/g, '&quot;');
+          html += `
+            <div onclick="selectInsertSong(${songJson}, 'custom')" style="background: #12131a; padding: 8px; border-radius: 6px; border: 1px solid #333; display: flex; justify-content: space-between; align-items: center; cursor: pointer;">
+              <div>
+                <div style="font-size: 13px; font-weight: bold; color: #fff;">${song.title} - ${song.artist}</div>
+                <div style="font-size: 11px; color: #f59e0b;">คีย์: ${song.key || '-'} | ${song.bpm || '-'} BPM</div>
+              </div>
+              <div style="color: #00f2d1; font-size: 11px; font-weight: bold;">▶ แตะเพื่อแทรก</div>
+            </div>
+          `;
+        });
+
+        html += `
+          <button onclick="renderSongLibrary()" style="width: 100%; padding: 10px; margin-top: 6px; background: #222430; border: 1px solid #00f2d1; color: #00f2d1; border-radius: 6px; font-weight: bold; font-size: 12px; cursor: pointer;">
+            🎲 สุ่ม 6 เพลงแนะนำใหม่
+          </button>
+        `;
+
+        container.innerHTML = html;
+      }
+
+      // 📌 6. ปุ่มสลับสถานะ Next / Prev
+      function updateControlButtons() {
+        const btnNext = document.querySelector('.btn-next');
+        const btnPrev = document.querySelector('.btn-prev');
+
+        if (!btnNext || !btnPrev || !window.queueData || window.queueData.length === 0) return;
+
+        const activeQueue = window.queueData.filter(i => i.status !== 'removed');
+        const startCard = activeQueue.find(i => i.type === 'dummy_start');
+
+        const realSongs = activeQueue.filter(i => i.type !== 'dummy_start' && i.type !== 'dummy_end');
+        const lastRealSong = realSongs.length > 0 ? realSongs[realSongs.length - 1] : null;
+
+        const isAtStart = Boolean(startCard && startCard.status === 'playing');
+        if (isAtStart) {
+          btnPrev.disabled = true;
+          btnPrev.style.background = '#222';
+          btnPrev.style.borderColor = '#444';
+          btnPrev.style.color = '#555';
+          btnPrev.style.cursor = 'not-allowed';
+        } else {
+          btnPrev.disabled = false;
+          btnPrev.style.background = '#00f2d1';
+          btnPrev.style.borderColor = '#00f2d1';
+          btnPrev.style.color = '#00382f';
+          btnPrev.style.cursor = 'pointer';
+        }
+
+        const isAtEnd = Boolean(lastRealSong && lastRealSong.status === 'playing');
+        if (isAtEnd) {
+          btnNext.disabled = true;
+          btnNext.style.background = '#222';
+          btnNext.style.borderColor = '#444';
+          btnNext.style.color = '#555';
+          btnNext.style.cursor = 'not-allowed';
+        } else {
+          btnNext.disabled = false;
+          btnNext.style.background = '#00f2d1';
+          btnNext.style.borderColor = '#00f2d1';
+          btnNext.style.color = '#00382f';
+          btnNext.style.cursor = 'pointer';
+        }
+      }
+
+      window.nextSong = function() {
+        let activeQueue = window.queueData.filter(i => i.status !== 'removed');
+        let playingIdx = activeQueue.findIndex(i => i.status === 'playing');
+
+        if (playingIdx !== -1 && playingIdx < activeQueue.length - 1) {
+          let realSongs = activeQueue.filter(i => i.type !== 'dummy_start' && i.type !== 'dummy_end');
+          let lastRealSong = realSongs[realSongs.length - 1];
+
+          if (lastRealSong && activeQueue[playingIdx].id === lastRealSong.id) {
+            return;
+          }
+
+          activeQueue[playingIdx].status = 'played';
+          activeQueue[playingIdx + 1].status = 'playing';
+
+          renderQueue();
+        }
+      };
+
+      window.prevSong = function() {
+        let activeQueue = window.queueData.filter(i => i.status !== 'removed');
+        let playingIdx = activeQueue.findIndex(i => i.status === 'playing');
+
+        if (playingIdx > 0) {
+          activeQueue[playingIdx].status = 'normal';
+          activeQueue[playingIdx - 1].status = 'playing';
+
+          renderQueue();
+        }
+      };
+
+      function recalculateQueueStatuses() {
+        let activeQueue = window.queueData.filter(i => i.status !== 'removed' && i.status !== 'played');
+        
+        if (activeQueue.length > 0) {
+          let currentPlaying = window.queueData.find(i => i.status === 'playing' && i.status !== 'removed');
+          if (!currentPlaying) {
+            window.queueData.forEach(i => { if(i.status === 'next' || i.status === 'standby') i.status = 'normal'; });
+            activeQueue[0].status = 'playing';
+            if (activeQueue.length > 1) activeQueue[1].status = 'next';
+            if (activeQueue.length > 2) activeQueue[2].status = 'standby';
+          } else {
+            let assignNext = false;
+            let assignStandby = false;
+
+            for (let i = 0; i < window.queueData.length; i++) {
+              if (window.queueData[i].status === 'removed' || window.queueData[i].status === 'played') continue;
+              
+              if (window.queueData[i].status === 'playing') {
+                assignNext = true;
+                continue;
+              }
+              if (assignNext) {
+                window.queueData[i].status = 'next';
+                assignNext = false;
+                assignStandby = true;
+                continue;
+              }
+              if (assignStandby) {
+                window.queueData[i].status = 'standby';
+                assignStandby = false;
+                continue;
+              }
+              if (window.queueData[i].status === 'next' || window.queueData[i].status === 'standby') {
+                window.queueData[i].status = 'normal';
+              }
+            }
+          }
+        }
+      }
+
+      window.moveSongUp = function(id) {
+        let index = window.queueData.findIndex(i => i.id === id);
+        if (index > 0 && window.queueData[index].status !== 'playing') {
+          let temp = window.queueData[index];
+          window.queueData[index] = window.queueData[index - 1];
+          window.queueData[index - 1] = temp;
+          renderQueue();
+        }
+      };
+
+      window.moveSongDown = function(id) {
+        let index = window.queueData.findIndex(i => i.id === id);
+        if (index !== -1 && index < window.queueData.length - 1 && window.queueData[index].status !== 'playing') {
+          let temp = window.queueData[index];
+          window.queueData[index] = window.queueData[index + 1];
+          window.queueData[index + 1] = temp;
+          renderQueue();
+        }
+      };
+
+      function updateTopBarNext(nextItem) {
+        const topNextText = document.getElementById('topNextText');
+        if (topNextText) {
+          if (nextItem) {
+            topNextText.innerText = `${nextItem.title} - ${nextItem.artist}`;
+          } else {
+            topNextText.innerText = 'จบการแสดง';
+          }
+        }
+      }
+
+      // สั่งเริ่มวาดหน้าคิวเพลงทันทีที่โมดูลถูกเรียกทำงาน
+      window.initQueuePage();
+    };
+
+    // เรียกสั่งงานโมดูลทันทีเมื่อถูกดึงเข้ามาใน AppShell
+    window.initQueuePageModule();
+  </script>
+</body>
+</html>

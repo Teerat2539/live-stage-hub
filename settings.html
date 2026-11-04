@@ -1,0 +1,716 @@
+<!-- ========================================== -->
+<!-- หน้าตั้งค่า (settings.html)                    -->
+<!-- ========================================== -->
+<style>
+  .settings-page { padding: 12px; color: #fff; font-family: sans-serif; position: relative; }
+  .settings-page .hidden { display: none !important; }
+
+  /* เมนูหลัก (Tab เมนูย่อยด้านบน) */
+  .settings-tabs {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+    margin-bottom: 15px;
+  }
+  .settings-tab-btn {
+    padding: 10px;
+    background: #1e202c;
+    border: 1px solid #333;
+    color: #aaa;
+    border-radius: 8px;
+    font-weight: bold;
+    font-size: 13px;
+    cursor: pointer;
+    text-align: center;
+  }
+  .settings-tab-btn.active {
+    background: #1a3a3a;
+    border-color: #00f2d1;
+    color: #00f2d1;
+  }
+
+  /* การ์ดส่วนตั้งค่า */
+  .settings-card {
+    background: #1e202c;
+    border: 1px solid #333;
+    border-radius: 12px;
+    padding: 16px;
+    margin-bottom: 12px;
+  }
+  .settings-card h3 { color: #00f2d1; font-size: 15px; margin-bottom: 12px; border-bottom: 1px solid #333; padding-bottom: 6px; }
+
+  .form-group { margin-bottom: 12px; text-align: left; }
+  .form-group label { display: block; font-size: 12px; color: #aaa; margin-bottom: 4px; }
+  .form-group input, .form-group select { width: 100%; padding: 10px; border-radius: 6px; border: 1px solid #333; background: #12131a; color: #fff; box-sizing: border-box; font-size: 14px; }
+
+  /* ปุ่มบันทึกหลัก */
+  .btn-save-settings {
+    width: 100%;
+    padding: 12px;
+    background: #00f2d1;
+    color: #00382f;
+    font-weight: bold;
+    border: none;
+    border-radius: 8px;
+    font-size: 14px;
+    cursor: pointer;
+    margin-top: 10px;
+    box-shadow: 0 4px 12px rgba(0,242,209,0.2);
+  }
+
+  /* Talkback 6 ปุ่ม Quick Commands */
+  .tb-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+    margin-top: 10px;
+  }
+  .tb-item-box {
+    background: #12131a;
+    border: 1px solid #333;
+    border-radius: 8px;
+    padding: 10px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 60px;
+    cursor: pointer;
+  }
+  .tb-item-box.empty { border-style: dashed; color: #666; font-size: 20px; }
+
+  /* Overlays & Modals */
+  .set-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 12000; display: flex; justify-content: center; align-items: center; }
+  .set-modal-box { background: #1e202c; padding: 20px; border-radius: 12px; width: 320px; border: 1px solid #444; }
+</style>
+
+<div class="settings-page">
+  <!-- เมนูย่อย 4 แท็บ -->
+  <div class="settings-tabs">
+    <button class="settings-tab-btn active" onclick="switchSettingsTab('profile')">👤 ยูสเซอร์โปรไฟล์</button>
+    <button class="settings-tab-btn" onclick="switchSettingsTab('talkback')">🎙️ ท็อคแบคด่วน</button>
+    <button class="settings-tab-btn" onclick="switchSettingsTab('backup')">💾 สำรองข้อมูล</button>
+    <button class="settings-tab-btn" onclick="switchSettingsTab('advanced')">⚙️ ตั้งค่าขั้นสูง</button>
+  </div>
+
+  <!-- ================= TAB 1: USER PROFILE ================= -->
+  <div id="tab-profile" class="settings-content">
+    <div class="settings-card">
+      <h3>ตั้งค่าโปรไฟล์ผู้ใช้งาน</h3>
+      <div class="form-group">
+        <label>Username (ล็อกไว้)</label>
+        <input type="text" id="profUsername" disabled style="background:#181920; color:#666;">
+      </div>
+      <div class="form-group">
+        <label>Nickname</label>
+        <input type="text" id="profNickname">
+      </div>
+      <div class="form-group">
+        <label>Role</label>
+        <input type="text" id="profRole">
+      </div>
+      <div class="form-group">
+        <label>Emoji</label>
+        <input type="text" id="profEmoji" maxlength="2">
+      </div>
+
+      <button id="btnSaveProfile" class="btn-save-settings">💾 บันทึกการเปลี่ยนแปลงโปรไฟล์</button>
+    </div>
+
+    <div class="settings-card">
+      <h3>ความปลอดภัยรหัส PIN</h3>
+      <button onclick="openPinModal()" style="width:100%; padding:10px; background:#222430; border:1px solid #00f2d1; color:#00f2d1; border-radius:6px; font-weight:bold; cursor:pointer;">
+        🔑 เปลี่ยนรหัส PIN
+      </button>
+    </div>
+  </div>
+
+  <!-- ================= TAB 2: TALKBACK QUICK COMMANDS ================= -->
+  <div id="tab-talkback" class="settings-content hidden">
+    <div class="settings-card">
+      <h3>คำสั่งด่วนท็อคแบค (6 ปุ่มรายบุคคล)</h3>
+      <p style="font-size:12px; color:#aaa; margin-bottom:10px;">แตะที่ปุ่มเพื่อแก้ไขหรือเพิ่มคำสั่งด่วน (เว้นว่างทั้งหมดเพื่อลบคำสั่ง)</p>
+      <div id="talkbackButtonsGrid" class="tb-grid"></div>
+    </div>
+  </div>
+
+  <!-- ================= TAB 3: BACKUP AND RESTORE ================= -->
+  <div id="tab-backup" class="settings-content hidden">
+    <div class="settings-card" style="text-align:center; padding:25px;">
+      <h3 style="text-align:left;">สำรองและกู้คืนข้อมูลห้อง</h3>
+      <p style="font-size:13px; color:#aaa; margin-bottom:20px;">สำรองเฉพาะข้อมูลเซ็ตลิสต์และคลังเพลงประจำห้องปัจจุบัน</p>
+      
+      <button id="btnExportJson" style="width:100%; padding:12px; background:#222430; border:1px solid #00f2d1; color:#00f2d1; border-radius:8px; font-weight:bold; cursor:pointer; margin-bottom:10px;">
+        📤 Export JSON (สำรองข้อมูล)
+      </button>
+
+      <button onclick="document.getElementById('importFileObj').click()" style="width:100%; padding:12px; background:#222430; border:1px solid #f59e0b; color:#f59e0b; border-radius:8px; font-weight:bold; cursor:pointer;">
+        📥 Import JSON (กู้คืนข้อมูล)
+      </button>
+      <input type="file" id="importFileObj" accept=".json" class="hidden" onchange="importJsonData(event)">
+    </div>
+  </div>
+
+  <!-- ================= TAB 4: ADVANCED SETTINGS (ADMIN GATE) ================= -->
+  <div id="tab-advanced" class="settings-content hidden">
+    <!-- หน้ากาก Admin Gate (ล็อกด้วย PIN 6 หลัก) -->
+    <div id="adminGateBox" class="settings-card" style="text-align:center; padding:30px;">
+      <h3 style="color:#ef4444; text-align:center;">🔒 ระบบความปลอดภัยแอดมิน</h3>
+      <p style="font-size:13px; color:#aaa; margin-bottom:15px;">กรุณากรอกรหัส PIN แอดมิน 6 หลักเพื่อเข้าสู่ระบบ</p>
+      <input type="password" id="adminPinInput" maxlength="6" placeholder="******" style="width:180px; padding:10px; text-align:center; font-size:18px; letter-spacing:4px; border-radius:6px; border:1px solid #333; background:#12131a; color:#fff; margin-bottom:15px;">
+      <div>
+        <button id="btnSubmitAdminPin" style="padding:10px 20px; border-radius:6px; border:none; background:#00f2d1; color:#000; font-weight:bold; cursor:pointer;">ยืนยัน PIN</button>
+      </div>
+    </div>
+
+    <!-- เนื้อหาภายใน Advanced Settings (แสดงผลหลังผ่าน Admin Gate) -->
+    <div id="adminDashboardBox" class="hidden">
+      <!-- 1. User Management -->
+      <div class="settings-card">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; border-bottom:1px solid #333; padding-bottom:6px;">
+          <h3 style="margin:0; border:none; padding:0;">👥 จัดการสมาชิก</h3>
+          <button onclick="openAddUserModal()" style="background:#00f2d1; border:none; color:#000; font-weight:bold; padding:4px 10px; border-radius:4px; font-size:12px; cursor:pointer;">+ เพิ่มสมาชิก</button>
+        </div>
+        <div id="adminUserListContainer" style="display:flex; flex-direction:column; gap:10px;"></div>
+      </div>
+
+      <!-- 2. Room Name Settings -->
+      <div class="settings-card">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; border-bottom:1px solid #333; padding-bottom:6px;">
+          <h3 style="margin:0; border:none; padding:0;">🏢 จัดการชื่อวง / ห้อง</h3>
+          <button onclick="openAddRoomModal()" style="background:#00f2d1; border:none; color:#000; font-weight:bold; padding:4px 10px; border-radius:4px; font-size:12px; cursor:pointer;">+ เพิ่มวง</button>
+        </div>
+        <div id="adminRoomListContainer" style="display:flex; flex-direction:column; gap:10px;"></div>
+      </div>
+
+      <!-- 3. Telegram Bot Settings -->
+      <div class="settings-card">
+        <h3>🤖 ตั้งค่าแชตบอท Telegram</h3>
+        <div id="adminTelegramContainer" style="display:flex; flex-direction:column; gap:12px;"></div>
+        <button id="btnSaveTelegram" class="btn-save-settings" style="margin-top:15px;">💾 บันทึกตั้งค่า Telegram ทั้งหมด</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= MODALS & POPUPS ================= -->
+
+  <!-- Popup เปลี่ยน PIN สมาชิก -->
+  <div id="pinModal" class="set-overlay hidden" onclick="closePinModal()">
+    <div class="set-modal-box" onclick="event.stopPropagation()">
+      <h3 style="color:#00f2d1; margin-bottom:10px;">🔑 เปลี่ยนรหัส PIN</h3>
+      <div class="form-group">
+        <label>PIN เดิม</label>
+        <input type="password" id="oldPinInput" maxlength="4" placeholder="****">
+      </div>
+      <div class="form-group">
+        <label>PIN ใหม่ (4 หลัก)</label>
+        <input type="password" id="newPinInput" maxlength="4" placeholder="****">
+      </div>
+      <div style="display:flex; justify-content:flex-end; gap:8px; margin-top:15px;">
+        <button id="btnConfirmChangePin" style="padding:8px 16px; border-radius:6px; border:none; background:#00f2d1; color:#000; font-weight:bold; cursor:pointer;">ตกลง</button>
+        <button onclick="closePinModal()" style="padding:8px 16px; border-radius:6px; border:none; background:#333; color:#fff; cursor:pointer;">ยกเลิก</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Popup จัดการ Talkback Button (0-5) -->
+  <div id="tbModal" class="set-overlay hidden" onclick="closeTbModal()">
+    <div class="set-modal-box" onclick="event.stopPropagation()">
+      <h3 style="color:#00f2d1; margin-bottom:10px;" id="tbModalTitle">แก้ไขคำสั่งด่วน</h3>
+      <div class="form-group">
+        <label>ชื่อคำสั่งด่วน</label>
+        <input type="text" id="tbNameInput" placeholder="เช่น ขอเสียงหน่อย!">
+      </div>
+      <div class="form-group">
+        <label>แอ็คชั่น (Action ส่งออก)</label>
+        <input type="text" id="tbActionInput" placeholder="เช่น cheering_sound">
+      </div>
+      <div class="form-group">
+        <label>สีของปุ่ม</label>
+        <select id="tbColorSelect">
+          <option value="#3b82f6">สีฟ้า (Blue)</option>
+          <option value="#10b981">สีเขียว (Green)</option>
+          <option value="#f59e0b">สีส้ม (Orange)</option>
+          <option value="#ec4899">สีชมพู (Pink)</option>
+          <option value="#8b5cf6">สีม่วง (Purple)</option>
+        </select>
+      </div>
+      <div style="display:flex; justify-content:flex-end; gap:8px; margin-top:15px;">
+        <button id="btnSaveTbCommand" style="padding:8px 16px; border-radius:6px; border:none; background:#00f2d1; color:#000; font-weight:bold; cursor:pointer;">บันทึก</button>
+        <button onclick="closeTbModal()" style="padding:8px 16px; border-radius:6px; border:none; background:#333; color:#fff; cursor:pointer;">ยกเลิก</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Popup เพิ่มสมาชิกใหม่ -->
+  <div id="addUserModal" class="set-overlay hidden" onclick="closeAddUserModal()">
+    <div class="set-modal-box" onclick="event.stopPropagation()">
+      <h3 style="color:#00f2d1; margin-bottom:10px;">➕ เพิ่มสมาชิกใหม่</h3>
+      <div class="form-group">
+        <label>Username (ภาษาอังกฤษ)</label>
+        <input type="text" id="newUsernameInput" placeholder="เช่น jack_guitar">
+      </div>
+      <div class="form-group">
+        <label>Nickname</label>
+        <input type="text" id="newNicknameInput" placeholder="แจ็ค">
+      </div>
+      <div class="form-group">
+        <label>PIN 4 หลัก</label>
+        <input type="password" id="newPinInput" maxlength="4" placeholder="1234">
+      </div>
+      <div style="display:flex; justify-content:flex-end; gap:8px; margin-top:15px;">
+        <button id="btnExecuteAddUser" style="padding:8px 16px; border-radius:6px; border:none; background:#00f2d1; color:#000; font-weight:bold; cursor:pointer;">เพิ่มสมาชิก</button>
+        <button onclick="closeAddUserModal()" style="padding:8px 16px; border-radius:6px; border:none; background:#333; color:#fff; cursor:pointer;">ยกเลิก</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Popup เพิ่มวงใหม่ -->
+  <div id="addRoomModal" class="set-overlay hidden" onclick="closeAddRoomModal()">
+    <div class="set-modal-box" onclick="event.stopPropagation()">
+      <h3 style="color:#00f2d1; margin-bottom:10px;">➕ เพิ่มวงใหม่</h3>
+      <div class="form-group">
+        <label>ชื่อวง / ห้อง</label>
+        <input type="text" id="newRoomNameInput" placeholder="เช่น วงร็อกสยาม">
+      </div>
+      <div style="display:flex; justify-content:flex-end; gap:8px; margin-top:15px;">
+        <button id="btnExecuteAddRoom" style="padding:8px 16px; border-radius:6px; border:none; background:#00f2d1; color:#000; font-weight:bold; cursor:pointer;">เพิ่มวง</button>
+        <button onclick="closeAddRoomModal()" style="padding:8px 16px; border-radius:6px; border:none; background:#333; color:#fff; cursor:pointer;">ยกเลิก</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Popup ยืนยันการกระทำ (Generic Confirm Modal) -->
+  <div id="genericConfirmModal" class="set-overlay hidden">
+    <div class="set-modal-box" style="text-align:center;">
+      <h3 id="genericConfirmTitle" style="color:#f59e0b; margin-bottom:10px;">⚠️ ยืนยันการดำเนินการ</h3>
+      <p id="genericConfirmDesc" style="font-size:13px; color:#ccc; margin-bottom:15px;">คุณต้องการดำเนินการนี้ใช่หรือไม่?</p>
+      <div style="display:flex; justify-content:center; gap:10px;">
+        <button id="btnExecuteGenericConfirm" style="padding:8px 18px; border-radius:6px; border:none; background:#ef4444; color:#fff; font-weight:bold; cursor:pointer;">ยืนยัน</button>
+        <button onclick="closeGenericConfirm()" style="padding:8px 18px; border-radius:6px; border:none; background:#333; color:#fff; cursor:pointer;">ยกเลิก</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  (function() {
+    const sessionStr = localStorage.getItem('lsh_session');
+    const session = sessionStr ? JSON.parse(sessionStr) : {};
+    const currentUser = session.username || '';
+    const selectedRoom = session.room || 'PGL8';
+    
+    loadUserProfile();
+    
+    let currentTalkbackIndex = null;
+    let genericConfirmCallback = null;
+
+    // --- Switch Tabs ---
+    window.switchSettingsTab = function(tabName) {
+      document.querySelectorAll('.settings-tab-btn').forEach(btn => btn.classList.remove('active'));
+      document.querySelectorAll('.settings-content').forEach(content => content.classList.add('hidden'));
+
+      event.currentTarget.classList.add('active');
+      document.getElementById('tab-' + tabName).classList.remove('hidden');
+
+      if (tabName === 'profile') loadUserProfile();
+      if (tabName === 'talkback') loadTalkbackCommands();
+      if (tabName === 'advanced') {
+        // ล้างสถานะ PIN Admin ทุกครั้งที่กดเข้ามาใหม่ตามสเปก
+        document.getElementById('adminPinInput').value = '';
+        document.getElementById('adminGateBox').classList.remove('hidden');
+        document.getElementById('adminDashboardBox').classList.add('hidden');
+      }
+    };
+
+    // --- 1. USER PROFILE ---
+    function loadUserProfile() {
+      if (!currentUser) return;
+      db.ref('users/' + currentUser).once('value').then(snapshot => {
+        const u = snapshot.val() || {};
+        document.getElementById('profUsername').value = currentUser;
+        document.getElementById('profNickname').value = u.nickname || '';
+        document.getElementById('profRole').value = u.role || '';
+        document.getElementById('profEmoji').value = u.emoji || '👤';
+      });
+    }
+
+    document.getElementById('btnSaveProfile').onclick = function() {
+      if (!currentUser) return;
+      const nickname = document.getElementById('profNickname').value.trim();
+      const role = document.getElementById('profRole').value.trim();
+      const emoji = document.getElementById('profEmoji').value.trim();
+
+      // 🛑 แสดงป๊อปอัพยืนยันก่อนบันทึก
+      showGenericConfirm('ยืนยันบันทึกโปรไฟล์', 'คุณต้องการบันทึกการเปลี่ยนแปลงข้อมูลโปรไฟล์ใช่หรือไม่?', async () => {
+        try {
+          await db.ref(`users/${currentUser}`).update({ nickname, role, emoji });
+          
+          // อัปเดต Session ใน LocalStorage ทันที
+          session.nickname = nickname;
+          session.role = role;
+          session.emoji = emoji;
+          localStorage.setItem('lsh_session', JSON.stringify(session));
+          
+          alert('บันทึกโปรไฟล์สำเร็จ!');
+        } catch (e) {
+          alert('เกิดข้อผิดพลาด: ' + e.message);
+        }
+      });
+    };
+
+    // เปลี่ยน PIN
+    window.openPinModal = () => document.getElementById('pinModal').classList.remove('hidden');
+    window.closePinModal = () => document.getElementById('pinModal').classList.add('hidden');
+
+    document.getElementById('btnConfirmChangePin').onclick = async function() {
+      const oldPin = document.getElementById('oldPinInput').value.trim();
+      const newPin = document.getElementById('newPinInput').value.trim();
+
+      if (!oldPin || newPin.length !== 4) {
+        alert('กรุณากรอก PIN เดิม และ PIN ใหม่ให้ครบถ้วน (4 หลัก)');
+        return;
+      }
+
+      const snap = await db.ref(`users/${currentUser}/pin`).once('value');
+      const dbPin = String(snap.val() || '');
+
+      if (oldPin !== dbPin) {
+        alert('รหัส PIN เดิมไม่ถูกต้อง!');
+        return;
+      }
+
+      await db.ref(`users/${currentUser}/pin`).set(newPin);
+      alert('เปลี่ยนรหัส PIN สำเร็จ!');
+      closePinModal();
+      document.getElementById('oldPinInput').value = '';
+      document.getElementById('newPinInput').value = '';
+    };
+
+    // --- 2. TALKBACK COMMANDS (รายบุคคล 0-5) ---
+    function loadTalkbackCommands() {
+      if (!currentUser) return;
+      db.ref(`users/${currentUser}/talkbackCommands`).on('value', (snapshot) => {
+        const commands = snapshot.val() || {};
+        const grid = document.getElementById('talkbackButtonsGrid');
+        let html = '';
+
+        for (let i = 0; i < 6; i++) {
+          const cmd = commands[i];
+          if (cmd && (cmd.name || cmd.action)) {
+            html += `
+              <div class="tb-item-box" style="background:${cmd.color || '#3b82f6'};" onclick="openTbModal(${i})">
+                <b style="font-size:13px; color:#fff;">${cmd.name}</b>
+                <span style="font-size:10px; color:#ddd; margin-top:2px;">[${cmd.action}]</span>
+              </div>
+            `;
+          } else {
+            html += `
+              <div class="tb-item-box empty" onclick="openTbModal(${i})">+</div>
+            `;
+          }
+        }
+        grid.innerHTML = html;
+      });
+    }
+
+    window.openTbModal = async function(index) {
+      currentTalkbackIndex = index;
+      document.getElementById('tbModalTitle').innerText = `คำสั่งด่วน ปุ่มที่ ${index + 1}`;
+      
+      const snap = await db.ref(`users/${currentUser}/talkbackCommands/${index}`).once('value');
+      const cmd = snap.val() || {};
+
+      document.getElementById('tbNameInput').value = cmd.name || '';
+      document.getElementById('tbActionInput').value = cmd.action || '';
+      document.getElementById('tbColorSelect').value = cmd.color || '#3b82f6';
+
+      document.getElementById('tbModal').classList.remove('hidden');
+    };
+
+    window.closeTbModal = () => document.getElementById('tbModal').classList.add('hidden');
+
+    document.getElementById('btnSaveTbCommand').onclick = async function() {
+      if (currentTalkbackIndex === null || !currentUser) return;
+      const name = document.getElementById('tbNameInput').value.trim();
+      const action = document.getElementById('tbActionInput').value.trim();
+      const color = document.getElementById('tbColorSelect').value;
+
+      const ref = db.ref(`users/${currentUser}/talkbackCommands/${currentTalkbackIndex}`);
+      if (!name && !action) {
+        // เงื่อนไขลบ หากเว้นว่างทั้งชื่อและแอ็คชั่น
+        await ref.remove();
+      } else {
+        await ref.set({ name, action, color });
+      }
+
+      closeTbModal();
+    };
+
+    // --- 3. BACKUP & RESTORE (Export / Import JSON) ---
+    document.getElementById('btnExportJson').onclick = async function() {
+      try {
+        const snap = await db.ref(`rooms/${selectedRoom}`).once('value');
+        const data = snap.val() || {};
+        const jsonStr = JSON.stringify(data, null, 2);
+        
+        const blob = new Blob([jsonStr], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `backup_${selectedRoom}_${new Date().toISOString().split('T')[0]}.json`;
+        a.click();
+        URL.revokeObjectURL(url);
+      } catch (e) {
+        alert('Export ผิดพลาด: ' + e.message);
+      }
+    };
+
+    window.importJsonData = function(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = async function(e) {
+        try {
+          const importedData = JSON.parse(e.target.result);
+          showGenericConfirm('ยืนยันการ Import JSON', 'ข้อมูลในห้องนี้จะถูกอัปเดตตามไฟล์สำรอง ดำเนินการต่อหรือไม่?', async () => {
+            await db.ref(`rooms/${selectedRoom}`).set(importedData);
+            alert('Import ข้อมูลสำเร็จ!');
+          });
+        } catch (err) {
+          alert('ไฟล์ JSON ไม่ถูกต้อง: ' + err.message);
+        }
+      };
+      reader.readAsText(file);
+    };
+
+    // --- 4. ADVANCED SETTINGS & ADMIN GATE ---
+    document.getElementById('btnSubmitAdminPin').onclick = async function() {
+      const pin = document.getElementById('adminPinInput').value.trim();
+      const snap = await db.ref('users/admin/pin').once('value');
+      const adminPin = String(snap.val() || '123580');
+
+      if (pin === adminPin) {
+        document.getElementById('adminGateBox').classList.add('hidden');
+        document.getElementById('adminDashboardBox').classList.remove('hidden');
+        loadAdminDashboard();
+      } else {
+        alert('รหัส PIN แอดมินไม่ถูกต้อง!');
+      }
+    };
+
+    function loadAdminDashboard() {
+      loadAdminUsers();
+      loadAdminRooms();
+      loadAdminTelegram();
+    }
+
+    // 4.1 จัดการสมาชิก
+ // 4.1 จัดการสมาชิก (แก้ได้เฉพาะ Username และ PIN เท่านั้นตามสเปก)
+    function loadAdminUsers() {
+      db.ref('users').on('value', (snapshot) => {
+        const users = snapshot.val() || {};
+        const container = document.getElementById('adminUserListContainer');
+        let html = '';
+
+        Object.keys(users).forEach(uName => {
+          if (uName === 'admin') return; 
+          const u = users[uName];
+          html += `
+            <div style="background:#12131a; padding:10px; border-radius:8px; border:1px solid #333; display:flex; flex-direction:column; gap:6px;">
+              <div style="display:flex; justify-content:space-between; align-items:center;">
+                <!-- ช่องแก้ไข Username -->
+                <input type="text" id="adm_uname_${uName}" value="${uName}" placeholder="Username" style="padding:6px; font-size:12px; width:120px; background:#181920; color:#00f2d1; font-weight:bold; border:1px solid #333; border-radius:4px;">
+                <button onclick="showGenericConfirm('ลบสมาชิก', 'ต้องการลบยูสเซอร์ ${uName} หรือไม่?', () => deleteUser('${uName}'))" style="background:#3a1a1a; border:1px solid #ef4444; color:#ef4444; border-radius:4px; padding:2px 6px; font-size:11px; cursor:pointer;">🗑️ ลบ</button>
+              </div>
+              <div style="display:flex; gap:6px; align-items:center;">
+                <input type="password" id="adm_pin_${uName}" value="${u.pin || ''}" maxlength="4" placeholder="PIN 4 หลัก" style="flex:1; padding:6px; font-size:12px;">
+                <span style="font-size:11px; color:#aaa;">ชื่อเล่นปัจจุบัน: <b style="color:#fff;">${u.nickname || '-'}</b></span>
+              </div>
+              <button onclick="saveAdminUser('${uName}')" style="background:#00f2d1; border:none; color:#000; font-weight:bold; padding:6px; border-radius:4px; font-size:12px; cursor:pointer;">💾 บันทึกยูสเซอร์นี้</button>
+            </div>
+          `;
+        });
+        container.innerHTML = html;
+      });
+    }
+
+    window.saveAdminUser = async function(oldName) {
+      const newName = document.getElementById(`adm_uname_${oldName}`).value.trim().toLowerCase();
+      const pin = document.getElementById(`adm_pin_${oldName}`).value.trim();
+
+      if (!newName || pin.length !== 4) {
+        alert('กรุณากรอก Username และ PIN (4 หลัก) ให้ถูกต้อง');
+        return;
+      }
+
+      try {
+        if (newName !== oldName) {
+          // ถ้ามีการเปลี่ยน Username ให้ย้ายข้อมูล Node เก่าไป Node ใหม่
+          const snap = await db.ref(`users/${oldName}`).once('value');
+          if (snap.exists()) {
+            let userData = snap.val();
+            userData.pin = pin; // อัปเดต PIN ใหม่ด้วย
+            await db.ref(`users/${newName}`).set(userData);
+            await db.ref(`users/${oldName}`).remove();
+          }
+        } else {
+          // ถ้าไม่ได้เปลี่ยน Username แค่อัปเดต PIN
+          await db.ref(`users/${oldName}`).update({ pin });
+        }
+        alert('บันทึกข้อมูลสมาชิกสำเร็จ!');
+      } catch (e) {
+        alert('เกิดข้อผิดพลาด: ' + e.message);
+      }
+    };
+// 4.2 จัดการชื่อวง / ห้อง (ปรับปรุงให้รองรับการลบและอัปเดตอย่างสมบูรณ์)
+    function loadAdminRooms() {
+      db.ref('rooms').on('value', (snapshot) => {
+        const rooms = snapshot.val() || {};
+        const container = document.getElementById('adminRoomListContainer');
+        let html = '';
+
+        Object.keys(rooms).forEach(rName => {
+          const isLocked = rName === 'วงเฉพาะกิจ';
+          
+          html += `
+            <div style="background:#12131a; padding:10px; border-radius:8px; border:1px solid #333; display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+              <input type="text" id="adm_room_${rName}" value="${rName}" ${isLocked ? 'disabled style="background:#181920; color:#666;"' : ''} style="flex:1; padding:6px; font-size:13px; margin-right:8px;">
+              <div style="display:flex; gap:4px;">
+                ${!isLocked ? `<button onclick="saveAdminRoom(\`${rName}\`)" style="background:#00f2d1; border:none; color:#000; font-weight:bold; padding:6px 10px; border-radius:4px; font-size:11px; cursor:pointer;">💾</button>` : ''}
+                ${!isLocked ? `<button onclick="deleteRoom(\`${rName}\`)" style="background:#3a1a1a; border:1px solid #ef4444; color:#ef4444; border-radius:4px; padding:6px 8px; font-size:11px; cursor:pointer;">🗑️ ลบ</button>` : ''}
+              </div>
+            </div>
+          `;
+        });
+        container.innerHTML = html;
+      });
+    }
+
+    // ฟังก์ชันลบวงที่รองรับชื่อที่มีเครื่องหมายพิเศษ
+    window.deleteRoom = async function(rName) {
+      if (!confirm(`ต้องการลบวง ${rName} หรือไม่?`)) return;
+      try {
+        await Promise.all([
+          db.ref('rooms/' + rName).remove(),
+          db.ref('roomConfig/' + rName).remove()
+        ]);
+        alert(`ลบวง ${rName} เรียบร้อย!`);
+      } catch (e) {
+        alert('เกิดข้อผิดพลาดในการลบวง: ' + e.message);
+      }
+    };
+    window.openAddRoomModal = () => document.getElementById('addRoomModal').classList.remove('hidden');
+    window.closeAddRoomModal = () => document.getElementById('addRoomModal').classList.add('hidden');
+
+    document.getElementById('btnExecuteAddRoom').onclick = async function() {
+      const rName = document.getElementById('newRoomNameInput').value.trim();
+      if (!rName) {
+        alert('กรุณากรอกชื่อวง');
+        return;
+      }
+
+      await db.ref(`rooms/${rName}`).set({ created: Date.now() });
+      await db.ref(`roomConfig/${rName}`).set({ created: Date.now() });
+      closeAddRoomModal();
+      alert('เพิ่มวงใหม่สำเร็จ!');
+    };
+// ฟังก์ชันบันทึกการเปลี่ยนชื่อวง (พร้อมป๊อปอัพยืนยัน)
+    window.saveAdminRoom = async function(oldRoomName) {
+      const inputElem = document.getElementById(`adm_room_${oldRoomName}`);
+      if (!inputElem) return;
+      
+      const newRoomName = inputElem.value.trim();
+
+      if (!newRoomName) {
+        alert('กรุณากรอกชื่อวงให้เรียบร้อย');
+        return;
+      }
+
+      if (newRoomName === oldRoomName) {
+        alert('ชื่อวงยังคงเดิม ไม่มีการเปลี่ยนแปลง');
+        return;
+      }
+
+      // แสดงป๊อปอัพยืนยันการเปลี่ยนแปลง
+      showGenericConfirm('ยืนยันเปลี่ยนชื่อวง', `คุณต้องการเปลี่ยนชื่อวงจาก "${oldRoomName}" เป็น "${newRoomName}" ใช่หรือไม่?`, async () => {
+        try {
+          const roomRef = db.ref('rooms/' + oldRoomName);
+          const snapshot = await roomRef.once('value');
+          const roomData = snapshot.val() || {};
+
+          await db.ref('rooms/' + newRoomName).set(roomData);
+          await roomRef.remove();
+
+          const configRef = db.ref('roomConfig/' + oldRoomName);
+          const configSnap = await configRef.once('value');
+          if (configSnap.exists()) {
+            await db.ref('roomConfig/' + newRoomName).set(configSnap.val());
+            await configRef.remove();
+          }
+
+          alert(`เปลี่ยนชื่อวงเป็น "${newRoomName}" เรียบร้อยแล้ว!`);
+        } catch (e) {
+          alert('เกิดข้อผิดพลาดในการบันทึก: ' + e.message);
+        }
+      });
+    }
+    // 4.3 Telegram Bot Settings
+    function loadAdminTelegram() {
+      db.ref('rooms').on('value', async (snapshot) => {
+        const rooms = snapshot.val() || {};
+        const container = document.getElementById('adminTelegramContainer');
+        let html = '';
+
+        for (let rName of Object.keys(rooms)) {
+          const cfgSnap = await db.ref(`roomConfig/${rName}`).once('value');
+          const cfg = cfgSnap.val() || {};
+
+          html += `
+            <div style="background:#12131a; padding:10px; border-radius:8px; border:1px solid #333; display:flex; flex-direction:column; gap:6px; margin-bottom:8px;">
+              <div style="font-size:13px; font-weight:bold; color:#00f2d1; margin-bottom:2px;">🏢 วง: ${rName}</div>
+              <input type="text" id="tg_token_${rName}" value="${cfg.BotToken || ''}" placeholder="Telegram Bot Token" style="padding:6px; font-size:12px; background:#181920; color:#fff; border:1px solid #333; border-radius:4px;">
+              <input type="text" id="tg_chat_${rName}" value="${cfg.ChatID || ''}" placeholder="Chat ID" style="padding:6px; font-size:12px; background:#181920; color:#fff; border:1px solid #333; border-radius:4px;">
+            </div>
+          `;
+        }
+        container.innerHTML = html;
+      });
+    }
+    
+    document.getElementById('btnSaveTelegram').onclick = async function() {
+      const roomsSnap = await db.ref('rooms').once('value');
+      const rooms = roomsSnap.val() || {};
+
+      for (let rName of Object.keys(rooms)) {
+        const token = document.getElementById(`tg_token_${rName}`)?.value.trim() || '';
+        const chatId = document.getElementById(`tg_chat_${rName}`)?.value.trim() || '';
+
+        const ref = db.ref(`roomConfig/${rName}`);
+        if (token && chatId) {
+          await ref.update({ BotToken: token, ChatID: chatId });
+        } else {
+          // ถ้ากรอกไม่ครบ ให้เคลียร์ค่าออกตามสเปก
+          await ref.update({ BotToken: null, ChatID: null });
+        }
+      }
+      alert('บันทึกตั้งค่า Telegram สำเร็จ!');
+    };
+
+    // --- Generic Confirm Modal ---
+    window.showGenericConfirm = function(title, desc, callback) {
+      document.getElementById('genericConfirmTitle').innerText = title;
+      document.getElementById('genericConfirmDesc').innerText = desc;
+      genericConfirmCallback = callback;
+      document.getElementById('genericConfirmModal').classList.remove('hidden');
+    };
+
+    window.closeGenericConfirm = () => document.getElementById('genericConfirmModal').classList.add('hidden');
+
+    document.getElementById('btnExecuteGenericConfirm').onclick = function() {
+      if (genericConfirmCallback) genericConfirmCallback();
+      closeGenericConfirm();
+    };
+  })();
+</script>

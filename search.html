@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Live Stage Hub - ค้นหาคอร์ดเพลง</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: sans-serif; }
+    
+    html, body { 
+      background: #12131a; 
+      color: #fff; 
+      height: auto; 
+      overflow: visible; 
+    }
+
+    /* ================= Top Bar (ล็อกนิ่งติดขอบบนสุด) ================= */
+    .search-top-bar {
+      position: sticky;
+      top: 0;
+      background: #1e202c;
+      border-bottom: 1px solid #333;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      padding: 8px 12px;
+      align-items: center;
+      z-index: 100;
+    }
+    .top-box {
+      background: #12131a;
+      border: 1px solid #333;
+      border-radius: 6px;
+      padding: 6px 10px;
+      font-size: 11px;
+      overflow: hidden;
+      white-space: nowrap;
+      position: relative;
+    }
+    .top-title { color: #888; font-size: 9px; display: block; margin-bottom: 2px; }
+    .top-content { color: #00f2d1; font-weight: bold; display: inline-block; }
+
+    /* ================= Main Display Area (พื้นที่แสดงรายชื่อเพลงตรงกลาง) ================= */
+    .search-main-content {
+      padding: 12px;
+      /* เว้นระยะขอบล่างไม่ให้เนื้อหาเพลงโดนช่องค้นหาด้านล่างบัง */
+      padding-bottom: 90px; 
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    /* ================= Search Bar Section (ย้ายมาลอยนิ่งติดขอบล่างเหนือแถบนำทาง) ================= */
+    .search-input-section {
+      position: fixed;
+      bottom: 60px; /* 👈 ดันลอยขึ้นมาเหนือแถบเมนูนำทางของ AppShell (เว้นระยะ 60px) */
+      left: 0;
+      width: 100%;
+      background: #161822;
+      border-top: 1px solid #333;
+      padding: 10px 12px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      gap: 6px;
+      z-index: 99;
+      box-shadow: 0 -4px 10px rgba(0,0,0,0.5);
+    }
+    .search-label { font-size: 11px; color: #00f2d1; font-weight: bold; }
+    .search-input-group {
+      display: flex;
+      gap: 8px;
+      height: 42px;
+    }
+    .search-text-input {
+      flex: 1;
+      background: #12131a;
+      border: 1px solid #444;
+      border-radius: 8px;
+      padding: 0 12px;
+      color: #fff;
+      font-size: 15px;
+      outline: none;
+    }
+    .search-text-input:focus { border-color: #00f2d1; }
+    .search-btn-submit {
+      width: 50px;
+      background: #00f2d1;
+      border: none;
+      border-radius: 8px;
+      color: #00382f;
+      font-size: 18px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s;
+    }
+    .search-btn-submit:active { transform: scale(0.95); }
+
+    /* สไตล์การ์ดเพลง */
+    .song-card {
+      background: #1e202c;
+      border: 1px solid #333;
+      border-radius: 8px;
+      padding: 12px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      transition: all 0.2s;
+      cursor: pointer;
+    }
+    .song-card:active { background: #2a2e43; }
+
+    .song-card.played {
+      opacity: 0.5;
+      text-decoration: line-through;
+      border-style: dashed;
+    }
+
+    /* 🌟 เพลงถัดไป (ไซส์ใหญ่เด่นชัด) */
+    .song-card.next-song {
+      background: #1a3a3a;
+      border: 2px solid #00f2d1;
+      padding: 16px 14px;
+      box-shadow: 0 4px 15px rgba(0,242,209,0.2);
+    }
+    .song-card.next-song .song-title-main {
+      font-size: 18px !important;
+    }
+
+    /* สีประจำ Set 1 - 5 */
+    .set-color-1 { border-left: 4px solid #00f2d1 !important; }
+    .set-color-1 .song-title-main { color: #00f2d1 !important; }
+
+    .set-color-2 { border-left: 4px solid #3b82f6 !important; }
+    .set-color-2 .song-title-main { color: #3b82f6 !important; }
+
+    .set-color-3 { border-left: 4px solid #f59e0b !important; }
+    .set-color-3 .song-title-main { color: #f59e0b !important; }
+
+    .set-color-4 { border-left: 4px solid #ec4899 !important; }
+    .set-color-4 .song-title-main { color: #ec4899 !important; }
+
+    .set-color-5 { border-left: 4px solid #8b5cf6 !important; }
+    .set-color-5 .song-title-main { color: #8b5cf6 !important; }
+
+    .song-card.inserted-request { background: #2b2615 !important; border-left: 4px solid #f59e0b !important; }
+    .song-card.inserted-request .song-title-main { color: #f59e0b !important; }
+
+    .song-card.inserted-custom { background: #142820 !important; border-left: 4px solid #10b981 !important; }
+    .song-card.inserted-custom .song-title-main { color: #10b981 !important; }
+
+    .badge-status {
+      font-size: 10px;
+      padding: 3px 8px;
+      border-radius: 4px;
+      font-weight: bold;
+    }
+    .badge-played { background: #333; color: #888; }
+    .badge-playing { background: #00f2d1; color: #00382f; }
+    .badge-next { background: #f59e0b; color: #000; }
+    .badge-normal { background: #222; color: #aaa; }
+
+    .special-card {
+      background: #161822;
+      border: 1px dashed #555;
+      border-radius: 8px;
+      padding: 10px 14px;
+      text-align: center;
+      font-weight: bold;
+      font-size: 13px;
+      color: #aaa;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- 1. แถบด้านบน (ล็อกลอยนิ่งแสดงท็อคแบคและเพลงถัดไป) -->
+  <div class="search-top-bar">
+    <div id="topTalkbackBox" class="top-box">
+      <span class="top-title">🎙️ ท็อคแบคล่าสุด</span>
+      <div id="topTalkbackText" class="top-content">สแตนบายรอคำสั่ง...</div>
+    </div>
+    <div id="topNextBox" class="top-box">
+      <span class="top-title">🎵 เพลงถัดไป</span>
+      <div id="topNextText" class="top-content">-</div>
+    </div>
+  </div>
+
+  <!-- 2. ส่วนแสดงผลคิวเพลงตรงกลาง (เลื่อนดูรายชื่อได้อิสระ) -->
+  <div class="search-main-content" id="searchQueueContainer">
+    <div style="text-align: center; color: #666; padding: 20px;">กำลังโหลดคิวเพลงแบบ Realtime...</div>
+  </div>
+
+  <!-- 3. ช่องค้นหา (ย้ายมาลอยนิ่งติดขอบล่างเหนือแถบนำทาง) -->
+  <div class="search-input-section">
+    <div class="search-label">🔍 ค้นหาคอร์ดเพลงด่วน</div>
+    <div class="search-input-group">
+      <input type="text" id="chordSearchInput" class="search-text-input" placeholder="แตะเลือกเพลงจากคิว หรือพิมพ์ชื่อเพลง...">
+      <button class="search-btn-submit" onclick="searchChordOnGoogle()">🔍</button>
+    </div>
+  </div>
+
+  <script>
+    window.initSearchPageModule = function() {
+      let currentQueueList = [];
+
+      function initSearchQueueListener() {
+        const sessionStr = localStorage.getItem('lsh_session');
+        const session = sessionStr ? JSON.parse(sessionStr) : {};
+        const selectedRoom = session.room || localStorage.getItem('lsh_selected_room') || 'PGL8';
+
+        if (typeof db !== 'undefined' && db && db.ref) {
+          db.ref(`rooms/${selectedRoom}/queue/songs`).off('value');
+          db.ref(`rooms/${selectedRoom}/queue/songs`).on('value', (snapshot) => {
+            const val = snapshot.val();
+            if (val && Array.isArray(val)) {
+              currentQueueList = val;
+              renderSearchQueue(val);
+            } else {
+              let localQueue = JSON.parse(localStorage.getItem('lsh_queue_data')) || [];
+              currentQueueList = localQueue;
+              renderSearchQueue(localQueue);
+            }
+          });
+        } else {
+          let localQueue = JSON.parse(localStorage.getItem('lsh_queue_data')) || [];
+          currentQueueList = localQueue;
+          renderSearchQueue(localQueue);
+        }
+
+        loadLatestTalkback(selectedRoom);
+      }
+
+      function loadLatestTalkback(room) {
+        if (typeof db !== 'undefined' && db && db.ref) {
+          db.ref(`rooms/${room}/talkbacks`).limitToLast(1).on('child_added', (snapshot) => {
+            const val = snapshot.val();
+            const topText = document.getElementById('topTalkbackText');
+            if (val && topText) {
+              topText.innerText = `${val.sender || 'ระบบ'}: ${val.message || ''}`;
+            }
+          });
+        }
+      }
+
+      function renderSearchQueue(queueData) {
+        const container = document.getElementById('searchQueueContainer');
+        const topNextText = document.getElementById('topNextText');
+        if (!container) return;
+
+        if (!queueData || queueData.length === 0) {
+          container.innerHTML = '<div style="text-align: center; color: #666; padding: 20px;">ยังไม่มีข้อมูลคิวเพลงในขณะนี้</div>';
+          if (topNextText) topNextText.innerText = '-';
+          return;
+        }
+
+        let html = '';
+        let nextSongObj = queueData.find(i => i.status === 'next');
+        if (topNextText) {
+          topNextText.innerText = nextSongObj ? `${nextSongObj.title} - ${nextSongObj.artist}` : 'จบการแสดง';
+        }
+
+        queueData.forEach((song) => {
+          if (song.type === 'dummy_start' || song.type === 'dummy_end') {
+            let stateLabel = '';
+            let style = '';
+            if (song.status === 'playing') {
+              stateLabel = ' (กำลังสแตนบายหน้าเวที)';
+              style = 'border: 2px solid #00f2d1; color: #00f2d1; background: #1a3a3a;';
+            } else if (song.status === 'played') {
+              style = 'opacity: 0.4; text-decoration: line-through;';
+            }
+            html += `<div class="special-card" style="${style}">${song.title}${stateLabel}</div>`;
+            return;
+          }
+
+          let setVal = song.set || 'Set 1';
+          let setNum = setVal.replace('Set ', '');
+          let setColorClass = `set-color-${setNum}`;
+          let customClass = '';
+          if (song.type === 'inserted-request') customClass = 'inserted-request';
+          if (song.type === 'inserted-custom') customClass = 'inserted-custom';
+
+          let statusBadge = '<span class="badge-status badge-normal">รอเล่น</span>';
+          if (song.status === 'played') {
+            statusBadge = '<span class="badge-status badge-played">เล่นแล้ว</span>';
+            customClass += ' played';
+          } else if (song.status === 'playing') {
+            statusBadge = '<span class="badge-status badge-playing">กำลังเล่น</span>';
+          } else if (song.status === 'next') {
+            statusBadge = '<span class="badge-status badge-next">เพลงถัดไป</span>';
+            customClass += ' next-song';
+          }
+
+          let cardHtml = `
+            <div class="song-card ${setColorClass} ${customClass}" id="card_${song.id}" onclick="selectSongForSearch('${encodeURIComponent(song.title)}', '${encodeURIComponent(song.artist)}')">
+              <div style="flex: 1;">
+                <div style="font-size: 11px; color: #888; margin-bottom: 2px;">${setVal} | คีย์: ${song.key || '-'}</div>
+                <div class="song-title-main" style="font-size: 15px; font-weight: bold;">
+                  ${song.title} <span style="font-size: 12px; color: #ccc; font-weight: normal;">- ${song.artist}</span>
+                </div>
+              </div>
+              <div>${statusBadge}</div>
+            </div>
+          `;
+          html += cardHtml;
+        });
+
+        container.innerHTML = html;
+
+        setTimeout(() => {
+          let targetEl = container.querySelector('.next-song') || container.querySelector('.badge-playing')?.closest('.song-card');
+          if (targetEl) {
+            targetEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          }
+        }, 100);
+      }
+
+      window.selectSongForSearch = function(encodedTitle, encodedArtist) {
+        let title = decodeURIComponent(encodedTitle);
+        let artist = decodeURIComponent(encodedArtist);
+        let inputEl = document.getElementById('chordSearchInput');
+        if (inputEl) {
+          inputEl.value = `${title} ${artist}`;
+          inputEl.focus();
+        }
+      };
+
+      window.searchChordOnGoogle = function() {
+        let inputEl = document.getElementById('chordSearchInput');
+        if (!inputEl) return;
+        let keyword = inputEl.value.trim();
+        if (!keyword) {
+          alert('กรุณาพิมพ์หรือเลือกชื่อเพลงก่อนค้นหาครับ');
+          return;
+        }
+        let searchQuery = `${keyword} คอร์ด`;
+        let googleUrl = `https://www.google.com/search?q=${encodeURIComponent(searchQuery)}`;
+        window.open(googleUrl, '_blank');
+      };
+
+      initSearchQueueListener();
+    };
+
+    window.initSearchPageModule();
+  </script>
+</body>
+</html>
