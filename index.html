@@ -9,9 +9,36 @@
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"></script>
 </head>
 <body>
+  <!-- หน้าโหลดตอนเปิดแอป: ซ่อนอัตโนมัติเมื่อหน้าแรกได้ข้อมูลจาก Firebase (สูงสุด 8 วินาที) -->
+  <div id="lshSplash" role="status" aria-live="polite">
+    <div class="splash-logo"><span>Live</span> <span>Stage</span> <span>Hub</span></div>
+    <div class="splash-bars" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></div>
+  </div>
+  <div id="lshSpin" class="page-spin" aria-hidden="true"></div>
   <!-- ชุดไอคอนเส้นบางกลาง (ใช้ <svg class="ic"><use href="#i-ชื่อ"/></svg>) -->
   <svg xmlns="http://www.w3.org/2000/svg" style="display:none" aria-hidden="true"><symbol id="i-close" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></symbol><symbol id="i-trash" viewBox="0 0 24 24"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 12a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-12M9 7V4h6v3"/></symbol><symbol id="i-menu" viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h16"/></symbol><symbol id="i-mail" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/></symbol><symbol id="i-home" viewBox="0 0 24 24"><path d="M4 11l8-7 8 7"/><path d="M6 9.5V20h12V9.5"/></symbol><symbol id="i-calendar" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></symbol><symbol id="i-mic" viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="12" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></symbol><symbol id="i-music" viewBox="0 0 24 24"><path d="M9 18V5l11-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="17" cy="16" r="3"/></symbol><symbol id="i-play" viewBox="0 0 24 24"><path d="M7 4.5l12 7.5-12 7.5z" fill="currentColor"/></symbol><symbol id="i-prev" viewBox="0 0 24 24"><path d="M18 5L8 12l10 7z"/><path d="M6 5v14"/></symbol><symbol id="i-next" viewBox="0 0 24 24"><path d="M6 5l10 7-10 7z"/><path d="M18 5v14"/></symbol><symbol id="i-star" viewBox="0 0 24 24"><path d="M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1L3.2 9.5l6.1-.9z"/></symbol><symbol id="i-hourglass" viewBox="0 0 24 24"><path d="M6 3h12M6 21h12M7 3c0 5 5 6 5 9s-5 4-5 9M17 3c0 5-5 6-5 9s5 4 5 9"/></symbol><symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol><symbol id="i-pin" viewBox="0 0 24 24"><path d="M12 17v5M9 3h6l-1 6 3 3v2H7v-2l3-3z"/></symbol><symbol id="i-inbox" viewBox="0 0 24 24"><path d="M4 13l2-8h12l2 8v6H4z"/><path d="M4 13h5l1 2h4l1-2h5"/></symbol><symbol id="i-download" viewBox="0 0 24 24"><path d="M12 4v12M7 11l5 5 5-5M4 20h16"/></symbol><symbol id="i-upload" viewBox="0 0 24 24"><path d="M12 16V4M7 9l5-5 5 5M4 20h16"/></symbol><symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></symbol><symbol id="i-alert" viewBox="0 0 24 24"><path d="M12 3l10 18H2z"/><path d="M12 10v5M12 18h.01"/></symbol><symbol id="i-dot" viewBox="0 0 24 24"><circle cx="12" cy="12" r="5" fill="currentColor"/></symbol><symbol id="i-flag" viewBox="0 0 24 24"><path d="M5 21V4M5 4h12l-2 4 2 4H5"/></symbol><symbol id="i-edit" viewBox="0 0 24 24"><path d="M4 20h4L19 9l-4-4L4 16z"/><path d="M13 7l4 4"/></symbol><symbol id="i-save" viewBox="0 0 24 24"><path d="M5 3h11l3 3v15H5z"/><path d="M8 3v6h8V3M8 21v-7h8v7"/></symbol><symbol id="i-note" viewBox="0 0 24 24"><path d="M6 3h9l4 4v14H6z"/><path d="M14 3v5h5M9 13h7M9 17h7"/></symbol><symbol id="i-folder" viewBox="0 0 24 24"><path d="M3 6h6l2 2h10v11H3z"/></symbol><symbol id="i-key" viewBox="0 0 24 24"><circle cx="8" cy="15" r="4"/><path d="M11 12l9-9M16 7l3 3"/></symbol><symbol id="i-users" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.5"/><path d="M2 20c0-4 3-6 7-6s7 2 7 6"/><circle cx="17" cy="9" r="2.5"/><path d="M17 14c3 0 5 2 5 5"/></symbol><symbol id="i-store" viewBox="0 0 24 24"><path d="M4 21V3h12v18M16 9h4v12M8 7h4M8 11h4M8 15h4"/></symbol><symbol id="i-bot" viewBox="0 0 24 24"><rect x="4" y="8" width="16" height="11" rx="3"/><path d="M12 8V4"/><circle cx="12" cy="3" r="1"/><path d="M9 13.5h.01M15 13.5h.01"/></symbol><symbol id="i-gear" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></symbol><symbol id="i-sliders" viewBox="0 0 24 24"><path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12M20 18h0"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="18" r="2"/></symbol><symbol id="i-user" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></symbol><symbol id="i-send" viewBox="0 0 24 24"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4z"/></symbol><symbol id="i-bolt" viewBox="0 0 24 24"><path d="M13 2L4 14h7l-1 8 9-12h-7z"/></symbol><symbol id="i-chat" viewBox="0 0 24 24"><path d="M21 12a8 8 0 0 1-11.6 7.1L4 20l1.2-4.6A8 8 0 1 1 21 12z"/></symbol><symbol id="i-check" viewBox="0 0 24 24"><path d="M5 12l5 5 9-10"/></symbol><symbol id="i-sparkles" viewBox="0 0 24 24"><path d="M12 3l2 5 5 2-5 2-2 5-2-5-5-2 5-2z"/></symbol><symbol id="i-dice" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="3"/><path d="M9 9h.01M15 9h.01M9 15h.01M15 15h.01M12 12h.01"/></symbol><symbol id="i-chev-up" viewBox="0 0 24 24"><path d="M6 15l6-6 6 6"/></symbol><symbol id="i-chev-down" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></symbol><symbol id="i-chev-right" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></symbol><symbol id="i-eraser" viewBox="0 0 24 24"><path d="M3 17l9-9 6 6-6 6H7z"/><path d="M11 20h10"/></symbol><symbol id="i-lock" viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></symbol></svg>
   <script>
+    (function () {
+      var splashDone = false, timer = null;
+      function hideSplash() {
+        splashDone = true;
+        var s = document.getElementById('lshSplash');
+        if (s) { s.classList.add('is-hide'); setTimeout(function () { if (s.parentNode) s.parentNode.removeChild(s); }, 450); }
+      }
+      window.lshHideSplash = hideSplash;
+      // เรียกเมื่อหน้าปัจจุบันได้ข้อมูลชุดแรกแล้ว
+      window.lshReady = function () {
+        clearTimeout(timer);
+        if (!splashDone) hideSplash();
+        var sp = document.getElementById('lshSpin'); if (sp) sp.classList.remove('on');
+      };
+      // เริ่มรอข้อมูลหน้าใหม่ (สปินเนอร์เล็กตอนสลับหน้า) และกันค้างสูงสุด 8 วินาที
+      window.lshWaitPage = function () {
+        clearTimeout(timer);
+        if (splashDone) { var sp = document.getElementById('lshSpin'); if (sp) sp.classList.add('on'); }
+        timer = setTimeout(window.lshReady, 8000);
+      };
+    })();
     window.lshIcon = function(n) { return '<svg class="ic" aria-hidden="true"><use href="#i-' + n + '"/></svg>'; };
     // ตัดอีโมจิ/สัญลักษณ์นำหน้าชื่อการ์ดพิเศษ (เตรียมพร้อม/จบการแสดง) ตอนแสดงผลเท่านั้น ไม่แก้ข้อมูล
     // แจ้งเตือนคำสั่งใหม่: กล่องกระพริบ + ขยายด้านข้าง 3 วินาที แล้วกลับ (kind = 'talk' | 'next')
@@ -32,6 +59,370 @@
       if (!prev || prev === now || /^(-|สแตนบายรอคำสั่ง\.\.\.|รอคำสั่ง\.\.\.|จบการแสดง)$/.test(prev)) return;
       window.lshAttention(textEl, kind);
     };
+    // หาห้องปัจจุบัน: ไม่มีห้อง = คืนค่าว่าง และเปิดหน้าเลือกห้อง (ไม่เดาห้องแทนอีกต่อไป)
+    window.lshRoom = function(session) {
+      const r = (session && session.room) || localStorage.getItem('lsh_selected_room') || '';
+      if (!r && typeof showRoomModal === 'function') showRoomModal();
+      return r;
+    };
+
+    // ======================================================================
+    // ชิ้นส่วนกลาง: หน้าต่างรายละเอียดเพลง + ป๊อปอัพแก้ไข/เพิ่มเพลง (ใช้ร่วม songs.html และ setlists.html)
+    // โค้ดย้ายมาจาก songs.html ตรรกะเดิม: บันทึกที่ songs/{id} ด้วย set({title,artist,key,bpm}) เหมือนเดิม
+    // ======================================================================
+    window.lshKeys = {
+      master: ['C','Cm','C#','C#m','Db','D','Dm','D#m','Eb','E','Em','F','Fm','F#','F#m','Gb','G','Gm','G#m','Ab','A','Am','A#m','Bb','B','Bm'],
+      relative: {
+        'C':'Am','Am':'C','G':'Em','Em':'G','D':'Bm','Bm':'D','A':'F#m','F#m':'A','E':'C#m','C#m':'E','B':'G#m','G#m':'B',
+        'F':'Dm','Dm':'F','Bb':'Gm','Gm':'Bb','Eb':'Cm','Cm':'Eb','Ab':'Fm','Fm':'Ab','Db':'Bbm','Bbm':'Db',
+        'A#m':'Db','F#':'D#m','D#m':'F#','C#':'A#m','Gb':'Ebm','Ebm':'Gb'
+      },
+      // คีย์ที่ถือว่าตรงกับตัวกรอง (คีย์เดียวกัน + คีย์คู่ขนาน) — ใช้เหมือนกันทุกหน้า
+      allowed: function(sel) {
+        const set = new Set([String(sel).trim().toLowerCase()]);
+        const r = this.relative[String(sel).trim()];
+        if (r) set.add(r.toLowerCase());
+        if (sel === 'Db') set.add('a#m');
+        if (sel === 'A#m') set.add('c#');
+        return set;
+      },
+      match: function(songKey, sel) { return !!songKey && this.allowed(sel).has(String(songKey).trim().toLowerCase()); }
+    };
+
+    window.lshSongKit = (function() {
+      const $ = (id) => document.getElementById(id);
+      let ctx = { getAll: () => ({}), getPlayCount: () => 0, allowDelete: true, onChanged: () => {} };
+      let mounted = false, currentActiveSongId = null, isEditing = false, tapTimes = [];
+      const MARKUP = `<div id="detailOverlay" class="sub-overlay hidden"></div>
+<div id="songDetailDrawer" class="slide-up-panel">
+  <div class="panel-header">
+    <h3 id="detailSongTitle" style="color:#00f2d1;margin:0">-</h3>
+    <div>
+      <button id="btnEditSong" style="background:none;border:none;font-size:18px;cursor:pointer;margin-right:10px"><svg class="ic ic-solo" aria-hidden="true"><use href="#i-edit"/></svg></button>
+      <button id="btnDeleteSong" style="background:none;border:none;font-size:18px;cursor:pointer"><svg class="ic ic-solo" aria-hidden="true"><use href="#i-trash"/></svg></button>
+    </div>
+  </div>
+  <div style="font-size:14px;line-height:1.8;color:#ccc">
+    <div>ศิลปิน: <b id="detailArtist" style="color:#fff">-</b></div>
+    <div>คีย์หลัก: <b id="detailKey" style="color:#00f2d1">-</b></div>
+    <div>BPM: <b id="detailBpm" style="color:#fff">-</b></div>
+    <div>ความถี่ที่เล่น: <b id="detailPlayCount" style="color:#f59e0b">0 ครั้ง</b></div>
+  </div>
+</div>
+
+<div id="songFormOverlay" class="sub-overlay hidden">
+  <div class="form-box" onclick="event.stopPropagation()">
+    <h3 id="formModalTitle" style="margin-bottom:12px;color:#00f2d1">เพิ่มเพลงใหม่</h3>
+    
+    <div class="form-group">
+      <label>ชื่อเพลง *</label>
+      <input type="text" id="formSongTitle">
+    </div>
+    <div class="form-group">
+      <label>ชื่อศิลปิน *</label>
+      <input type="text" id="formArtist">
+    </div>
+    
+    <div class="form-group">
+      <label>คีย์หลัก *</label>
+      <select id="formKeySelect">
+        <option value="">-- เลือกคีย์เพลง --</option>
+      </select>
+    </div>
+
+    <div class="form-group">
+      <label>BPM</label>
+      <div class="tempo-wrap">
+        <input type="number" id="formBpm" placeholder="120">
+        <button type="button" class="tempo-btn" id="btnTapTempo">Tap Tempo</button>
+      </div>
+    </div>
+
+    <div class="modal-actions">
+      <button id="btnSaveSong" class="btn-primary">บันทึก</button>
+      <button id="btnCancelForm" class="btn-ghost">ยกเลิก</button>
+    </div>
+  </div>
+</div>
+
+<div id="unsavedWarningOverlay" class="sub-overlay hidden" style="z-index:14700">
+  <div class="slide-up-panel open" style="z-index:14701;border-color:#f59e0b">
+    <h3 style="color:#f59e0b;margin-bottom:8px"><svg class="ic" aria-hidden="true"><use href="#i-alert"/></svg> ยังไม่ได้บันทึกข้อมูล</h3>
+    <p class="modal-desc">คุณต้องการออกจากหน้าต่างนี้โดยไม่บันทึกใช่หรือไม่?</p>
+    <div style="display:flex;gap:10px">
+      <button id="btnConfirmDiscard" style="flex:1;padding:10px;border-radius:6px;border:none;background:#ef4444;color:#fff;font-weight:bold;cursor:pointer">ยืนยัน (ไม่บันทึก)</button>
+      <button id="btnCancelDiscard" style="flex:1;padding:10px;border-radius:6px;border:none;background:#333;color:#fff;cursor:pointer">แก้ไขต่อ</button>
+    </div>
+  </div>
+</div>
+
+<div id="deleteConfirmOverlay" class="sub-overlay hidden" style="z-index:14700">
+  <div class="form-box u-center">
+    <h3 class="modal-title is-danger">ยืนยันการลบเพลง</h3>
+    <p class="modal-desc">คุณต้องการลบเพลง <b id="deleteTargetTitle" style="color:#fff">-</b> ออกจากคลังใช่หรือไม่?</p>
+    <div class="u-row-center">
+      <button id="btnExecuteDelete" class="btn-danger">ยืนยันลบ</button>
+      <button id="btnCancelDelete" class="btn-ghost">ยกเลิก</button>
+    </div>
+  </div>
+</div>`;
+
+      function generateNextSongId() {
+        const existingIds = Object.keys(ctx.getAll());
+        if (existingIds.length === 0) return 'a000';
+        let maxChar = 'a', maxNum = -1;
+        existingIds.forEach(id => {
+          const match = id.match(/^([a-z])(\d{3})$/);
+          if (match) {
+            const char = match[1], num = parseInt(match[2], 10);
+            if (char > maxChar || (char === maxChar && num > maxNum)) { maxChar = char; maxNum = num; }
+          }
+        });
+        if (maxNum === -1) return 'a000';
+        maxNum++;
+        if (maxNum > 999) { maxNum = 0; maxChar = String.fromCharCode(maxChar.charCodeAt(0) + 1); }
+        return maxChar + String(maxNum).padStart(3, '0');
+      }
+
+      async function saveSongData() {
+        const title = $('formSongTitle').value.trim();
+        const artist = $('formArtist').value.trim();
+        const key = $('formKeySelect').value;
+        const bpm = parseInt($('formBpm').value, 10) || 0;
+        if (!title || !artist || !key) { lshToast('กรุณากรอกชื่อเพลง ศิลปิน และเลือกคีย์หลักให้ครบถ้วน', 'warn'); return; }
+        const songId = isEditing ? currentActiveSongId : generateNextSongId();
+        const songPayload = { title: title, artist: artist, key: key, bpm: bpm };
+        try {
+          await db.ref('songs/' + songId).set(songPayload);
+          $('songFormOverlay').classList.add('hidden');
+          lshToast('บันทึกเพลงแล้ว', 'ok');
+          try { ctx.onChanged(songId); } catch (e) {}
+        } catch (e) {
+          lshToast('เกิดข้อผิดพลาดในการบันทึก: ' + e.message, 'error');
+        }
+      }
+
+      function closeDrawer() {
+        const drawer = $('songDetailDrawer'), overlay = $('detailOverlay');
+        if (!drawer || !overlay) return;
+        drawer.classList.remove('open');
+        setTimeout(() => { overlay.classList.add('hidden'); }, 300);
+      }
+
+      function openDrawer(songId) {
+        mount();
+        currentActiveSongId = songId;
+        const song = ctx.getAll()[songId];
+        if (!song) return;
+        $('detailSongTitle').innerText = song.title || '-';
+        $('detailArtist').innerText = song.artist || '-';
+        $('detailKey').innerText = song.key || '-';
+        $('detailBpm').innerText = song.bpm || '-';
+        $('detailPlayCount').innerText = (ctx.getPlayCount(songId) || 0) + ' ครั้ง';
+        $('btnDeleteSong').style.display = ctx.allowDelete ? '' : 'none';
+        $('detailOverlay').classList.remove('hidden');
+        setTimeout(() => { $('songDetailDrawer').classList.add('open'); }, 10);
+      }
+
+      function openForm(songId) {
+        mount();
+        isEditing = !!songId;
+        currentActiveSongId = songId || null;
+        const song = songId ? ctx.getAll()[songId] : null;
+        $('formModalTitle').innerText = song ? 'แก้ไขเพลง' : 'เพิ่มเพลงใหม่';
+        $('formSongTitle').value = song ? (song.title || '') : '';
+        $('formArtist').value = song ? (song.artist || '') : '';
+        $('formKeySelect').value = song ? (song.key || '') : '';
+        $('formBpm').value = song ? (song.bpm || '') : '';
+        tapTimes = [];
+        $('songFormOverlay').classList.remove('hidden');
+      }
+
+      function mount() {
+        if (mounted && $('songDetailDrawer')) return;
+        const root = document.createElement('div');
+        root.id = 'lshSongKitRoot';
+        root.innerHTML = MARKUP;
+        document.body.appendChild(root);
+
+        let opts = '<option value="">-- เลือกคีย์เพลง --</option>';
+        lshKeys.master.forEach(k => { opts += `<option value="${k}">${k}</option>`; });
+        $('formKeySelect').innerHTML = opts;
+
+        $('songFormOverlay').onclick = () => { $('unsavedWarningOverlay').classList.remove('hidden'); };
+        $('btnConfirmDiscard').onclick = () => { $('unsavedWarningOverlay').classList.add('hidden'); $('songFormOverlay').classList.add('hidden'); };
+        $('btnCancelDiscard').onclick = () => { $('unsavedWarningOverlay').classList.add('hidden'); };
+        $('btnCancelForm').onclick = () => { $('songFormOverlay').classList.add('hidden'); };
+        $('btnSaveSong').onclick = saveSongData;
+        $('btnTapTempo').onclick = () => {
+          const now = Date.now();
+          tapTimes.push(now);
+          if (tapTimes.length > 4) tapTimes.shift();
+          if (tapTimes.length > 1) {
+            const intervals = [];
+            for (let i = 1; i < tapTimes.length; i++) intervals.push(tapTimes[i] - tapTimes[i - 1]);
+            const avg = intervals.reduce((a, b) => a + b) / intervals.length;
+            $('formBpm').value = Math.round(60000 / avg);
+          }
+        };
+        $('detailOverlay').onclick = closeDrawer;
+        $('btnEditSong').onclick = () => { closeDrawer(); if (ctx.getAll()[currentActiveSongId]) openForm(currentActiveSongId); };
+        $('btnDeleteSong').onclick = () => {
+          closeDrawer();
+          const song = ctx.getAll()[currentActiveSongId];
+          if (!song) return;
+          $('deleteTargetTitle').innerText = song.title || '';
+          $('deleteConfirmOverlay').classList.remove('hidden');
+        };
+        $('btnCancelDelete').onclick = () => { $('deleteConfirmOverlay').classList.add('hidden'); };
+        $('btnExecuteDelete').onclick = async () => {
+          if (!currentActiveSongId) return;
+          try {
+            await db.ref('songs/' + currentActiveSongId).remove();
+            $('deleteConfirmOverlay').classList.add('hidden');
+            lshToast('ลบเพลงแล้ว', 'ok');
+            try { ctx.onChanged(currentActiveSongId); } catch (e) {}
+          } catch (e) { lshToast('เกิดข้อผิดพลาดในการลบ: ' + e.message, 'error'); }
+        };
+        mounted = true;
+      }
+
+      return {
+        // แต่ละหน้าเรียก setup ตอนเริ่มทำงาน: getAll() คืนข้อมูลเพลงทั้งหมด, getPlayCount(id) คืนความถี่, allowDelete แสดงปุ่มลบหรือไม่
+        setup: function(c) { ctx = Object.assign({ getAll: () => ({}), getPlayCount: () => 0, allowDelete: true, onChanged: () => {} }, c); mount(); },
+        open: openDrawer, openForm: openForm, close: closeDrawer
+      };
+    })();
+
+    // แถบแจ้งสั้นๆ ที่ไม่บล็อกหน้า (แทน alert) kind = 'ok' | 'warn' | 'error' | 'info'
+    window.lshToast = function(msg, kind) {
+      let host = document.getElementById('lshToastHost');
+      if (!host) { host = document.createElement('div'); host.id = 'lshToastHost'; document.body.appendChild(host); }
+      const el = document.createElement('div');
+      el.className = 'lsh-toast ' + (kind || 'info');
+      el.setAttribute('role', 'status');
+      el.textContent = msg;
+      host.appendChild(el);
+      requestAnimationFrame(() => el.classList.add('show'));
+      const ms = kind === 'error' ? 5000 : 2800;
+      setTimeout(() => { el.classList.remove('show'); setTimeout(() => el.remove(), 300); }, ms);
+    };
+    // แทน alert(): แจ้งเตือนแบบไม่บล็อกหน้าจอ (ข้อความผิดพลาด/เตือน = สีแดง, อื่นๆ = ปกติ)
+    window.lshAlert = function(msg) {
+      const m = String(msg == null ? '' : msg);
+      window.lshToast(m, /ผิดพลาด|ไม่ถูกต้อง|ไม่พบ|ไม่สามารถ|ล้มเหลว/.test(m) ? 'error' : (/กรุณา|ไม่ได้/.test(m) ? 'warn' : 'ok'));
+    };
+    // ปุ่มล้างข้อความในทุกช่องกรอกข้อความ (ไม่รวมรหัสผ่าน/ช่องที่ปิด/วันที่/ตัวเลข) — เพิ่มอัตโนมัติ ไม่แก้ ID หรือโค้ดหน้า
+    // กดแล้ว: ล้างค่า + สั่งให้ตัวกรองรีเซ็ต (ส่งอีเวนต์ input) + เปิดคีย์บอร์ดพร้อมพิมพ์
+    (function() {
+      const tracked = new Set();
+      const eligible = (el) => {
+        if (el.tagName !== 'INPUT' || el.dataset.noclear !== undefined) return false;
+        const t = (el.getAttribute('type') || 'text').toLowerCase();
+        return (t === 'text' || t === 'search') && !el.disabled && !el.readOnly;
+      };
+      function enhance(inp) {
+        if (inp._clr || !eligible(inp) || !inp.parentElement) return;
+        const parent = inp.parentElement;
+        if (getComputedStyle(parent).position === 'static') parent.style.position = 'relative';
+        const btn = document.createElement('button');
+        btn.type = 'button'; btn.className = 'clr-btn'; btn.tabIndex = -1;
+        btn.setAttribute('aria-label', 'ล้างข้อความ');
+        btn.innerHTML = lshIcon('close');
+        btn.style.display = 'none';
+        inp.insertAdjacentElement('afterend', btn);
+        inp._clr = btn; inp.classList.add('has-clr'); tracked.add(inp);
+        btn.addEventListener('pointerdown', (e) => e.preventDefault()); // ไม่ให้ช่องเสียโฟกัส
+        btn.addEventListener('click', () => {
+          inp.value = '';
+          inp.dispatchEvent(new Event('input', { bubbles: true }));
+          inp.focus();
+          sync(inp);
+        });
+      }
+      function sync(inp) {
+        const btn = inp._clr;
+        if (!btn) return;
+        if (!inp.isConnected) { btn.remove(); tracked.delete(inp); return; }
+        const show = inp.value !== '' && inp.offsetParent !== null && !inp.disabled && !inp.readOnly;
+        btn.style.display = show ? '' : 'none';
+        if (show) {
+          btn.style.top = (inp.offsetTop + (inp.offsetHeight - btn.offsetHeight) / 2) + 'px';
+          btn.style.left = (inp.offsetLeft + inp.offsetWidth - btn.offsetWidth - 8) + 'px';
+        }
+      }
+      function scan(root) {
+        (root.matches && root.matches('input') ? [root] : []).concat(Array.from(root.querySelectorAll ? root.querySelectorAll('input') : [])).forEach(enhance);
+      }
+      document.addEventListener('input', (e) => { if (e.target._clr) sync(e.target); }, true);
+      document.addEventListener('focusin', (e) => { if (e.target._clr) sync(e.target); });
+      new MutationObserver((muts) => muts.forEach(m => m.addedNodes.forEach(n => { if (n.nodeType === 1) scan(n); })))
+        .observe(document.body, { childList: true, subtree: true });
+      setInterval(() => tracked.forEach(sync), 300); // ครอบคลุมกรณีโค้ดตั้งค่า value ตรงๆ / หน้าต่างเพิ่งเปิด
+      scan(document.body);
+    })();
+    // ท็อคแบคล่าสุดของแถบบน (ใช้ร่วมจัดคิว/ค้นหาคอร์ด/ท็อคแบค): อ่านจากรายการ talkbacks ตัวล่าสุด แยกผู้ส่งกับข้อความ
+    window.lshBindTopTalkback = function(room, textEl, senderEl) {
+      if (!room || !textEl || typeof db === 'undefined' || !db || !db.ref) return;
+      if (window._lshTopTbRef) window._lshTopTbRef.off('value', window._lshTopTbCb);
+      const ref = db.ref(`rooms/${room}/talkbacks`).limitToLast(1);
+      const cb = (snap) => {
+        const val = snap.val();
+        let last = null;
+        if (val) { const k = Object.keys(val); last = val[k[k.length - 1]]; }
+        if (last && last.message) {
+          textEl.innerText = last.message;
+          if (senderEl) senderEl.innerText = `${last.emoji || ''} ${last.sender || 'ระบบ'}`.trim();
+          lshWatch(textEl, 'talk');
+        } else {
+          textEl.innerText = 'สแตนบายรอคำสั่ง...';
+          if (senderEl) senderEl.innerText = '';
+        }
+      };
+      ref.on('value', cb);
+      window._lshTopTbRef = ref; window._lshTopTbCb = cb;
+    };
+    // ข้อความยาวเกินช่องในแถบบน (.top-content): เลื่อนจากขวาไปซ้ายวนต่อเนื่อง / ถ้าพอดีช่องไม่เลื่อน
+    (function() {
+      const GAP = 56, SPEED = 55; // พิกเซลต่อวินาที
+      function evaluate(box) {
+        const inner = box.firstElementChild;
+        if (!inner || !inner.classList.contains('mq-inner')) return;
+        inner.classList.remove('mq-run');
+        inner.style.removeProperty('--mq-dist'); inner.style.removeProperty('--mq-dur');
+        const w = inner.offsetWidth;
+        if (w > box.clientWidth + 1) {
+          inner.setAttribute('data-text', inner.textContent);
+          inner.style.setProperty('--mq-dist', '-' + (w + GAP) + 'px');
+          inner.style.setProperty('--mq-dur', ((w + GAP) / SPEED).toFixed(2) + 's');
+          inner.classList.add('mq-run');
+        }
+      }
+      function wrap(box) {
+        if (box.firstElementChild && box.firstElementChild.classList.contains('mq-inner') && box.childNodes.length === 1) return;
+        const text = box.textContent;
+        box.textContent = '';
+        const inner = document.createElement('span');
+        inner.className = 'mq-inner'; inner.textContent = text;
+        box.appendChild(inner);
+        requestAnimationFrame(() => evaluate(box));
+      }
+      const ro = (typeof ResizeObserver !== 'undefined') ? new ResizeObserver((es) => es.forEach(e => evaluate(e.target))) : null;
+      function scan(root) {
+        const list = (root.matches && root.matches('.top-content') ? [root] : []).concat(Array.from(root.querySelectorAll ? root.querySelectorAll('.top-content') : []));
+        list.forEach(b => { if (ro && !b._mqRo) { b._mqRo = true; ro.observe(b); } wrap(b); });
+      }
+      new MutationObserver((muts) => {
+        muts.forEach(m => {
+          if (m.type === 'childList') {
+            m.addedNodes.forEach(n => { if (n.nodeType === 1) scan(n); });
+            const t = m.target;
+            if (t.nodeType === 1 && t.classList && t.classList.contains('top-content') && !(t.firstElementChild && t.firstElementChild.classList.contains('mq-inner') && t.childNodes.length === 1)) wrap(t);
+          }
+        });
+      }).observe(document.body, { childList: true, subtree: true });
+      scan(document.body);
+    })();
     window.lshPlain = function(s) { return String(s || '').replace(/^[^\p{L}\p{N}(]+/u, ''); };
   </script>
 
@@ -69,7 +460,7 @@
   </div>
 
   <!-- POPUP ยืนยันเคลียร์คิว -->
-  <div id="clearQueueConfirmModal" class="overlay hidden" onclick="closeClearQueueModal()">
+  <div id="clearQueueConfirmModal" class="overlay hidden">
     <div class="box" onclick="event.stopPropagation()">
       <h3 style="margin-bottom:10px;color:#ff5451"><svg class="ic" aria-hidden="true"><use href="#i-eraser"/></svg> เคลียร์คิวและข้อมูลโชว์</h3>
       <p class="modal-desc">คุณต้องการล้างคิวเพลง, ท็อคแบค และรีเควสทั้งหมด เพื่อเริ่มโชว์ใหม่ใช่หรือไม่?</p>
@@ -141,7 +532,7 @@
   </div>
 
   <!-- POPUP ยืนยันการลบร้าน -->
-  <div id="deleteRoomConfirmModal" class="overlay hidden" onclick="closeDeleteRoomModal(event)">
+  <div id="deleteRoomConfirmModal" class="overlay hidden">
     <div class="box" onclick="event.stopPropagation()">
       <h3 style="margin-bottom:10px;color:#ef4444"><svg class="ic" aria-hidden="true"><use href="#i-trash"/></svg> ยืนยันการลบข้อมูลร้าน</h3>
       <p id="deleteRoomText" class="modal-desc">คุณต้องการลบข้อมูลรีเควสทั้งหมดของร้านนี้ใช่หรือไม่?</p>
@@ -264,7 +655,7 @@
       
       if (title === 'ตั้งค่า') {
         if (session.userType === 'guest' || !session.username) {
-          alert('เฉพาะสมาชิกเท่านั้นจึงจะสามารถเข้าใช้งานหน้าตั้งค่าได้ครับ!');
+          lshAlert('เฉพาะสมาชิกเท่านั้นจึงจะสามารถเข้าใช้งานหน้าตั้งค่าได้ครับ!');
           return;
         }
         localStorage.setItem('lsh_last_page', 'settings');
@@ -283,7 +674,7 @@
       } else if (title === 'รายการเพลงรีเควส') {
         openRequestHistoryModal();
       } else {
-        alert('กดเมนู: ' + title + ' (เตรียมระบบเร็วๆ นี้)');
+        lshAlert('กดเมนู: ' + title + ' (เตรียมระบบเร็วๆ นี้)');
       }
     }
 
@@ -301,14 +692,14 @@
     async function confirmClearQueue() {
       const sessionStr = localStorage.getItem('lsh_session');
       if (!sessionStr) {
-        alert('กรุณาล็อกอินก่อนใช้งาน');
+        lshAlert('กรุณาล็อกอินก่อนใช้งาน');
         return;
       }
       const session = JSON.parse(sessionStr);
       const room = session.room;
 
       if (!room) {
-        alert('ไม่พบข้อมูลห้องปัจจุบัน');
+        lshAlert('ไม่พบข้อมูลห้องปัจจุบัน');
         return;
       }
 
@@ -326,10 +717,10 @@
         localStorage.removeItem('lsh_queue_data');
 
         document.getElementById('clearQueueConfirmModal').classList.add('hidden');
-        alert('เคลียร์คิว, ล้างเพลง และรีเซ็ตสถานะ queue เรียบร้อยแล้ว พร้อมเริ่มโชว์ใหม่!');
+        lshAlert('เคลียร์คิว, ล้างเพลง และรีเซ็ตสถานะ queue เรียบร้อยแล้ว พร้อมเริ่มโชว์ใหม่!');
         loadPage(localStorage.getItem('lsh_last_page') || 'monitor');
       } catch (error) {
-        alert('เกิดข้อผิดพลาดในการเคลียร์คิว: ' + error.message);
+        lshAlert('เกิดข้อผิดพลาดในการเคลียร์คิว: ' + error.message);
       }
     }
 
@@ -375,7 +766,7 @@
       const pin = document.getElementById('pinInput').value.trim();
 
       if (!uName || !pin) {
-        alert('กรุณากรอก Username และ PIN ให้ครบถ้วน');
+        lshAlert('กรุณากรอก Username และ PIN ให้ครบถ้วน');
         return;
       }
 
@@ -395,20 +786,20 @@
             closeAllModals();
             applySession();
           } else {
-            alert('รหัส PIN ไม่ถูกต้อง!');
+            lshAlert('รหัส PIN ไม่ถูกต้อง!');
           }
         } else {
-          alert('ไม่พบ Username นี้ในระบบ!');
+          lshAlert('ไม่พบ Username นี้ในระบบ!');
         }
       } catch (error) {
-        alert('เกิดข้อผิดพลาดในการเชื่อมต่อ: ' + error.message);
+        lshAlert('เกิดข้อผิดพลาดในการเชื่อมต่อ: ' + error.message);
       }
     }
 
     function submitGuestLogin() {
       const gName = document.getElementById('guestNameInput').value.trim();
       if (!gName) {
-        alert('กรุณากรอกชื่อเล่น');
+        lshAlert('กรุณากรอกชื่อเล่น');
         return;
       }
       saveSession('วงเฉพาะกิจ', gName, 'Guest', 'guest', '', '🎸');
@@ -526,6 +917,7 @@
     }
 
     async function showRoomModal() {
+      if (window.lshReady) window.lshReady();
       closeAllModals();
       const modal = document.getElementById('roomModal');
       const box = document.getElementById('roomModalBox');
@@ -595,13 +987,14 @@
 
       const session = JSON.parse(sessionStr);
       if (pageName === 'settings' && (session.userType === 'guest' || !session.username)) {
-        alert('เฉพาะสมาชิกเท่านั้นจึงจะสามารถเข้าใช้งานหน้าตั้งค่าได้ครับ!');
+        lshAlert('เฉพาะสมาชิกเท่านั้นจึงจะสามารถเข้าใช้งานหน้าตั้งค่าได้ครับ!');
         setActiveNav('monitor');
         return;
       }
 
       const container = document.getElementById('mainContentArea');
-      container.innerHTML = '<p style="text-align:center;color:#aaa;margin-top:20px">กำลังโหลดหน้า ' + pageName + '...</p>';
+      container.innerHTML = '';
+      window.lshWaitPage();
 
       try {
         const response = await fetch(pageName + '.html');
@@ -628,18 +1021,22 @@
 
       } catch (err) {
         container.innerHTML = `<p style="color:#ef4444;text-align:center;margin-top:20px">เกิดข้อผิดพลาด: ${err.message}</p>`;
+        window.lshReady();
       }
+      // หน้าที่ไม่รอข้อมูลจาก Firebase (ตั้งค่า) ให้ซ่อนทันทีหลังโหลดเสร็จ
+      if (pageName === 'settings') window.lshReady();
     }
 
     // เปิดหน้าต่าง Pop-up ประวัติเพลงรีเควส
     async function openRequestHistoryModal() {
       const sessionStr = localStorage.getItem('lsh_session');
       if (!sessionStr) {
-        alert('กรุณาล็อกอินก่อนใช้งาน');
+        lshAlert('กรุณาล็อกอินก่อนใช้งาน');
         return;
       }
       const session = JSON.parse(sessionStr);
-      const room = session.room || 'PGL8';
+      const room = lshRoom(session);
+      if (!room) return;
 
       const modal = document.getElementById('requestHistoryModal');
       const contentContainer = document.getElementById('requestHistoryContent');
@@ -751,7 +1148,8 @@
 
       const sessionStr = localStorage.getItem('lsh_session');
       const session = sessionStr ? JSON.parse(sessionStr) : {};
-      const room = session.room || 'PGL8';
+      const room = lshRoom(session);
+      if (!room) return;
 
       try {
         await db.ref(`rooms/${room}/request/${targetRoomToDelete}`).remove();
@@ -759,7 +1157,7 @@
         targetRoomToDelete = null;
         openRequestHistoryModal();
       } catch (error) {
-        alert('เกิดข้อผิดพลาดในการลบข้อมูลร้าน: ' + error.message);
+        lshAlert('เกิดข้อผิดพลาดในการลบข้อมูลร้าน: ' + error.message);
       }
     }
   </script>

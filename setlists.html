@@ -77,7 +77,7 @@
         </div>
 
         <!-- ขวา: ดาว / ดินสอ / ถังขยะ -->
-        <div class="u-row">
+        <div class="detail-actions">
           <button id="btnDetailStar" style="background:none;border:none;font-size:18px;cursor:pointer;color:#666"><svg class="ic ic-solo" aria-hidden="true"><use href="#i-star"/></svg></button>
           <button id="btnDetailEdit" style="background:none;border:none;font-size:18px;cursor:pointer"><svg class="ic ic-solo" aria-hidden="true"><use href="#i-edit"/></svg></button>
           <button id="btnDetailDelete" style="background:none;border:none;font-size:18px;cursor:pointer"><svg class="ic ic-solo" aria-hidden="true"><use href="#i-trash"/></svg></button>
@@ -212,7 +212,8 @@
     
     const sessionStr = localStorage.getItem('lsh_session');
     const session = sessionStr ? JSON.parse(sessionStr) : {};
-    let selectedRoom = session.room || 'PGL8';
+    let selectedRoom = lshRoom(session);
+    if (!selectedRoom) return; // ไม่พบห้อง: กลับไปหน้าเลือกห้อง ไม่เขียนข้อมูลใดๆ
     
     let currentPlaylistId = null;
     let selectedDatesSet = new Set(); // เก็บรายการวันที่ที่เลือกจากปฏิทิน
@@ -245,10 +246,30 @@
       });
 
       db.ref(`rooms/${selectedRoom}/setlists`).on('value', (snapshot) => {
+        window.lshReady && window.lshReady();
         allPlaylistsData = snapshot.val() || {};
         renderPlaylistsList();
       });
     }
+
+    // หน้าต่างรายละเอียด/แก้ไขเพลงกลาง (ชุดเดียวกับหน้าเพลงทั้งหมด) — ในหน้านี้ไม่มีปุ่มลบเพลง
+    // แก้ไขที่นี่ = แก้คีย์ดีฟอลต์ในคลังเพลง (คีย์ที่ตั้งเฉพาะโชว์ในแต่ละลิสต์ยังคงเดิม)
+    lshSongKit.setup({
+      getAll: () => allSongsData,
+      getPlayCount: (id) => {
+        let n = 0;
+        Object.keys(allPlaylistsData).forEach(pid => {
+          const sg = allPlaylistsData[pid] && allPlaylistsData[pid].songs;
+          if (sg) Object.keys(sg).forEach(k => { if (sg[k] && sg[k].songId === id) n++; });
+        });
+        return n;
+      },
+      allowDelete: false,
+      onChanged: () => {
+        const ov = document.getElementById('playlistDetailOverlay');
+        if (currentPlaylistId && ov && !ov.classList.contains('hidden')) openPlaylistDetailDrawer(currentPlaylistId);
+      }
+    });
 
     function renderPlaylistsList() {
       const container = document.getElementById('masterPlaylistList');
@@ -445,11 +466,11 @@
           const setNum = (item.set || 'Set 1').replace('Set ', '');
 
           html += `
-            <div class="editor-song-item set-color-${setNum}">
+            <div class="editor-song-item set-color-${setNum} is-tappable" onclick="lshSongKit.open('${item.songId}')">
               <div class="u-between">
                 <div>
                   <b style="color:#fff;font-size:14px">${idx + 1}. ${title}</b>
-                  <span class="u-meta"> (${artist})</span>
+                  <span class="u-meta"> - ${artist}</span>
                 </div>
                 <span style="color:#00f2d1;font-weight:bold;font-size:13px">คีย์: ${displayKey}</span>
               </div>
@@ -482,7 +503,7 @@
       if (!currentPlaylistId) return;
       const pl = allPlaylistsData[currentPlaylistId];
       if (!pl || !pl.songs) {
-        alert('ในแฟ้มลิสต์นี้ยังไม่มีเพลง กรุณาเพิ่มเพลงก่อนเล่นครับ');
+        lshAlert('ในแฟ้มลิสต์นี้ยังไม่มีเพลง กรุณาเพิ่มเพลงก่อนเล่นครับ');
         return;
       }
 
@@ -545,7 +566,7 @@
           location.href = 'queue.html';
         }
       } catch (e) {
-        alert('เกิดข้อผิดพลาดในการตั้งค่าคิว: ' + e.message);
+        lshAlert('เกิดข้อผิดพลาดในการตั้งค่าคิว: ' + e.message);
       }
     };
 
@@ -636,7 +657,7 @@
           <div class="editor-song-item set-color-${setNum}">
             <div>
               <b style="color:#fff;font-size:14px">${idx + 1}. ${title}</b>
-              <span class="u-meta"> (${artist})</span>
+              <span class="u-meta"> - ${artist}</span>
               ${item.note ? `<div><span class="song-note-text"><svg class="ic" aria-hidden="true"><use href="#i-note"/></svg> ${item.note}</span></div>` : ''}
             </div>
 
@@ -705,7 +726,7 @@
       const venue = document.getElementById('inputPlaylistVenue').value.trim();
       const date = document.getElementById('inputPlaylistDate').value;
       if (!venue || !date) {
-        alert('กรุณากรอกชื่อร้านและเลือกวันที่เล่น');
+        lshAlert('กรุณากรอกชื่อร้านและเลือกวันที่เล่น');
         return;
       }
 
@@ -757,7 +778,7 @@
         closeSaveModal();
         closePlaylistEditorDrawerDirect();
       } catch (e) {
-        alert('เกิดข้อผิดพลาดในการบันทึก: ' + e.message);
+        lshAlert('เกิดข้อผิดพลาดในการบันทึก: ' + e.message);
       }
     };
 
@@ -772,7 +793,7 @@
         closeDeleteModal();
         closePlaylistDetailDrawer();
       } catch (e) {
-        alert('เกิดข้อผิดพลาดในการลบ: ' + e.message);
+        lshAlert('เกิดข้อผิดพลาดในการลบ: ' + e.message);
       }
     };
 
@@ -823,7 +844,7 @@
       let list = Object.keys(allSongsData).map(id => ({ id: id, ...allSongsData[id] }));
 
       if (selectedKey !== 'ALL') {
-        list = list.filter(s => s.key && s.key.trim().toLowerCase() === selectedKey.toLowerCase());
+        list = list.filter(s => lshKeys.match(s.key, selectedKey));
       }
 
       const cmp = (a, b) => {
@@ -860,7 +881,7 @@
           <div style="background:#1e202c;padding:10px;border-radius:6px;display:flex;justify-content:space-between;align-items:center;cursor:pointer" onclick="window.addSongToSetlist('${song.id}')">
             <div>
               <b style="color:#fff;font-size:13px">${song.title}</b>
-              <span style="color:#aaa;font-size:11px"> (${song.artist || '-'})</span>
+              <span style="color:#aaa;font-size:11px"> - ${song.artist || '-'}</span>
               <div style="font-size:11px;color:#00f2d1;margin-top:2px">คีย์: ${song.key || '-'} | BPM: ${song.bpm || '-'}</div>
             </div>
             <span style="color:#00f2d1;font-weight:bold;font-size:12px;background:#12131a;padding:4px 8px;border-radius:4px;border:1px solid #333">+ เพิ่ม</span>

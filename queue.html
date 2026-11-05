@@ -11,7 +11,10 @@
   <!-- 1. แถบด้านบน (10%) -->
   <div class="queue-top-bar">
     <div id="topTalkbackBox" class="top-box">
-      <span class="top-title"><svg class="ic" aria-hidden="true"><use href="#i-mic"/></svg> ท็อคแบคล่าสุด</span>
+      <div class="top-head">
+        <span class="top-title"><svg class="ic" aria-hidden="true"><use href="#i-mic"/></svg> ท็อคแบคล่าสุด</span>
+        <span id="topTalkbackSender" class="top-sender"></span>
+      </div>
       <div id="topTalkbackText" class="top-content">สแตนบายรอคำสั่ง...</div>
     </div>
     <div id="topNextBox" class="top-box">
@@ -97,7 +100,7 @@
   </div>
 
   <!-- 7. Pop-up ยืนยันการทำงาน (ข้ามเพลง / ลบเพลง) -->
-  <div id="confirmModal" class="slide-modal-overlay hidden" onclick="closeConfirmModal(event)">
+  <div id="confirmModal" class="slide-modal-overlay hidden">
     <div class="popup-dialog" onclick="event.stopPropagation()">
       <div class="u-center">
         <div id="confirmIcon" style="font-size:32px;margin-bottom:4px"><svg class="ic ic-solo" aria-hidden="true"><use href="#i-alert"/></svg></div>
@@ -147,37 +150,24 @@
       window.selectedSongId = null; 
       window.pendingInsertSongObj = null; 
 
-      // Map คีย์คู่ขนาน (Relative Keys)
-      const relativeKeyMap = {
-        'C': 'Am', 'Am': 'C', 'G': 'Em', 'Em': 'G', 'D': 'Bm', 'Bm': 'D',
-        'A': 'F#m', 'F#m': 'A', 'E': 'C#m', 'C#m': 'E', 'B': 'G#m', 'G#m': 'B',
-        'F': 'Dm', 'Dm': 'F', 'Bb': 'Gm', 'Gm': 'Bb', 'Eb': 'Cm', 'Cm': 'Eb',
-        'Ab': 'Fm', 'Fm': 'Ab', 'Db': 'Bbm', 'Bbm': 'Db', 'C#': 'A#m', 'A#m': 'C#',
-        'F#': 'D#m', 'D#m': 'F#', 'Gb': 'Ebm', 'Ebm': 'Gb'
-      };
       // 📌 ดึงและฟังข้อมูลท็อคแบคล่าสุดจาก Firebase โหนด 'latestTalkback'
       function initFirebaseLatestTalkbackListener() {
         const sessionStr = localStorage.getItem('lsh_session');
         const session = sessionStr ? JSON.parse(sessionStr) : {};
-        const selectedRoom = session.room || localStorage.getItem('lsh_selected_room') || 'PGL8';
+        const selectedRoom = lshRoom(session);
+        if (!selectedRoom) return; // ไม่พบห้อง: ไม่เขียน/อ่านข้อมูลใดๆ และกลับไปหน้าเลือกห้อง
 
         if (typeof db !== 'undefined' && db && db.ref) {
-          db.ref(`rooms/${selectedRoom}/latestTalkback`).off('value');
-          db.ref(`rooms/${selectedRoom}/latestTalkback`).on('value', (snapshot) => {
-            const val = snapshot.val();
-            const topTalkbackText = document.getElementById('topTalkbackText');
-            if (topTalkbackText) {
-              topTalkbackText.innerText = val ? val : 'สแตนบายรอคำสั่ง...';
-              lshWatch(topTalkbackText, 'talk');
-            }
-          });
+          // อ่านจากรายการ talkbacks ตัวล่าสุด (แยกผู้ส่ง/ข้อความ) เหมือนหน้าค้นหาคอร์ดและท็อคแบค
+          lshBindTopTalkback(selectedRoom, document.getElementById('topTalkbackText'), document.getElementById('topTalkbackSender'));
         }
       }
 // 📌 ดึงรายการเพลงรีเควสจากโหนด requestStats ของห้องปัจจุบัน
       function initFirebaseRequestStatsListener() {
         const sessionStr = localStorage.getItem('lsh_session');
         const session = sessionStr ? JSON.parse(sessionStr) : {};
-        const selectedRoom = session.room || localStorage.getItem('lsh_selected_room') || 'PGL8';
+        const selectedRoom = lshRoom(session);
+        if (!selectedRoom) return; // ไม่พบห้อง: ไม่เขียน/อ่านข้อมูลใดๆ และกลับไปหน้าเลือกห้อง
 
         if (typeof db !== 'undefined' && db && db.ref) {
           db.ref(`rooms/${selectedRoom}/requestStats`).off('value');
@@ -202,6 +192,7 @@
         if (typeof db !== 'undefined' && db && db.ref) {
           db.ref('songs').off('value');
           db.ref('songs').on('value', (snapshot) => {
+            window.lshReady && window.lshReady();
             const val = snapshot.val() || {};
             let loadedSongs = Object.keys(val).map(id => ({
               id: id,
@@ -227,7 +218,8 @@
         // 1. ดึงข้อมูลคิวล่าสุดจาก Firebase ของห้องปัจจุบัน
         const sessionStr = localStorage.getItem('lsh_session');
         const session = sessionStr ? JSON.parse(sessionStr) : {};
-        const selectedRoom = session.room || localStorage.getItem('lsh_selected_room') || 'PGL8';
+        const selectedRoom = lshRoom(session);
+        if (!selectedRoom) return; // ไม่พบห้อง: ไม่เขียน/อ่านข้อมูลใดๆ และกลับไปหน้าเลือกห้อง
 
         try {
           if (typeof db !== 'undefined' && db && db.ref) {
@@ -333,7 +325,8 @@
         try {
           const sessionStr = localStorage.getItem('lsh_session');
           const session = sessionStr ? JSON.parse(sessionStr) : {};
-          const selectedRoom = session.room || localStorage.getItem('lsh_selected_room') || 'PGL8';
+          const selectedRoom = lshRoom(session);
+        if (!selectedRoom) return; // ไม่พบห้อง: ไม่เขียน/อ่านข้อมูลใดๆ และกลับไปหน้าเลือกห้อง
           const activeSetlistId = localStorage.getItem('lsh_active_setlist_id') || '';
 
           if (typeof db !== 'undefined' && db && db.ref) {
@@ -503,7 +496,7 @@
                 ${song.title} <span style="font-size:12px;color:#fff;font-weight:normal">- ${song.artist}</span>
               </div>
               <div style="font-size:12px;color:#f59e0b">
-                คีย์: ${song.key}${bpmDisplay} | โน้ต: ${song.note}
+                คีย์: ${song.key}${bpmDisplay}${(song.note && String(song.note).trim() && String(song.note).trim() !== '-') ? ' | โน้ต: ' + song.note : ''}
               </div>
             </div>
             ${actionsHtml}
@@ -867,7 +860,8 @@ window.executeInsertAfterPlaying = function() {
         if (p.reqIdToDelete) {
           const sessionStr = localStorage.getItem('lsh_session');
           const session = sessionStr ? JSON.parse(sessionStr) : {};
-          const selectedRoom = session.room || localStorage.getItem('lsh_selected_room') || 'PGL8';
+          const selectedRoom = lshRoom(session);
+        if (!selectedRoom) return; // ไม่พบห้อง: ไม่เขียน/อ่านข้อมูลใดๆ และกลับไปหน้าเลือกห้อง
 
           if (typeof db !== 'undefined' && db && db.ref) {
             db.ref(`rooms/${selectedRoom}/requestStats/${p.reqIdToDelete}`).remove();
@@ -922,12 +916,7 @@ window.executeInsertAfterPlaying = function() {
 
           let keyFiltered = availableSongs;
           if (window.currentKeyFilter !== 'ALL') {
-            let allowedKeys = new Set();
-            allowedKeys.add(window.currentKeyFilter.toLowerCase());
-            if (relativeKeyMap[window.currentKeyFilter]) {
-              allowedKeys.add(relativeKeyMap[window.currentKeyFilter].toLowerCase());
-            }
-            keyFiltered = availableSongs.filter(song => song.key && allowedKeys.has(song.key.trim().toLowerCase()));
+            keyFiltered = availableSongs.filter(song => lshKeys.match(song.key, window.currentKeyFilter));
           }
 
           let finalResult = [];
@@ -1000,11 +989,7 @@ window.executeInsertAfterPlaying = function() {
           let targetBpm = playingSong.bpm && playingSong.bpm !== '-' ? parseFloat(playingSong.bpm) : null;
 
           if (targetKey && targetKey !== '-') {
-            let allowedKeys = new Set();
-            allowedKeys.add(targetKey.trim().toLowerCase());
-            if (relativeKeyMap[targetKey.trim()]) {
-              allowedKeys.add(relativeKeyMap[targetKey.trim()].toLowerCase());
-            }
+            const allowedKeys = lshKeys.allowed(targetKey);
 
             let bothMatch = [];
             let keyMatch = [];

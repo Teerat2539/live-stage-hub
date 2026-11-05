@@ -864,8 +864,8 @@ input:disabled + .slider { opacity: .3; cursor: not-allowed; }
   transition: transform .12s var(--ease), filter .15s;
 }
 .btn-action-main:active { transform: scale(.97); filter: brightness(.92); }
-.btn-feel    { background: var(--info); color: #fff; box-shadow: 0 6px 18px rgba(79,140,255,.28); }
-.btn-request { background: var(--next); color: var(--next-ink); box-shadow: 0 6px 18px rgba(255,194,51,.25); }
+.btn-feel    { background: var(--live); color: var(--live-ink); box-shadow: 0 6px 18px rgba(46,242,184,.25); }
+.btn-request { background: var(--request); color: #2A0A22; box-shadow: 0 6px 18px rgba(255,95,210,.28); }
 
 /* Chat */
 .chat-container {
@@ -911,7 +911,7 @@ input:disabled + .slider { opacity: .3; cursor: not-allowed; }
   background: var(--bg); border: 1.5px solid var(--line-strong); border-radius: var(--r-md);
   font-size: 15px; font-weight: 700; color: var(--text); transition: transform .12s, background .15s;
 }
-.btn-feel-item:active { transform: scale(.95); background: var(--info); border-color: var(--info); color: #fff; }
+.btn-feel-item:active { transform: scale(.95); background: var(--live); border-color: var(--live); color: var(--live-ink); }
 
 .request-modal-container {
   position: fixed; inset: 0; z-index: 999;
@@ -1146,3 +1146,91 @@ nav .nav-ico .ic { margin: 0; width: 22px; height: 22px; }
 .flashing { --attn-c: var(--tb); animation: attnPulse .5s ease-in-out 6; }
 .flash-cue-pink-active { --attn-c: var(--set, var(--next)); animation: attnPulseBox .5s ease-in-out 6; }
 @media (prefers-reduced-motion: reduce) { .flashing, .flash-cue-pink-active, [data-attn] > .top-box { animation-duration: 1.5s; } }
+
+/* ==========================================================================
+   v5 — ชิ้นส่วนกลางหน้าต่างเพลง (z-index ให้ขึ้นทับหน้าต่างอื่น) + แถบแจ้ง (toast)
+   ========================================================================== */
+#detailOverlay { z-index: 14500 !important; }
+#songDetailDrawer { z-index: 14501 !important; }
+#songFormOverlay { z-index: 14600 !important; }
+
+#lshToastHost { position: fixed; left: 0; right: 0; bottom: calc(var(--nav-h) + 14px); z-index: 20000;
+  display: flex; flex-direction: column; align-items: center; gap: 8px; pointer-events: none; padding: 0 var(--pad); }
+.lsh-toast { max-width: min(92vw, 520px); padding: 12px 18px; border-radius: var(--r-md);
+  background: var(--surface-3); color: var(--text); border: 1px solid var(--line-strong);
+  font-weight: 600; font-size: 14px; box-shadow: var(--shadow-pop);
+  opacity: 0; transform: translateY(12px); transition: opacity .25s var(--ease), transform .25s var(--ease); }
+.lsh-toast.show { opacity: 1; transform: none; }
+.lsh-toast.ok    { border-color: var(--live);   color: var(--live); }
+.lsh-toast.warn  { border-color: var(--next);   color: var(--next); }
+.lsh-toast.error { border-color: var(--danger); color: var(--danger); background: color-mix(in srgb, var(--danger) 12%, var(--surface-3)); }
+
+/* หัวหน้าต่างรายละเอียดลิสต์: ปุ่มใหญ่ ห่างกัน แยกถังขยะให้ไกลจากดินสอ กันนิ้วเบียด */
+.detail-actions { display: flex; align-items: center; gap: 14px; flex: none; }
+#btnDetailStar, #btnDetailEdit, #btnDetailDelete {
+  min-width: 48px; min-height: 48px; display: inline-flex; align-items: center; justify-content: center;
+  border-radius: var(--r-md) !important; background: var(--surface-2) !important; border: 1px solid var(--line-strong) !important;
+}
+#btnDetailDelete { margin-left: 22px; color: var(--danger) !important; border-color: color-mix(in srgb, var(--danger) 55%, var(--line)) !important; }
+#btnDetailEdit { color: var(--text) !important; }
+.editor-song-item.is-tappable { cursor: pointer; }
+.editor-song-item.is-tappable:active { transform: scale(.985); }
+
+/* ปุ่มล้างข้อความในช่องกรอก (เพิ่มอัตโนมัติจาก index.html) */
+input.has-clr { padding-right: 40px !important; }
+.clr-btn { position: absolute; z-index: 5; width: 28px; height: 28px; padding: 0; border: 0; border-radius: 50%;
+  background: var(--surface-3); color: var(--text-2); display: inline-flex; align-items: center; justify-content: center; cursor: pointer; }
+.clr-btn .ic { margin: 0; width: 14px; height: 14px; }
+.clr-btn:active { background: var(--line-strong); color: var(--text); }
+
+/* แถบท็อคแบคล่าสุด: หัวบรรทัด ซ้ายชื่อหัวข้อ ขวาชื่อผู้ส่ง (ตัวเล็ก สีขาว) */
+.top-head { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+.top-head .top-title { margin-bottom: 2px; min-width: 0; }
+.top-sender { flex: none; font-size: 11px; font-weight: 600; color: #fff; max-width: 55%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* ข้อความยาวเลื่อนจากขวาไปซ้าย (index.html ตรวจความยาวและเติมคลาส mq-run) */
+.top-box .top-content { display: block; overflow: hidden; text-overflow: clip; white-space: nowrap; }
+.mq-inner { display: inline-block; white-space: nowrap; }
+.mq-inner.mq-run { animation: mqScroll var(--mq-dur, 10s) linear infinite; will-change: transform; }
+.mq-inner.mq-run::after { content: attr(data-text); padding-left: 56px; }
+@keyframes mqScroll { to { transform: translateX(var(--mq-dist, -100%)); } }
+@media (prefers-reduced-motion: reduce) { .mq-inner.mq-run { animation-duration: calc(var(--mq-dur, 10s) * 2); } }
+
+/* หน้าท็อคแบค: ให้การ์ด/ปุ่ม/ฟองแชตหน้าตาเดียวกับหน้าจัดคิวและตั้งค่า */
+.btn-quick { background: var(--surface); border: 1px solid var(--line-strong); border-left: 5px solid var(--live); text-align: left; padding-left: 16px; }
+.btn-quick:active { border-color: var(--live); background: var(--surface-2); }
+.tg-control-card, .chat-container { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-lg); }
+.chat-container { background: var(--bg); }
+.chat-bubble.other { background: var(--surface-2); border: 1px solid var(--line); border-left: 4px solid var(--line-strong); }
+.chat-bubble.self  { border-right: 4px solid color-mix(in srgb, var(--live) 60%, #fff); }
+.feel-popup { background: var(--surface); border: 1px solid var(--line-strong); border-radius: var(--r-xl); }
+.btn-feel-item { background: var(--surface-2); border: 1px solid var(--line-strong); border-radius: var(--r-md); color: var(--text); }
+.btn-send { background: var(--live); color: var(--live-ink); font-weight: 800; border-radius: var(--r-md); }
+
+/* ===== หน้าโหลดตอนเปิดแอป (Splash) ===== */
+#lshSplash { position: fixed; inset: 0; z-index: 99999; background: var(--bg); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 22px; transition: opacity .4s var(--ease), visibility .4s; }
+#lshSplash.is-hide { opacity: 0; visibility: hidden; pointer-events: none; }
+.splash-logo { font-size: clamp(30px, 9vw, 54px); font-weight: 800; letter-spacing: .02em; display: flex; gap: .3em; color: var(--text); }
+.splash-logo span { opacity: 0; transform: translateY(14px); animation: splashIn .7s var(--ease) forwards; }
+.splash-logo span:nth-child(1) { animation-delay: .05s; color: var(--live); }
+.splash-logo span:nth-child(2) { animation-delay: .25s; }
+.splash-logo span:nth-child(3) { animation-delay: .45s; color: var(--request); }
+.splash-bars { display: flex; align-items: flex-end; gap: 5px; height: 28px; }
+.splash-bars i { width: 5px; height: 100%; border-radius: 3px; background: var(--live); transform-origin: bottom; animation: splashBar 1s ease-in-out infinite; }
+.splash-bars i:nth-child(2) { animation-delay: .12s; background: var(--info); }
+.splash-bars i:nth-child(3) { animation-delay: .24s; background: var(--request); }
+.splash-bars i:nth-child(4) { animation-delay: .36s; background: var(--next); }
+.splash-bars i:nth-child(5) { animation-delay: .48s; }
+@keyframes splashIn { to { opacity: 1; transform: none; } }
+@keyframes splashBar { 0%,100% { transform: scaleY(.25); } 50% { transform: scaleY(1); } }
+.page-spin { position: fixed; top: 64px; left: 50%; width: 26px; height: 26px; margin-left: -13px; border-radius: 50%; border: 3px solid var(--line-strong); border-top-color: var(--live); z-index: 9000; opacity: 0; pointer-events: none; transition: opacity .15s; animation: pageSpin .8s linear infinite; }
+.page-spin.on { opacity: 1; }
+@keyframes pageSpin { to { transform: rotate(360deg); } }
+
+/* ===== มอนิเตอร์: เลื่อนข้อความแบบน้ำตก + ซ่อนข้อความความคืบหน้า ===== */
+.slide-fwd  { animation: slideUpIn .5s var(--ease) var(--slide-delay, 0ms) both; }
+.slide-back { animation: slideDownIn .5s var(--ease) var(--slide-delay, 0ms) both; }
+@keyframes slideUpIn   { from { opacity: 0; transform: translateY(70%); }  to { opacity: 1; transform: none; } }
+@keyframes slideDownIn { from { opacity: 0; transform: translateY(-70%); } to { opacity: 1; transform: none; } }
+.progress-caption { display: none !important; }
+@media (prefers-reduced-motion: reduce) { .slide-fwd, .slide-back, .splash-logo span, .splash-bars i, .page-spin { animation-duration: .01ms !important; } }

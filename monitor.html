@@ -44,7 +44,7 @@
 
     <!-- 3. ส่วนล่าง: Progress Bar -->
     <div class="monitor-progress-bar-container" onclick="openFullQueueModal()">
-      <div style="display:flex;justify-content:space-between;font-size:9px;color:#888">
+      <div class="progress-caption" style="display:flex;justify-content:space-between;font-size:9px;color:#888">
         <span>สถานะความคืบหน้าโชว์</span>
         <span id="progressText">Set 1 (0/0)</span>
       </div>
@@ -80,7 +80,8 @@
 
       const sessionStr = localStorage.getItem('lsh_session');
       const session = sessionStr ? JSON.parse(sessionStr) : {};
-      const selectedRoom = session.room || localStorage.getItem('lsh_selected_room') || 'PGL8';
+      const selectedRoom = lshRoom(session);
+        if (!selectedRoom) return; // ไม่พบห้อง: ไม่เขียน/อ่านข้อมูลใดๆ และกลับไปหน้าเลือกห้อง
 
       // ไม่ใส่สีเซ็ตให้การ์ด "เตรียมพร้อม/จบการแสดง"
       function colorOf(s) { return (s.type === 'dummy_start' || s.type === 'dummy_end') ? '' : getSetColorClass(s.set); }
@@ -114,7 +115,42 @@
         }
       }
 
+      // เลื่อนข้อความ 3 กล่องแบบน้ำตก: ไปเพลงถัดไป = เลื่อนขึ้น, ย้อนกลับ = เลื่อนลง (ไม่เล่นตอนโหลดครั้งแรก)
+      let lastSlideSig = null;
+      let lastSlideIdx = -1;
+      function slideSongBoxes(queueData) {
+        const idOf = (i) => i ? String(i.id || i.title) : '';
+        const playing = queueData.find(i => i.status === 'playing');
+        const next = queueData.find(i => i.status === 'next');
+        const standby = queueData.find(i => i.status === 'standby');
+        const sig = idOf(playing) + '|' + idOf(next) + '|' + idOf(standby);
+        const anchor = playing || next || standby;
+        const idx = anchor ? queueData.indexOf(anchor) : -1;
+        const changed = lastSlideSig !== null && sig !== lastSlideSig;
+        const dir = idx < lastSlideIdx ? 'slide-back' : 'slide-fwd';
+        lastSlideSig = sig;
+        lastSlideIdx = idx;
+        if (!changed) return;
+        const groups = [
+          ['mPlayingTitle'],
+          ['mNextTitle', 'mNextDetail'],
+          ['mStandbyTitle']
+        ];
+        groups.forEach((ids, g) => {
+          ids.forEach(id => {
+            const el = document.getElementById(id);
+            if (!el) return;
+            el.classList.remove('slide-fwd', 'slide-back');
+            void el.offsetWidth;
+            el.style.setProperty('--slide-delay', (g * 90) + 'ms');
+            el.classList.add(dir);
+            el.addEventListener('animationend', () => el.classList.remove('slide-fwd', 'slide-back'), { once: true });
+          });
+        });
+      }
+
       function processQueueData(queueData) {
+        window.lshReady && window.lshReady();
         currentQueue = queueData;
 
         let playing = queueData.find(i => i.status === 'playing');
@@ -170,6 +206,7 @@
           mStandbyTitle.innerText = '-';
         }
 
+        slideSongBoxes(queueData);
         renderProgressBar(queueData);
       }
 
@@ -217,18 +254,15 @@
 
       function renderProgressBar(queueData) {
         const container = document.getElementById('progressSegmentsContainer');
-        const progressText = document.getElementById('progressText');
         if (!container) return;
 
         let realSongs = queueData.filter(i => i.type !== 'dummy_start' && i.type !== 'dummy_end' && i.status !== 'removed');
         if (realSongs.length === 0) {
           container.innerHTML = '';
-          if (progressText) progressText.innerText = 'ไม่มีข้อมูลเซ็ตลิสต์';
           return;
         }
 
         let totalSongsCount = realSongs.length;
-        let playedSongsCount = realSongs.filter(i => i.status === 'played').length;
 
         let html = '';
         let prevNormalSet = null;
@@ -245,9 +279,6 @@
         });
 
         container.innerHTML = html;
-        if (progressText) {
-          progressText.innerText = `${playedSongsCount}/${totalSongsCount} เพลง`;
-        }
       }
 
       function renderTalkbackHistory(list) {

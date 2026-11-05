@@ -10,7 +10,6 @@
     <div class="header-line-1">
       <div class="search-box-wrap">
         <input type="text" id="songSearchInput" class="search-input" placeholder="พิมพ์ชื่อเพลง หรือชื่อศิลปิน...">
-        <button class="clear-search-btn" id="btnClearSearch"><svg class="ic ic-solo" aria-hidden="true"><use href="#i-close"/></svg></button>
       </div>
       <button id="btnToggleLine2" class="toggle-filter-btn" title="แสดง/ซ่อน ตัวกรอง"><svg class="ic ic-solo" aria-hidden="true"><use href="#i-chev-down"/></svg></button>
       <button id="btnOpenAddSong" class="add-song-btn">+ เพิ่มเพลง</button>
@@ -45,108 +44,22 @@
 
 </div>
 
-<!-- MODALS & DRAWERS -->
-<div id="detailOverlay" class="sub-overlay hidden"></div>
-<div id="songDetailDrawer" class="slide-up-panel">
-  <div class="panel-header">
-    <h3 id="detailSongTitle" style="color:#00f2d1;margin:0">-</h3>
-    <div>
-      <button id="btnEditSong" style="background:none;border:none;font-size:18px;cursor:pointer;margin-right:10px"><svg class="ic ic-solo" aria-hidden="true"><use href="#i-edit"/></svg></button>
-      <button id="btnDeleteSong" style="background:none;border:none;font-size:18px;cursor:pointer"><svg class="ic ic-solo" aria-hidden="true"><use href="#i-trash"/></svg></button>
-    </div>
-  </div>
-  <div style="font-size:14px;line-height:1.8;color:#ccc">
-    <div>ศิลปิน: <b id="detailArtist" style="color:#fff">-</b></div>
-    <div>คีย์หลัก: <b id="detailKey" style="color:#00f2d1">-</b></div>
-    <div>BPM: <b id="detailBpm" style="color:#fff">-</b></div>
-    <div>ความถี่ที่เล่น: <b id="detailPlayCount" style="color:#f59e0b">0 ครั้ง</b></div>
-  </div>
-</div>
-
-<div id="songFormOverlay" class="sub-overlay hidden">
-  <div class="form-box" onclick="event.stopPropagation()">
-    <h3 id="formModalTitle" style="margin-bottom:12px;color:#00f2d1">เพิ่มเพลงใหม่</h3>
-    
-    <div class="form-group">
-      <label>ชื่อเพลง *</label>
-      <input type="text" id="formSongTitle">
-    </div>
-    <div class="form-group">
-      <label>ชื่อศิลปิน *</label>
-      <input type="text" id="formArtist">
-    </div>
-    
-    <div class="form-group">
-      <label>คีย์หลัก *</label>
-      <select id="formKeySelect">
-        <option value="">-- เลือกคีย์เพลง --</option>
-      </select>
-    </div>
-
-    <div class="form-group">
-      <label>BPM</label>
-      <div class="tempo-wrap">
-        <input type="number" id="formBpm" placeholder="120">
-        <button type="button" class="tempo-btn" id="btnTapTempo">Tap Tempo</button>
-      </div>
-    </div>
-
-    <div class="modal-actions">
-      <button id="btnSaveSong" class="btn-primary">บันทึก</button>
-      <button id="btnCancelForm" class="btn-ghost">ยกเลิก</button>
-    </div>
-  </div>
-</div>
-
-<div id="unsavedWarningOverlay" class="sub-overlay hidden" style="z-index:14000">
-  <div class="slide-up-panel open" style="z-index:14001;border-color:#f59e0b">
-    <h3 style="color:#f59e0b;margin-bottom:8px"><svg class="ic" aria-hidden="true"><use href="#i-alert"/></svg> ยังไม่ได้บันทึกข้อมูล</h3>
-    <p class="modal-desc">คุณต้องการออกจากหน้าต่างนี้โดยไม่บันทึกใช่หรือไม่?</p>
-    <div style="display:flex;gap:10px">
-      <button id="btnConfirmDiscard" style="flex:1;padding:10px;border-radius:6px;border:none;background:#ef4444;color:#fff;font-weight:bold;cursor:pointer">ยืนยัน (ไม่บันทึก)</button>
-      <button id="btnCancelDiscard" style="flex:1;padding:10px;border-radius:6px;border:none;background:#333;color:#fff;cursor:pointer">แก้ไขต่อ</button>
-    </div>
-  </div>
-</div>
-
-<div id="deleteConfirmOverlay" class="sub-overlay hidden" style="z-index:14000">
-  <div class="form-box u-center">
-    <h3 class="modal-title is-danger">ยืนยันการลบเพลง</h3>
-    <p class="modal-desc">คุณต้องการลบเพลง <b id="deleteTargetTitle" style="color:#fff">-</b> ออกจากคลังใช่หรือไม่?</p>
-    <div class="u-row-center">
-      <button id="btnExecuteDelete" class="btn-danger">ยืนยันลบ</button>
-      <button id="btnCancelDelete" class="btn-ghost">ยกเลิก</button>
-    </div>
-  </div>
-</div>
-
 <script>
   window.initSongsPageModule = function() {
     let allSongsData = {};
     let allSetlistsData = {};
     let selectedKey = 'ALL';
-    let currentActiveSongId = null;
-    let isEditing = false;
-    let tapTimes = [];
     let isManualPinned = false;
 
     // 📌 ดึงชื่อห้องปัจจุบันจาก session มาใช้ดึงข้อมูล setlists ให้ตรงวง
     const sessionStr = localStorage.getItem('lsh_session');
     const session = sessionStr ? JSON.parse(sessionStr) : {};
-    const selectedRoom = session.room || localStorage.getItem('lsh_selected_room') || 'PGL8';
+    const selectedRoom = lshRoom(session);
+        if (!selectedRoom) return; // ไม่พบห้อง: ไม่เขียน/อ่านข้อมูลใดๆ และกลับไปหน้าเลือกห้อง
 
-    const masterKeyList = [
-      'C', 'Cm', 'C#', 'C#m', 'Db', 'D', 'Dm', 'D#m', 'Eb', 'E', 'Em', 
-      'F', 'Fm', 'F#', 'F#m', 'Gb', 'G', 'Gm', 'G#m', 'Ab', 'A', 'Am', 
-      'A#m', 'Bb', 'B', 'Bm'
-    ];
-
-    const relativeKeyMap = {
-      'C': 'Am', 'Am': 'C', 'G': 'Em', 'Em': 'G', 'D': 'Bm', 'Bm': 'D',
-      'A': 'F#m', 'F#m': 'A', 'E': 'C#m', 'C#m': 'E', 'B': 'G#m', 'G#m': 'B',
-      'F': 'Dm', 'Dm': 'F', 'Bb': 'Gm', 'Gm': 'Bb', 'Eb': 'Cm', 'Cm': 'Eb',
-      'Ab': 'Fm', 'Fm': 'Ab', 'Db': 'Bbm', 'Bbm': 'Db'
-    };
+    // ลิสต์คีย์และคีย์คู่ขนาน ใช้ชุดกลางร่วมกันทุกหน้า (index.html: lshKeys)
+    const masterKeyList = lshKeys.master;
+    const relativeKeyMap = lshKeys.relative;
 
     function populateKeyFilterSelect() {
       const selectEl = document.getElementById('keyFilterSelect');
@@ -164,20 +77,12 @@
       };
     }
 
-    function populateFormKeySelect() {
-      const selectEl = document.getElementById('formKeySelect');
-      if (!selectEl) return;
-
-      let html = '<option value="">-- เลือกคีย์เพลง --</option>';
-      masterKeyList.forEach(k => {
-        html += `<option value="${k}">${k}</option>`;
-      });
-      selectEl.innerHTML = html;
-    }
+    function populateFormKeySelect() { /* ย้ายไปอยู่ใน lshSongKit (ฟอร์มสร้างเอง) */ }
 
     if (typeof db !== 'undefined') {
       // ดึงคลังเพลงกลาง
       db.ref('songs').on('value', (snapshot) => {
+        window.lshReady && window.lshReady();
         allSongsData = snapshot.val() || {};
         onSearchOrFilterChange();
       });
@@ -364,184 +269,22 @@
       };
     }
 
-    function openSongDetailDrawer(songId) {
-      currentActiveSongId = songId;
-      const song = allSongsData[songId];
-      if (!song) return;
+    function openSongDetailDrawer(songId) { lshSongKit.open(songId); }
+    function closeSongDetailDrawer() { lshSongKit.close(); }
 
-      const playCountsMap = calculateSongPlayCounts();
-      const currentPlayCount = playCountsMap[songId] || 0;
-
-      document.getElementById('detailSongTitle').innerText = song.title || '-';
-      document.getElementById('detailArtist').innerText = song.artist || '-';
-      document.getElementById('detailKey').innerText = song.key || '-';
-      document.getElementById('detailBpm').innerText = song.bpm || '-';
-      document.getElementById('detailPlayCount').innerText = currentPlayCount + ' ครั้ง';
-
-      const overlay = document.getElementById('detailOverlay');
-      const drawer = document.getElementById('songDetailDrawer');
-
-      overlay.classList.remove('hidden');
-      setTimeout(() => {
-        drawer.classList.add('open');
-      }, 10);
-    }
-
-    function closeSongDetailDrawer() {
-      const drawer = document.getElementById('songDetailDrawer');
-      const overlay = document.getElementById('detailOverlay');
-
-      drawer.classList.remove('open');
-      setTimeout(() => {
-        overlay.classList.add('hidden');
-      }, 300);
-    }
-
-    function generateNextSongId() {
-      const existingIds = Object.keys(allSongsData);
-      if (existingIds.length === 0) return 'a000';
-
-      let maxChar = 'a';
-      let maxNum = -1;
-
-      existingIds.forEach(id => {
-        const match = id.match(/^([a-z])(\d{3})$/);
-        if (match) {
-          const char = match[1];
-          const num = parseInt(match[2], 10);
-          if (char > maxChar || (char === maxChar && num > maxNum)) {
-            maxChar = char;
-            maxNum = num;
-          }
-        }
-      });
-
-      if (maxNum === -1) return 'a000';
-      maxNum++;
-      if (maxNum > 999) {
-        maxNum = 0;
-        maxChar = String.fromCharCode(maxChar.charCodeAt(0) + 1);
-      }
-      return maxChar + String(maxNum).padStart(3, '0');
-    }
-
-    async function saveSongData() {
-      const title = document.getElementById('formSongTitle').value.trim();
-      const artist = document.getElementById('formArtist').value.trim();
-      const key = document.getElementById('formKeySelect').value;
-      const bpm = parseInt(document.getElementById('formBpm').value, 10) || 0;
-
-      if (!title || !artist || !key) {
-        alert('กรุณากรอกชื่อเพลง ศิลปิน และเลือกคีย์หลักให้ครบถ้วน');
-        return;
-      }
-
-      const songId = isEditing ? currentActiveSongId : generateNextSongId();
-      const songPayload = {
-        title: title,
-        artist: artist,
-        key: key,
-        bpm: bpm
-      };
-
-      try {
-        await db.ref('songs/' + songId).set(songPayload);
-        document.getElementById('songFormOverlay').classList.add('hidden');
-      } catch (e) {
-        alert('เกิดข้อผิดพลาดในการบันทึก: ' + e.message);
-      }
-    }
+    lshSongKit.setup({
+      getAll: () => allSongsData,
+      getPlayCount: (id) => calculateSongPlayCounts()[id] || 0,
+      allowDelete: true
+    });
 
     // Bind Controls
     populateKeyFilterSelect();
     populateFormKeySelect();
 
     document.getElementById('sortSelect').onchange = onSearchOrFilterChange;
-    document.getElementById('btnClearSearch').onclick = () => {
-      document.getElementById('songSearchInput').value = '';
-      onSearchOrFilterChange();
-    };
 
-    document.getElementById('btnOpenAddSong').onclick = () => {
-      isEditing = false;
-      currentActiveSongId = null;
-      document.getElementById('formModalTitle').innerText = 'เพิ่มเพลงใหม่';
-      document.getElementById('formSongTitle').value = '';
-      document.getElementById('formArtist').value = '';
-      document.getElementById('formKeySelect').value = '';
-      document.getElementById('formBpm').value = '';
-      tapTimes = [];
-      document.getElementById('songFormOverlay').classList.remove('hidden');
-    };
-
-    document.getElementById('songFormOverlay').onclick = () => {
-      document.getElementById('unsavedWarningOverlay').classList.remove('hidden');
-    };
-
-    document.getElementById('btnConfirmDiscard').onclick = () => {
-      document.getElementById('unsavedWarningOverlay').classList.add('hidden');
-      document.getElementById('songFormOverlay').classList.add('hidden');
-    };
-
-    document.getElementById('btnCancelDiscard').onclick = () => {
-      document.getElementById('unsavedWarningOverlay').classList.add('hidden');
-    };
-
-    document.getElementById('btnCancelForm').onclick = () => {
-      document.getElementById('songFormOverlay').classList.add('hidden');
-    };
-
-    document.getElementById('btnSaveSong').onclick = saveSongData;
-
-    document.getElementById('btnTapTempo').onclick = () => {
-      const now = Date.now();
-      tapTimes.push(now);
-      if (tapTimes.length > 4) tapTimes.shift();
-      if (tapTimes.length > 1) {
-        const intervals = [];
-        for (let i = 1; i < tapTimes.length; i++) intervals.push(tapTimes[i] - tapTimes[i - 1]);
-        const avg = intervals.reduce((a, b) => a + b) / intervals.length;
-        document.getElementById('formBpm').value = Math.round(60000 / avg);
-      }
-    };
-
-    document.getElementById('detailOverlay').onclick = closeSongDetailDrawer;
-
-    document.getElementById('btnEditSong').onclick = () => {
-      closeSongDetailDrawer();
-      const song = allSongsData[currentActiveSongId];
-      if (!song) return;
-      isEditing = true;
-      document.getElementById('formModalTitle').innerText = 'แก้ไขเพลง';
-      document.getElementById('formSongTitle').value = song.title || '';
-      document.getElementById('formArtist').value = song.artist || '';
-      document.getElementById('formKeySelect').value = song.key || '';
-      document.getElementById('formBpm').value = song.bpm || '';
-      tapTimes = [];
-      document.getElementById('songFormOverlay').classList.remove('hidden');
-    };
-
-    document.getElementById('btnDeleteSong').onclick = () => {
-      closeSongDetailDrawer();
-      const song = allSongsData[currentActiveSongId];
-      if (!song) return;
-      document.getElementById('deleteTargetTitle').innerText = song.title || '';
-      document.getElementById('deleteConfirmOverlay').classList.remove('hidden');
-    };
-
-    document.getElementById('btnCancelDelete').onclick = () => {
-      document.getElementById('deleteConfirmOverlay').classList.add('hidden');
-    };
-
-    document.getElementById('btnExecuteDelete').onclick = async () => {
-      if (!currentActiveSongId) return;
-      try {
-        await db.ref('songs/' + currentActiveSongId).remove();
-        document.getElementById('deleteConfirmOverlay').classList.add('hidden');
-      } catch (e) {
-        alert('เกิดข้อผิดพลาดในการลบ: ' + e.message);
-      }
-    };
+    document.getElementById('btnOpenAddSong').onclick = () => { lshSongKit.openForm(null); };
   };
 
   window.initSongsPageModule();

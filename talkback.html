@@ -2,7 +2,10 @@
 <!-- Top Bar (10%) -->
 <div class="tb-top-bar">
   <div class="top-box">
-    <span class="top-title"><svg class="ic" aria-hidden="true"><use href="#i-mic"/></svg> ท็อคแบคล่าสุด</span>
+    <div class="top-head">
+      <span class="top-title"><svg class="ic" aria-hidden="true"><use href="#i-mic"/></svg> ท็อคแบคล่าสุด</span>
+      <span id="tbTopSender" class="top-sender"></span>
+    </div>
     <div id="tbTopTalkback" class="top-content">รอคำสั่ง...</div>
   </div>
   <div class="top-box" id="tbTopNextBox">
@@ -42,7 +45,7 @@
 
   <!-- 5. Chat Display Box -->
   <div>
-    <div class="section-title" style="margin-bottom:6px"><svg class="ic" aria-hidden="true"><use href="#i-chat"/></svg> จอแสดงท็อคแบ็ก (ห้องแชต)</div>
+    <div class="section-title" style="margin-bottom:6px"><svg class="ic" aria-hidden="true"><use href="#i-chat"/></svg> จอแสดงท็อคแบค (ห้องแชต)</div>
     <div class="chat-container" id="chatBox"></div>
   </div>
 </div>
@@ -56,7 +59,7 @@
 <!-- Popup: ตัดเพลง / เปลี่ยนฟีล (เพิ่ม onclick ปิดเมื่อแตะพื้นที่ภายนอก) -->
 <div id="feelModal" class="modal-overlay hidden" onclick="closeFeelModal(event)">
   <div class="feel-popup" onclick="event.stopPropagation()">
-    <div style="font-size:14px;font-weight:700;color:#3b82f6;text-align:center;border-bottom:1px solid #2a2c38;padding-bottom:8px">
+    <div class="modal-title modal-head">
       <svg class="ic" aria-hidden="true"><use href="#i-sliders"/></svg> สั่งงานด่วน: ตัดเพลง / เปลี่ยนฟีล
     </div>
     <div class="feel-grid">
@@ -71,7 +74,7 @@
       <div class="btn-feel-item" data-act="ท่อนต่อไปเล่นดิสโก้">ดิสโก้</div>
       <div class="btn-feel-item" data-act="ท่อนต่อไปเล่นเร็กเก้">เร็กเก้</div>
     </div>
-    <button id="btnCancelFeel" style="background:#2a2c38;color:#ccc;border:none;padding:10px;border-radius:8px;cursor:pointer;font-weight:600">ยกเลิก</button>
+    <button id="btnCancelFeel" class="btn-ghost">ยกเลิก</button>
   </div>
 </div>
 
@@ -79,7 +82,7 @@
 <div id="requestModal" class="request-modal-container hidden" onclick="closeRequestModal(event)">
   <div class="request-modal-content" onclick="event.stopPropagation()">
     <div class="u-between">
-      <span style="font-size:14px;font-weight:700;color:#f59e0b"><svg class="ic" aria-hidden="true"><use href="#i-inbox"/></svg> ลูกค้าขอเพลง</span>
+      <span class="modal-title" style="margin:0;color:var(--request)"><svg class="ic" aria-hidden="true"><use href="#i-inbox"/></svg> ลูกค้าขอเพลง</span>
       <button id="btnCloseRequestModal" style="background:none;border:none;color:#aaa;font-size:20px;cursor:pointer"><svg class="ic ic-solo" aria-hidden="true"><use href="#i-close"/></svg></button>
     </div>
     <div class="search-row">
@@ -93,7 +96,7 @@
 <script>
   window.initTalkbackPageModule = function() {
     let currentUser = null;
-    let selectedRoom = 'PGL8';
+    let selectedRoom = '';
     let botToken = null;
     let chatId = null;
     let isTgEnabled = false;
@@ -103,12 +106,13 @@
     try {
       const sessionStr = localStorage.getItem('lsh_session');
       currentUser = sessionStr ? JSON.parse(sessionStr) : { nickname: 'OatSim', role: 'member', emoji: '😎', username: 'oat' };
-      let rawRoom = localStorage.getItem('lsh_selected_room') || (currentUser && currentUser.room) || 'PGL8';
+      let rawRoom = localStorage.getItem('lsh_selected_room') || (currentUser && currentUser.room) || '';
       selectedRoom = rawRoom.trim().toUpperCase();
     } catch(e) {
       currentUser = { nickname: 'สมาชิก', role: 'guest', emoji: '🎵', username: 'guest' };
-      selectedRoom = 'PGL8';
+      selectedRoom = '';
     }
+    if (!selectedRoom) { lshRoom(null); return; } // ไม่พบห้อง: ไม่เขียนข้อมูลใดๆ และกลับไปหน้าเลือกห้อง
 
     function initTelegramConfig() {
       const tgStatus = document.getElementById('tgStatusText');
@@ -182,8 +186,7 @@
     function setInputValue(text) {
       const input = document.getElementById('talkbackInput');
       if (input) {
-        input.value = text;
-        input.focus();
+        input.value = text; // ไม่สั่งโฟกัส: ไม่เปิดคีย์บอร์ดโดยไม่ตั้งใจ
       }
     }
 
@@ -251,7 +254,7 @@
       results.slice(0, 15).forEach(s => {
         const div = document.createElement('div');
         div.className = 'db-song-item';
-        div.innerHTML = `<b>${s.title}</b> - ${s.artist} <span style="color:#f59e0b">(${s.key || '-'})</span>`;
+        div.innerHTML = `<b>${s.title}</b> - ${s.artist} <span class="u-meta">(${s.key || '-'})</span>`;
         div.onclick = () => {
           document.getElementById('reqSearchInput').value = `${s.title} - ${s.artist}`;
           selectedReqSongObj = s;
@@ -373,12 +376,10 @@
     function listenRealtimeData() {
       if (typeof db === 'undefined') return;
 
-      db.ref(`rooms/${selectedRoom}/latestTalkback`).on('value', (snap) => {
-        const topEl = document.getElementById('tbTopTalkback');
-        if (topEl && snap.val()) { topEl.innerText = snap.val(); lshWatch(topEl, 'talk'); }
-      });
+      lshBindTopTalkback(selectedRoom, document.getElementById('tbTopTalkback'), document.getElementById('tbTopSender'));
 
       db.ref(`rooms/${selectedRoom}/queue/songs`).on('value', (snap) => {
+        window.lshReady && window.lshReady();
         const songs = snap.val() || [];
         const nextSong = songs.find(s => s.status === 'next');
         const topNext = document.getElementById('tbTopNext');

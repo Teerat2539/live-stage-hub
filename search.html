@@ -11,7 +11,10 @@
   <!-- 1. แถบด้านบน (ล็อกลอยนิ่งแสดงท็อคแบคและเพลงถัดไป) -->
   <div class="search-top-bar">
     <div id="topTalkbackBox" class="top-box">
-      <span class="top-title"><svg class="ic" aria-hidden="true"><use href="#i-mic"/></svg> ท็อคแบคล่าสุด</span>
+      <div class="top-head">
+        <span class="top-title"><svg class="ic" aria-hidden="true"><use href="#i-mic"/></svg> ท็อคแบคล่าสุด</span>
+        <span id="topTalkbackSender" class="top-sender"></span>
+      </div>
       <div id="topTalkbackText" class="top-content">สแตนบายรอคำสั่ง...</div>
     </div>
     <div id="topNextBox" class="top-box">
@@ -27,7 +30,6 @@
 
   <!-- 3. ช่องค้นหา (ย้ายมาลอยนิ่งติดขอบล่างเหนือแถบนำทาง) -->
   <div class="search-input-section">
-    <div class="search-label"><svg class="ic" aria-hidden="true"><use href="#i-search"/></svg> ค้นหาคอร์ดเพลงด่วน</div>
     <div class="search-input-group">
       <input type="text" id="chordSearchInput" class="search-text-input" placeholder="แตะเลือกเพลงจากคิว หรือพิมพ์ชื่อเพลง...">
       <button class="search-btn-submit" onclick="searchChordOnGoogle()"><svg class="ic ic-solo" aria-hidden="true"><use href="#i-search"/></svg></button>
@@ -41,11 +43,13 @@
       function initSearchQueueListener() {
         const sessionStr = localStorage.getItem('lsh_session');
         const session = sessionStr ? JSON.parse(sessionStr) : {};
-        const selectedRoom = session.room || localStorage.getItem('lsh_selected_room') || 'PGL8';
+        const selectedRoom = lshRoom(session);
+        if (!selectedRoom) return; // ไม่พบห้อง: ไม่เขียน/อ่านข้อมูลใดๆ และกลับไปหน้าเลือกห้อง
 
         if (typeof db !== 'undefined' && db && db.ref) {
           db.ref(`rooms/${selectedRoom}/queue/songs`).off('value');
           db.ref(`rooms/${selectedRoom}/queue/songs`).on('value', (snapshot) => {
+            window.lshReady && window.lshReady();
             const val = snapshot.val();
             if (val && Array.isArray(val)) {
               currentQueueList = val;
@@ -67,14 +71,7 @@
 
       function loadLatestTalkback(room) {
         if (typeof db !== 'undefined' && db && db.ref) {
-          db.ref(`rooms/${room}/talkbacks`).limitToLast(1).on('child_added', (snapshot) => {
-            const val = snapshot.val();
-            const topText = document.getElementById('topTalkbackText');
-            if (val && topText) {
-              topText.innerText = `${val.sender || 'ระบบ'}: ${val.message || ''}`;
-              lshWatch(topText, 'talk');
-            }
-          });
+          lshBindTopTalkback(room, document.getElementById('topTalkbackText'), document.getElementById('topTalkbackSender'));
         }
       }
 
@@ -160,8 +157,7 @@
         let artist = decodeURIComponent(encodedArtist);
         let inputEl = document.getElementById('chordSearchInput');
         if (inputEl) {
-          inputEl.value = `${title} ${artist}`;
-          inputEl.focus();
+          inputEl.value = `${title} ${artist}`; // ไม่สั่งโฟกัส: ไม่เปิดคีย์บอร์ดโดยไม่ตั้งใจ
         }
       };
 
@@ -170,7 +166,7 @@
         if (!inputEl) return;
         let keyword = inputEl.value.trim();
         if (!keyword) {
-          alert('กรุณาพิมพ์หรือเลือกชื่อเพลงก่อนค้นหาครับ');
+          lshAlert('กรุณาพิมพ์หรือเลือกชื่อเพลงก่อนค้นหาครับ');
           return;
         }
         let searchQuery = `${keyword} คอร์ด`;
