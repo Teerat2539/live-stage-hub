@@ -1245,3 +1245,13 @@ input.has-clr { padding-right: 40px !important; }
 }
 .btn-action-main.btn-request { --set: var(--request); }
 .btn-action-main.btn-feel:active, .btn-action-main.btn-request:active { background: var(--surface-3); filter: none; }
+
+/* ตัวเลือกสีคำสั่งด่วน (เรียงโทนเย็น → ร้อน) */
+.swatch-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 10px; margin-top: 6px; }
+.swatch { aspect-ratio: 1; border-radius: 50%; border: 2px solid transparent; color: #fff; display: flex; align-items: center; justify-content: center; cursor: pointer; padding: 0; transition: transform .12s var(--ease); }
+.swatch:active { transform: scale(.92); }
+.swatch.on { border-color: #fff; box-shadow: 0 0 0 3px var(--surface), 0 0 0 5px rgba(255,255,255,.35); }
+.swatch .ic { width: 55%; height: 55%; stroke-width: 3; }
+.swatch-hint { display: flex; align-items: center; gap: 8px; font-size: 11px; color: var(--text-3); margin-top: 8px; }
+.swatch-hint i { flex: 1; height: 3px; border-radius: 2px; background: linear-gradient(90deg, #4f46e5, #0f766e, #4d7c0f, #c2410c, #be123c); }
+.swatch-preview { width: 100%; margin-top: 10px; color: #fff; pointer-events: none; }

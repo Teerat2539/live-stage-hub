@@ -146,13 +146,28 @@
       </div>
       <div class="form-group">
         <label>สีของปุ่ม</label>
-        <select id="tbColorSelect">
-          <option value="#3b82f6">สีฟ้า (Blue)</option>
-          <option value="#10b981">สีเขียว (Green)</option>
-          <option value="#f59e0b">สีส้ม (Orange)</option>
-          <option value="#ec4899">สีชมพู (Pink)</option>
-          <option value="#8b5cf6">สีม่วง (Purple)</option>
+        <select id="tbColorSelect" hidden>
+          <option value="#7c3aed">ม่วง</option>
+          <option value="#4f46e5">คราม</option>
+          <option value="#2563eb">น้ำเงิน</option>
+          <option value="#0369a1">ฟ้าเข้ม</option>
+          <option value="#0f766e">เทียล</option>
+          <option value="#15803d">เขียว</option>
+          <option value="#4d7c0f">เขียวมะกอก</option>
+          <option value="#b45309">อำพัน</option>
+          <option value="#c2410c">ส้ม</option>
+          <option value="#dc2626">แดง</option>
+          <option value="#b91c1c">แดงเข้ม</option>
+          <option value="#be123c">ทับทิม</option>
+          <option value="#3b82f6" data-legacy="1">สีฟ้า (เดิม)</option>
+          <option value="#10b981" data-legacy="1">สีเขียว (เดิม)</option>
+          <option value="#f59e0b" data-legacy="1">สีส้ม (เดิม)</option>
+          <option value="#ec4899" data-legacy="1">สีชมพู (เดิม)</option>
+          <option value="#8b5cf6" data-legacy="1">สีม่วง (เดิม)</option>
         </select>
+        <div id="tbSwatches" class="swatch-grid" role="radiogroup" aria-label="สีของปุ่ม"></div>
+        <div class="swatch-hint"><span>เย็น</span><i></i><span>ร้อน / ด่วนมาก</span></div>
+        <button type="button" id="tbColorPreview" class="btn-quick swatch-preview" tabindex="-1">ตัวอย่างปุ่ม</button>
       </div>
       <div class="modal-actions">
         <button id="btnSaveTbCommand" class="btn-primary">บันทึก</button>
@@ -633,4 +648,34 @@
       closeGenericConfirm();
     };
   })();
+
+    // ตัวเลือกสีแบบวงกลม: ตั้งค่า <select id="tbColorSelect"> เดิมเป็นตัวเก็บค่า (โค้ดบันทึก/โหลดเดิมไม่เปลี่ยน)
+    (function() {
+      const sel = document.getElementById('tbColorSelect');
+      const grid = document.getElementById('tbSwatches');
+      const prev = document.getElementById('tbColorPreview');
+      const nameIn = document.getElementById('tbNameInput');
+      const modal = document.getElementById('tbModal');
+      if (!sel || !grid || !prev) return;
+      function render() {
+        const cur = sel.value;
+        grid.innerHTML = '';
+        Array.from(sel.options).forEach(o => {
+          if (o.dataset.legacy && o.value !== cur) return;
+          const b = document.createElement('button');
+          b.type = 'button'; b.className = 'swatch' + (o.value === cur ? ' on' : '');
+          b.style.background = o.value; b.title = o.textContent;
+          b.setAttribute('role', 'radio'); b.setAttribute('aria-checked', o.value === cur);
+          b.setAttribute('aria-label', o.textContent);
+          if (o.value === cur) b.innerHTML = window.lshIcon('check');
+          b.onclick = () => { sel.value = o.value; render(); };
+          grid.appendChild(b);
+        });
+        prev.style.background = cur || '';
+        prev.textContent = (nameIn && nameIn.value.trim()) || 'ตัวอย่างปุ่ม';
+      }
+      if (nameIn) nameIn.addEventListener('input', render);
+      new MutationObserver(render).observe(modal, { attributes: true, attributeFilter: ['class'] });
+      render();
+    })();
 </script>
