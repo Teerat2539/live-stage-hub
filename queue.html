@@ -109,7 +109,7 @@
       </div>
       <div style="display:flex;gap:8px;margin-top:8px">
         <button class="popup-btn popup-btn-cancel u-flex1" onclick="closeConfirmModal()">ยกเลิก</button>
-        <button id="confirmExecuteBtn" class="popup-btn" style="flex:1;background:#00f2d1;color:#00382f">ตกลง</button>
+        <button id="confirmExecuteBtn" class="popup-btn popup-btn-live u-flex1">ตกลง</button>
       </div>
     </div>
   </div>
@@ -121,7 +121,7 @@
         <div style="font-size:11px;color:#00f2d1"><svg class="ic" aria-hidden="true"><use href="#i-plus"/></svg> ตัวเลือกการแทรกเพลง</div>
         <div id="insertOptionsSongTitle" style="font-size:15px;font-weight:bold;color:#fff;margin-top:2px">-</div>
       </div>
-      <button class="popup-btn" style="background:#00f2d1;color:#00382f" onclick="executeInsertAfterPlaying()">⏩ เล่นต่อจากเพลงที่กำลังเล่น</button>
+      <button class="popup-btn popup-btn-live" onclick="executeInsertAfterPlaying()"><svg class="ic" aria-hidden="true"><use href="#i-next"/></svg> เล่นต่อจากเพลงที่กำลังเล่น</button>
       <button class="popup-btn popup-btn-move" onclick="openInsertTargetModal()"><svg class="ic" aria-hidden="true"><use href="#i-pin"/></svg> ย้ายเข้าคิว (เลือกเพลงเป้าหมาย)</button>
       <button class="popup-btn popup-btn-cancel" onclick="closeInsertOptionsModal()">ยกเลิก</button>
     </div>
@@ -209,6 +209,48 @@
         }
       }
         
+      // 📌 รับคิวจาก Firebase มาใช้ที่เครื่องนี้ (และเก็บสำเนาลง LocalStorage)
+      function applyRemoteQueue(fb) {
+        let songs = fb && fb.songs ? fb.songs : [];
+        if (!Array.isArray(songs)) songs = Object.keys(songs).sort((a, b) => a - b).map(k => songs[k]);
+        window.queueData = songs.filter(Boolean);
+        if (fb && fb.activeSetlistId !== undefined && fb.activeSetlistId !== null) {
+          // เก็บ id ลิสต์ที่ใช้งานอยู่ไว้ที่เครื่องนี้ด้วย กันเครื่องนี้เขียนทับเป็นค่าว่างตอนซิงค์
+          localStorage.setItem('lsh_active_setlist_id', fb.activeSetlistId);
+          localStorage.setItem('lsh_queue_setlist_id', fb.activeSetlistId);
+        }
+        localStorage.setItem('lsh_queue_data', JSON.stringify(window.queueData));
+      }
+
+      function renderRemote() {
+        window.__renderingRemote = true;
+        try { renderQueue(); } finally { window.__renderingRemote = false; }
+      }
+
+      // 📌 ฟังคิวแบบเรียลไทม์: คนอื่นเปลี่ยนคิว → หน้านี้อัปเดตตาม (ข้อมูลที่เขียนล่าสุดชนะ)
+      function startQueueLiveListener(room) {
+        if (typeof db === 'undefined' || !db || !db.ref) return;
+        if (window.__queueLive) { try { window.__queueLive.ref.off('value', window.__queueLive.cb); } catch (e) {} }
+        const ref = db.ref(`rooms/${room}/queue`);
+        const cb = (snap) => {
+          if (!document.getElementById('queueContainer')) return; // ออกจากหน้านี้แล้ว
+          const fb = snap.val();
+          if (fb && fb.updatedAt && fb.updatedAt === window.lastQueueWriteAt) return; // ข้อมูลที่เครื่องนี้เพิ่งเขียนเอง
+          if (window.firebaseSyncTimer) return; // เครื่องนี้มีการแก้ที่รอซิงค์อยู่ — ให้ของเครื่องนี้เขียนก่อน
+          if (!fb || !fb.songs || fb.activeSetlistId === '-' || fb.songs.length === 0) {
+            localStorage.removeItem('lsh_queue_data');
+            localStorage.removeItem('lsh_queue_setlist_id');
+            localStorage.removeItem('lsh_active_queue');
+            window.queueData = [];
+          } else {
+            applyRemoteQueue(fb);
+          }
+          renderRemote();
+        };
+        ref.on('value', cb);
+        window.__queueLive = { ref, cb };
+      }
+
       // 📌 1. โหลดคิวเพลง (ปรับปรุงใหม่ให้อ่านตามสถานะ Firebase ทันที)
       window.initQueuePage = async function() {
         initFirebaseSongListener();
@@ -221,6 +263,7 @@
         const selectedRoom = lshRoom(session);
         if (!selectedRoom) return; // ไม่พบห้อง: ไม่เขียน/อ่านข้อมูลใดๆ และกลับไปหน้าเลือกห้อง
 
+        let hydratedFromFirebase = false;
         try {
           if (typeof db !== 'undefined' && db && db.ref) {
             const snapshot = await db.ref(`rooms/${selectedRoom}/queue`).once('value');
@@ -235,11 +278,22 @@
               
               window.queueData = [];
               renderQueue();
+              startQueueLiveListener(selectedRoom);
               return;
             }
+
+            // 📌 Firebase เป็นข้อมูลหลัก: ทุกเครื่องในห้องใช้คิวเดียวกัน (เครื่องที่เพิ่งเข้าแอปก็เห็นทันที)
+            applyRemoteQueue(firebaseQueueData);
+            hydratedFromFirebase = true;
           }
         } catch (e) {
           console.error('Error fetching queue from Firebase:', e);
+        }
+
+        if (hydratedFromFirebase) {
+          renderRemote();
+          startQueueLiveListener(selectedRoom);
+          return;
         }
 
         // 2. กรณีมีข้อมูลปกติ (โหลดตามเดิม)
@@ -312,10 +366,12 @@
       function saveQueueToStorage(triggerFirebaseSync = true) {
         localStorage.setItem('lsh_queue_data', JSON.stringify(window.queueData));
 
-        if (triggerFirebaseSync) {
+        // ข้อมูลที่เพิ่งรับมาจาก Firebase ไม่ต้องเขียนกลับ (กันเครื่องต่างๆ เขียนวนไปมา)
+        if (triggerFirebaseSync && !window.__renderingRemote) {
           if (window.firebaseSyncTimer) clearTimeout(window.firebaseSyncTimer);
           
           window.firebaseSyncTimer = setTimeout(() => {
+            window.firebaseSyncTimer = null;
             syncQueueToFirebase();
           }, 3000);
         }
@@ -332,10 +388,12 @@
           if (typeof db !== 'undefined' && db && db.ref) {
             // 📌 ใช้ update แทน set: path เดิม แต่ไม่ลบฟิลด์ venue/date ที่หน้าเซ็ตลิสต์เขียนไว้
             // และตัดค่า undefined ออก (Firebase ปฏิเสธ undefined) โดยลำดับอาร์เรย์คงเดิม
+            const writeAt = Date.now();
+            window.lastQueueWriteAt = writeAt;
             await db.ref(`rooms/${selectedRoom}/queue`).update({
               activeSetlistId: activeSetlistId,
               songs: JSON.parse(JSON.stringify(window.queueData)),
-              updatedAt: Date.now()
+              updatedAt: writeAt
             });
           }
         } catch (e) {
@@ -599,8 +657,7 @@
         document.getElementById('confirmMessage').innerText = `คุณต้องการข้ามเพลงทั้งหมดมาที่ "${song.title}" ใช่หรือไม่? (เพลงที่ถูกข้ามจะย้ายลงใต้จบการแสดง)`;
         
         const execBtn = document.getElementById('confirmExecuteBtn');
-        execBtn.style.background = '#f59e0b';
-        execBtn.style.color = '#000';
+        execBtn.className = 'popup-btn popup-btn-skip u-flex1';
         execBtn.onclick = () => {
           skipToSong(window.selectedSongId);
           closeConfirmModal();
@@ -637,8 +694,7 @@
         document.getElementById('confirmMessage').innerText = `คุณต้องการลบเพลง "${song.title}" ออกจากคิวใช่หรือไม่? (ย้ายลงใต้การ์ดจบการแสดง)`;
         
         const execBtn = document.getElementById('confirmExecuteBtn');
-        execBtn.style.background = '#ef4444';
-        execBtn.style.color = '#fff';
+        execBtn.className = 'popup-btn popup-btn-delete u-flex1';
         execBtn.onclick = () => {
           removeSongWithConfirm(window.selectedSongId);
           closeConfirmModal();
