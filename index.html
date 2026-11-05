@@ -16,8 +16,8 @@
   <div id="drawerOverlay" class="overlay hidden" onclick="toggleDrawer(false)"></div>
   <aside id="sideDrawer" class="drawer">
     <div class="drawer-header">
-      <div style="font-size:12px; color:#a0a0ab;">เวลา Session ที่เหลืออยู่:</div>
-      <div id="sessionCountdown" style="font-size:18px; font-weight:bold; color:#00f2d1; margin-top:4px;">--:--:--</div>
+      <div style="font-size:12px;color:#a0a0ab">เวลา Session ที่เหลืออยู่:</div>
+      <div id="sessionCountdown" style="font-size:18px;font-weight:bold;color:#00f2d1;margin-top:4px">--:--:--</div>
     </div>
     <div class="drawer-menu">
       <button onclick="menuAction('แฟ้มลิสต์เพลง')">แฟ้มลิสต์เพลง</button>
@@ -25,7 +25,7 @@
       <button onclick="menuAction('รายการเพลงรีเควส')">รายการเพลงรีเควส</button>
       <button onclick="openClearQueueConfirm()">เคลียร์คิว</button>
       <button onclick="menuAction('ตั้งค่า')">ตั้งค่า</button>
-      <button onclick="openLogoutConfirm()" style="color:#ef4444;">🚪 ออกจากระบบ</button>
+      <button onclick="openLogoutConfirm()" class="is-danger">ออกจากระบบ</button>
     </div>
   </aside>
 
@@ -36,20 +36,20 @@
   <!-- POPUP ยืนยันออกจากระบบ -->
   <div id="logoutConfirmModal" class="overlay hidden">
     <div class="box">
-      <h3 style="margin-bottom:10px;">ออกจากระบบ</h3>
-      <p style="font-size:13px; color:#aaa; margin-bottom:15px;">คุณต้องการออกจากระบบและสลับห้องใช่หรือไม่?</p>
-      <button onclick="confirmLogout()" style="background:#ef4444; color:#fff;">ยืนยัน</button>
-      <button onclick="closeLogoutModal()" style="background:#333; color:#fff;">ยกเลิก</button>
+      <h3 style="margin-bottom:10px">ออกจากระบบ</h3>
+      <p class="modal-desc">คุณต้องการออกจากระบบและสลับห้องใช่หรือไม่?</p>
+      <button onclick="confirmLogout()" class="btn-danger">ยืนยัน</button>
+      <button onclick="closeLogoutModal()" class="btn-ghost">ยกเลิก</button>
     </div>
   </div>
 
   <!-- POPUP ยืนยันเคลียร์คิว -->
   <div id="clearQueueConfirmModal" class="overlay hidden" onclick="closeClearQueueModal()">
     <div class="box" onclick="event.stopPropagation()">
-      <h3 style="margin-bottom:10px; color:#ff5451;">🧹 เคลียร์คิวและข้อมูลโชว์</h3>
-      <p style="font-size:13px; color:#aaa; margin-bottom:15px;">คุณต้องการล้างคิวเพลง, ท็อคแบค และรีเควสทั้งหมด เพื่อเริ่มโชว์ใหม่ใช่หรือไม่?</p>
-      <button onclick="confirmClearQueue()" style="background:#ef4444; color:#fff;">ยืนยันเคลียร์</button>
-      <button onclick="closeClearQueueModal()" style="background:#333; color:#fff;">ยกเลิก</button>
+      <h3 style="margin-bottom:10px;color:#ff5451">🧹 เคลียร์คิวและข้อมูลโชว์</h3>
+      <p class="modal-desc">คุณต้องการล้างคิวเพลง, ท็อคแบค และรีเควสทั้งหมด เพื่อเริ่มโชว์ใหม่ใช่หรือไม่?</p>
+      <button onclick="confirmClearQueue()" class="btn-danger">ยืนยันเคลียร์</button>
+      <button onclick="closeClearQueueModal()" class="btn-ghost">ยกเลิก</button>
     </div>
   </div>
 
@@ -64,10 +64,10 @@
   <div id="guestQuestionModal" class="overlay hidden" onclick="cancelToRoomSelect()">
     <div class="box" onclick="event.stopPropagation()">
       <h3>วงเฉพาะกิจ</h3>
-      <p style="font-size:13px; margin:10px 0;">คุณเป็นสมาชิกของระบบหรือไม่?</p>
-      <button onclick="openMemberLogin()" style="background:#00f2d1; color:#000;">เป็นสมาชิก</button>
-      <button onclick="openGuestForm()" style="background:#555; color:#fff;">ไม่ได้เป็นสมาชิก</button><br><br>
-      <button onclick="cancelToRoomSelect()" style="background:none; color:#aaa;">ยกเลิก</button>
+      <p style="font-size:13px;margin:10px 0">คุณเป็นสมาชิกของระบบหรือไม่?</p>
+      <button onclick="openMemberLogin()" class="btn-primary">เป็นสมาชิก</button>
+      <button onclick="openGuestForm()" style="background:#555;color:#fff">ไม่ได้เป็นสมาชิก</button><br><br>
+      <button onclick="cancelToRoomSelect()" style="background:none;color:#aaa">ยกเลิก</button>
     </div>
   </div>
 
@@ -75,11 +75,11 @@
   <div id="memberLoginModal" class="overlay hidden" onclick="cancelToRoomSelect()">
     <div class="box" onclick="event.stopPropagation()">
       <h3>เข้าสู่ระบบสมาชิก</h3>
-      <p style="font-size:12px; color:#aaa; margin:5px 0;">วง: <b id="loginRoomLabel"></b></p>
-      <input type="text" id="usernameInput" placeholder="Username" style="width:100%; padding:8px; margin:5px 0;"><br>
-      <input type="password" id="pinInput" inputmode="numeric" pattern="[0-9]*" maxlength="4" placeholder="PIN 4 หลัก" style="width:100%; padding:8px; margin:5px 0; font-size:16px;"><br><br>
-      <button onclick="submitMemberLogin()" style="background:#00f2d1; color:#000;">ยืนยัน</button>
-      <button onclick="cancelToRoomSelect()" style="background:#333; color:#fff;">ยกเลิก</button>
+      <p style="font-size:12px;color:#aaa;margin:5px 0">วง: <b id="loginRoomLabel"></b></p>
+      <input type="text" id="usernameInput" placeholder="Username" style="width:100%;padding:8px;margin:5px 0"><br>
+      <input type="password" id="pinInput" inputmode="numeric" pattern="[0-9]*" maxlength="4" placeholder="PIN 4 หลัก" style="width:100%;padding:8px;margin:5px 0;font-size:16px"><br><br>
+      <button onclick="submitMemberLogin()" class="btn-primary">ยืนยัน</button>
+      <button onclick="cancelToRoomSelect()" class="btn-ghost">ยกเลิก</button>
     </div>
   </div>
 
@@ -87,9 +87,9 @@
   <div id="guestFormModal" class="overlay hidden" onclick="cancelToRoomSelect()">
     <div class="box" onclick="event.stopPropagation()">
       <h3>กรอกชื่อเข้าใช้งาน</h3>
-      <input type="text" id="guestNameInput" placeholder="ใส่ชื่อเล่นของคุณ" style="width:100%; padding:8px; margin:10px 0;"><br><br>
-      <button onclick="submitGuestLogin()" style="background:#00f2d1; color:#000;">ยืนยัน</button>
-      <button onclick="cancelToRoomSelect()" style="background:#333; color:#fff;">ยกเลิก</button>
+      <input type="text" id="guestNameInput" placeholder="ใส่ชื่อเล่นของคุณ" style="width:100%;padding:8px;margin:10px 0"><br><br>
+      <button onclick="submitGuestLogin()" class="btn-primary">ยืนยัน</button>
+      <button onclick="cancelToRoomSelect()" class="btn-ghost">ยกเลิก</button>
     </div>
   </div>
 
@@ -97,20 +97,20 @@
   <div id="sessionExpiredModal" class="overlay hidden">
     <div class="box">
       <h3>หมดเวลาการใช้งาน</h3>
-      <p id="expiredReasonText" style="font-size:12px; color:#aaa; margin:10px 0;">กรุณาล็อกอินใหม่เพื่อใช้งานต่อ</p>
-      <button onclick="confirmReLogin()" style="background:#00f2d1; color:#000;">ตกลง</button>
+      <p id="expiredReasonText" style="font-size:12px;color:#aaa;margin:10px 0">กรุณาล็อกอินใหม่เพื่อใช้งานต่อ</p>
+      <button onclick="confirmReLogin()" class="btn-primary">ตกลง</button>
     </div>
   </div>
 
   <!-- POPUP รายการเพลงรีเควสแยกตามร้าน -->
   <div id="requestHistoryModal" class="overlay hidden" onclick="closeRequestHistoryModal(event)">
-    <div class="box" onclick="event.stopPropagation()" style="width: 90%; max-width: 400px; max-height: 80vh; display: flex; flex-direction: column; text-align: left;">
-      <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #333; padding-bottom: 8px; margin-bottom: 10px;">
-        <h3 style="color: #00f2d1; font-size: 16px; margin: 0;">📩 ประวัติเพลงรีเควสแยกตามร้าน</h3>
-        <button onclick="closeRequestHistoryModal()" style="background: none; border: none; color: #aaa; font-size: 18px; cursor: pointer; padding: 0;">✕</button>
+    <div class="box" onclick="event.stopPropagation()" style="width:90%;max-width:400px;max-height:80vh;display:flex;flex-direction:column;text-align:left">
+      <div style="display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #333;padding-bottom:8px;margin-bottom:10px">
+        <h3 style="color:#00f2d1;font-size:16px;margin:0">📩 ประวัติเพลงรีเควสแยกตามร้าน</h3>
+        <button onclick="closeRequestHistoryModal()" style="background:none;border:none;color:#aaa;font-size:18px;cursor:pointer;padding:0">✕</button>
       </div>
-      <div id="requestHistoryContent" style="flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; padding-right: 4px;">
-        <div style="text-align: center; color: #888; padding: 20px;">กำลังโหลดข้อมูล...</div>
+      <div id="requestHistoryContent" style="flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:10px;padding-right:4px">
+        <div class="u-empty">กำลังโหลดข้อมูล...</div>
       </div>
     </div>
   </div>
@@ -118,10 +118,10 @@
   <!-- POPUP ยืนยันการลบร้าน -->
   <div id="deleteRoomConfirmModal" class="overlay hidden" onclick="closeDeleteRoomModal(event)">
     <div class="box" onclick="event.stopPropagation()">
-      <h3 style="margin-bottom: 10px; color: #ef4444;">🗑️ ยืนยันการลบข้อมูลร้าน</h3>
-      <p id="deleteRoomText" style="font-size: 13px; color: #aaa; margin-bottom: 15px;">คุณต้องการลบข้อมูลรีเควสทั้งหมดของร้านนี้ใช่หรือไม่?</p>
-      <button onclick="executeDeleteRoom()" style="background: #ef4444; color: #fff;">ยืนยันลบ</button>
-      <button onclick="closeDeleteRoomModal()" style="background: #333; color: #fff;">ยกเลิก</button>
+      <h3 style="margin-bottom:10px;color:#ef4444">🗑️ ยืนยันการลบข้อมูลร้าน</h3>
+      <p id="deleteRoomText" class="modal-desc">คุณต้องการลบข้อมูลรีเควสทั้งหมดของร้านนี้ใช่หรือไม่?</p>
+      <button onclick="executeDeleteRoom()" class="btn-danger">ยืนยันลบ</button>
+      <button onclick="closeDeleteRoomModal()" class="btn-ghost">ยกเลิก</button>
     </div>
   </div>
 
@@ -132,37 +132,37 @@
   <!-- Header 8% -->
   <header>
     <div class="header-left">
-      <button onclick="toggleDrawer(true)" style="background:none; border:none; color:#fff; font-size:20px; cursor:pointer;">☰</button>
+      <button onclick="toggleDrawer(true)" style="background:none;border:none;color:#fff;font-size:20px;cursor:pointer">☰</button>
       <span id="displayUserInfo" class="user-info-text">ยังไม่ได้เลือกห้อง</span>
       <span id="pingBadge" class="ping-badge ping-green">-- ms</span>
     </div>
     <div class="header-right">
-      <span id="clockDisplay" style="font-size:13px; font-weight:bold; font-family:monospace;">00:00:00</span>
-      <span id="userEmojiDisplay" style="font-size:18px;">👤</span>
+      <span id="clockDisplay" style="font-size:13px;font-weight:bold;font-family:monospace">00:00:00</span>
+      <span id="userEmojiDisplay" style="font-size:18px">👤</span>
     </div>
   </header>
 
   <!-- Main Content 80% -->
   <main id="mainContentArea">
-    <p style="text-align:center; color:#666; margin-top:40px;">กรุณาล็อกอินเพื่อเริ่มใช้งาน...</p>
+    <p class="u-empty is-lg">กรุณาล็อกอินเพื่อเริ่มใช้งาน...</p>
   </main>
 
   <!-- Footer Navigation 12% -->
   <nav>
     <button id="nav-monitor" onclick="setActiveNav('monitor')">
-      <span style="font-size:16px;">📺</span>
-      <span>หน้าจอหลัก</span>
+      <span class="nav-ico"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="13" rx="2"/><path d="M8 21h8M12 17v4"/></svg></span>
+      <span>มอนิเตอร์</span>
     </button>
     <button id="nav-search" onclick="setActiveNav('search')">
-      <span style="font-size:16px;">🔍</span>
+      <span class="nav-ico"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg></span>
       <span>ค้นหาคอร์ด</span>
     </button>
     <button id="nav-talkback" onclick="setActiveNav('talkback')">
-      <span style="font-size:16px;">🎙️</span>
-      <span>ท็อคแบ็ค</span>
+      <span class="nav-ico"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="3" width="6" height="12" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg></span>
+      <span>ท็อคแบค</span>
     </button>
     <button id="nav-queue" onclick="setActiveNav('queue')">
-      <span style="font-size:16px;">📋</span>
+      <span class="nav-ico"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg></span>
       <span>จัดคิว</span>
     </button>
   </nav>
@@ -507,18 +507,18 @@
       
       if (!modal) return;
       modal.classList.remove('hidden');
-      if (box) box.innerHTML = '<h3 style="color:#00f2d1;">กำลังโหลดรายชื่อวง...</h3>';
+      if (box) box.innerHTML = '<h3 style="color:#00f2d1">กำลังโหลดรายชื่อวง...</h3>';
 
       const renderRoomButtons = (roomKeys) => {
         if (!box) return;
         
-        let html = '<h3 style="margin-bottom:10px; color:#00f2d1;">เลือกวงดนตรี</h3>';
+        let html = '<h3 style="margin-bottom:10px;color:#00f2d1">เลือกวงดนตรี</h3>';
         html += '<div class="room-grid">';
         
         const mainRooms = roomKeys.filter(r => r !== 'วงเฉพาะกิจ');
         
         mainRooms.forEach(rName => {
-          html += `<button onclick="selectRoom(\`${rName}\`, true)" class="room-square-btn">${rName}<br><span style="font-size:10px; font-weight:normal;">(สำหรับสมาชิก)</span></button>`;
+          html += `<button onclick="selectRoom(\`${rName}\`, true)" class="room-square-btn">${rName}<br><span style="font-size:10px;font-weight:normal">(สำหรับสมาชิก)</span></button>`;
         });
         
         html += '</div>';
@@ -548,7 +548,7 @@
       localStorage.removeItem('lsh_session');
       localStorage.setItem('lsh_last_page', 'monitor');
       document.getElementById('displayUserInfo').innerText = 'ยังไม่ได้เลือกห้อง';
-      document.getElementById('mainContentArea').innerHTML = '<p style="text-align:center; color:#666; margin-top:40px;">กรุณาล็อกอินเพื่อเริ่มใช้งาน...</p>';
+      document.getElementById('mainContentArea').innerHTML = '<p class="u-empty is-lg">กรุณาล็อกอินเพื่อเริ่มใช้งาน...</p>';
       showRoomModal();
     }
 
@@ -576,7 +576,7 @@
       }
 
       const container = document.getElementById('mainContentArea');
-      container.innerHTML = '<p style="text-align:center; color:#aaa; margin-top:20px;">กำลังโหลดหน้า ' + pageName + '...</p>';
+      container.innerHTML = '<p style="text-align:center;color:#aaa;margin-top:20px">กำลังโหลดหน้า ' + pageName + '...</p>';
 
       try {
         const response = await fetch(pageName + '.html');
@@ -602,7 +602,7 @@
         }
 
       } catch (err) {
-        container.innerHTML = `<p style="color:#ef4444; text-align:center; margin-top:20px;">เกิดข้อผิดพลาด: ${err.message}</p>`;
+        container.innerHTML = `<p style="color:#ef4444;text-align:center;margin-top:20px">เกิดข้อผิดพลาด: ${err.message}</p>`;
       }
     }
 
@@ -619,14 +619,14 @@
       const modal = document.getElementById('requestHistoryModal');
       const contentContainer = document.getElementById('requestHistoryContent');
       modal.classList.remove('hidden');
-      contentContainer.innerHTML = '<div style="text-align: center; color: #888; padding: 20px;">กำลังโหลดข้อมูล...</div>';
+      contentContainer.innerHTML = '<div class="u-empty">กำลังโหลดข้อมูล...</div>';
 
       try {
         const snapshot = await db.ref(`rooms/${room}/request`).once('value');
         const storesData = snapshot.val();
 
         if (!storesData || Object.keys(storesData).length === 0) {
-          contentContainer.innerHTML = '<div style="text-align: center; color: #666; padding: 20px;">ไม่มีประวัติเพลงรีเควสในขณะนี้</div>';
+          contentContainer.innerHTML = '<div class="u-empty">ไม่มีประวัติเพลงรีเควสในขณะนี้</div>';
           return;
         }
 
@@ -657,16 +657,16 @@
         let html = '';
         storeList.forEach(store => {
           html += `
-            <div style="background: #111319; border: 1px solid #333; border-radius: 8px; padding: 10px;">
-              <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #222; padding-bottom: 6px; margin-bottom: 8px;">
-                <span style="font-weight: bold; color: #00f2d1; font-size: 14px;">🏠 ${store.storeName}</span>
-                <button onclick="confirmDeleteRoom('${store.storeName}')" style="background: #2a1515; border: 1px solid #ef4444; color: #ef4444; font-size: 10px; padding: 3px 8px; border-radius: 4px; cursor: pointer;">🗑️ ลบร้าน</button>
+            <div style="background:#111319;border:1px solid #333;border-radius:8px;padding:10px">
+              <div style="display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #222;padding-bottom:6px;margin-bottom:8px">
+                <span style="font-weight:bold;color:#00f2d1;font-size:14px">🏠 ${store.storeName}</span>
+                <button onclick="confirmDeleteRoom('${store.storeName}')" style="background:#2a1515;border:1px solid #ef4444;color:#ef4444;font-size:10px;padding:3px 8px;border-radius:4px;cursor:pointer">🗑️ ลบร้าน</button>
               </div>
-              <div style="display: flex; flex-direction: column; gap: 6px;">
+              <div class="u-col-6">
           `;
 
           if (store.songs.length === 0) {
-            html += `<div style="font-size: 12px; color: #666; padding: 4px;">ไม่มีเพลงในร้านนี้</div>`;
+            html += `<div style="font-size:12px;color:#666;padding:4px">ไม่มีเพลงในร้านนี้</div>`;
           } else {
             store.songs.forEach(song => {
               let artistText = song.artist && song.artist !== '-' ? ` - ${song.artist}` : '';
@@ -675,12 +675,12 @@
               let dateStr = song.date || '-';
 
               html += `
-                <div style="background: #181920; padding: 6px 8px; border-radius: 6px; font-size: 12px; display: flex; justify-content: space-between; align-items: center; gap: 8px;">
-                  <div style="overflow: hidden;">
-                    <span style="color: #fff; font-weight: bold; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block;">${song.title || 'ไม่ระบุชื่อเพลง'}${artistText}</span>
-                    <div style="font-size: 10px; color: #f59e0b; margin-top: 2px;">คีย์: ${song.key || '-'}</div>
+                <div style="background:#181920;padding:6px 8px;border-radius:6px;font-size:12px;display:flex;justify-content:space-between;align-items:center;gap:8px">
+                  <div style="overflow:hidden">
+                    <span style="color:#fff;font-weight:bold;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block">${song.title || 'ไม่ระบุชื่อเพลง'}${artistText}</span>
+                    <div style="font-size:10px;color:#f59e0b;margin-top:2px">คีย์: ${song.key || '-'}</div>
                   </div>
-                  <div style="font-size: 11px; color: #888; white-space: nowrap; background: #111319; padding: 3px 6px; border-radius: 4px; border: 1px solid #222;">
+                  <div style="font-size:11px;color:#888;white-space:nowrap;background:#111319;padding:3px 6px;border-radius:4px;border:1px solid #222">
                     📅 ${dateStr}
                   </div>
                 </div>
@@ -694,7 +694,7 @@
         contentContainer.innerHTML = html;
 
       } catch (error) {
-        contentContainer.innerHTML = `<div style="color: #ef4444; text-align: center; padding: 20px;">เกิดข้อผิดพลาด: ${error.message}</div>`;
+        contentContainer.innerHTML = `<div style="color:#ef4444;text-align:center;padding:20px">เกิดข้อผิดพลาด: ${error.message}</div>`;
       }
     }
 

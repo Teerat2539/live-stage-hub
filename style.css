@@ -37,14 +37,14 @@
   --live:        #2EF2B8;  --live-ink:#03160F;  --live-soft:rgba(46,242,184,.12);  --live-line:rgba(46,242,184,.6);
   --next:        #FFC233;  --next-ink:#1C1300;  --next-soft:rgba(255,194,51,.12);
   --played:      #5B6177;
-  --request:     #E879F9;  --request-soft:rgba(232,121,249,.12);
-  --custom:      #CBD5E1;  --custom-soft:rgba(203,213,225,.08);
+  --request:     #FF5FD2;  --request-soft:rgba(255,95,210,.14);
+  --custom:      #F8FAFC;  --custom-soft:rgba(248,250,252,.10);
   --danger:      #FF4D5E;  --danger-soft:rgba(255,77,94,.14);
   --info:        #4F8CFF;
   --alert:       #FF3D81;
 
   /* Set colors 1–5 */
-  --set-1:#4F8CFF; --set-2:#A78BFA; --set-3:#22D3EE; --set-4:#FB923C; --set-5:#A3E635;
+  --set-1:#4F8CFF; --set-2:#22D3EE; --set-3:#A3E635; --set-4:#FB923C; --set-5:#8B5CF6;
 
   /* Shape / size */
   --r-sm:8px; --r-md:12px; --r-lg:16px; --r-xl:24px; --r-pill:999px;
@@ -967,3 +967,87 @@ input:disabled + .slider { opacity: .3; cursor: not-allowed; }
   *, *::before, *::after { transition-duration: .01ms !important; }
   .overlay, .box, .popup-dialog, .chat-bubble, .modal-overlay, .feel-popup { animation-duration: .01ms !important; }
 }
+
+/* ==========================================================================
+   v3 — Utilities (แทน inline style เดิม) + Legacy bridge
+   ========================================================================== */
+.modal-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:16px;flex-wrap:wrap}
+.modal-actions>button,.modal-actions>.btn-ghost,.modal-actions>.btn-primary,.modal-actions>.btn-danger{min-height:var(--tap);padding:0 18px}
+.modal-desc{font-size:13px;color:var(--text-2);margin-bottom:16px;line-height:1.5}
+.modal-title{color:var(--live);margin-bottom:10px;font-weight:700}
+.modal-title.is-warn{color:var(--next)}
+.modal-title.is-danger{color:var(--danger)}
+.modal-head{text-align:center;border-bottom:1px solid var(--line);padding-bottom:8px}
+.btn-ghost,.btn-primary,.btn-danger{display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:44px;padding:0 16px;border-radius:var(--r-sm);border:1px solid transparent;cursor:pointer;font:inherit;font-weight:600;transition:transform .08s var(--ease),filter .15s}
+.btn-ghost{background:var(--surface-3);color:var(--text);border-color:var(--line-strong)}
+.btn-primary{background:var(--live);color:var(--live-ink);font-weight:800}
+.btn-danger{background:var(--danger);color:#fff;font-weight:800}
+.btn-ghost:active,.btn-primary:active,.btn-danger:active{transform:scale(.97)}
+.u-center{text-align:center}
+.u-flex1{flex:1}
+.u-row{display:flex;align-items:center;gap:8px}
+.u-row-center{display:flex;justify-content:center;gap:10px}
+.u-between{display:flex;justify-content:space-between;align-items:center}
+.u-col-6{display:flex;flex-direction:column;gap:6px}
+.u-col-10{display:flex;flex-direction:column;gap:10px}
+.u-meta{font-size:12px;color:var(--text-3)}
+.u-empty{text-align:center;color:var(--text-3);padding:20px 12px}
+.u-empty.is-lg{margin-top:40px}
+
+/* Legacy bridge: inline style เดิมที่เหลือ/ที่ JS ตั้งค่า → ปรับเข้าพาเลตใหม่ (ไม่แตะ JS) */
+[style*="color:#00f2d1"],[style*="color: #00f2d1"]{color:var(--live)!important}
+[style*="background:#00f2d1"],[style*="background: #00f2d1"]{background:var(--live)!important;color:var(--live-ink)!important}
+[style*="color:#f59e0b"],[style*="color: #f59e0b"]{color:var(--next)!important}
+[style*="color:#ef4444"],[style*="color: #ef4444"]{color:var(--danger)!important}
+[style*="background:#ef4444"],[style*="background: #ef4444"]{background:var(--danger)!important;color:#fff!important}
+[style*="color:#888"],[style*="color:#666"],[style*="color: #888"],[style*="color: #666"]{color:var(--text-3)!important}
+[style*="color:#aaa"],[style*="color:#ccc"],[style*="color: #aaa"],[style*="color: #ccc"]{color:var(--text-2)!important}
+[style*="background:#333"],[style*="background: #333"]{background:var(--surface-3)!important;color:var(--text)!important}
+[style*="background:#12131a"],[style*="background:#181920"],[style*="background:#222430"]{background:var(--surface-2)!important}
+[style*="border:1px solid #333"],[style*="border-bottom:1px solid #333"]{border-color:var(--line)!important}
+button,[onclick]{touch-action:manipulation}
+.nav-ico{display:inline-flex}
+.drawer-menu button.is-danger{color:var(--danger)}
+
+/* ==========================================================================
+   v4 — เซ็ต 5 + เซ็ตพิเศษ (รีเควส/เพลงแทรก), เส้นคั่นเซ็ต, แถบเพลงถัดไป
+   ชื่อ class ภาษาไทยมาจาก JS เดิม: "Set รีเควส" / "Set เพลงแทรก"
+   ========================================================================== */
+.set-color-รีเควส   { --set: var(--request); border-left: 5px solid var(--request) !important; }
+.set-color-เพลงแทรก { --set: var(--custom);  border-left: 5px dashed var(--custom) !important; }
+.color-set-รีเควส   { color: var(--request) !important; }
+.color-set-เพลงแทรก { color: var(--custom) !important; }
+.seg-set-รีเควส     { background: var(--request); }
+.seg-set-เพลงแทรก   { background: var(--custom); }
+
+.set-pill { font-size: 11px; font-weight: 800; padding: 2px 8px; border-radius: var(--r-pill);
+  color: var(--set, var(--text-2)); border: 1px solid var(--set, var(--line-strong)); background: var(--surface); }
+
+/* เส้นคั่นเมื่อเปลี่ยนเซ็ต (สร้างตอนวาด ไม่บันทึกข้อมูล) */
+.set-divider { height: 3px; margin: 10px 4px; border-radius: 3px; flex: none;
+  background: linear-gradient(90deg, transparent, var(--sd, var(--line-strong)) 20%, var(--sd, var(--line-strong)) 80%, transparent);
+  box-shadow: 0 0 10px var(--sd, transparent); }
+.sd-1 { --sd: var(--set-1); } .sd-2 { --sd: var(--set-2); } .sd-3 { --sd: var(--set-3); }
+.sd-4 { --sd: var(--set-4); } .sd-5 { --sd: var(--set-5); }
+.progress-seg-item.set-start { margin-left: 4px; }
+
+/* แถบเพลงถัดไป (ค้นหาคอร์ด / ท็อคแบค): แถบสี + ชื่อเพลงสีตามเซ็ต */
+.top-box[class*="set-color-"] { border-left: 5px solid var(--set) !important;
+  background: color-mix(in srgb, var(--set) 10%, var(--bg)); border-color: color-mix(in srgb, var(--set) 45%, var(--line)); }
+.top-box[class*="set-color-"] .top-content { color: var(--set); }
+
+/* มอนิเตอร์: โน้ตของเพลงถัดไปตัวเล็กกว่าชื่อเพลง */
+.box-title-next .song-note { font-size: .42em; }
+
+/* มอนิเตอร์บนจอเตี้ย (แนวนอน/แท็บเล็ตเล็ก): ลดขนาดตามความสูงให้เห็นครบทุกกล่อง */
+@media (max-height: 640px) {
+  .monitor-container { gap: 6px; padding: 6px; }
+  .monitor-top-section { min-height: 64px; padding: 6px 14px 8px; }
+  .monitor-talkback-text { font-size: clamp(20px, 7vh, 40px); }
+  .song-box-current, .song-box-next, .song-box-standby { padding-top: 4px; padding-bottom: 4px; }
+  .box-title-next { font-size: clamp(22px, 9vh, 60px); -webkit-line-clamp: 1; margin-bottom: 0; }
+  .box-detail-next { font-size: clamp(13px, 4.2vh, 22px); }
+  .box-title-playing, .box-title-standby { font-size: clamp(15px, 5vh, 26px); }
+  .box-label { font-size: 11px; margin-bottom: 0; }
+}
+.queue-main-content > *, .search-main-content > * { flex-shrink: 0; }

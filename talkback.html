@@ -5,7 +5,7 @@
     <span class="top-title">🎙️ ท็อคแบคล่าสุด</span>
     <div id="tbTopTalkback" class="top-content">รอคำสั่ง...</div>
   </div>
-  <div class="top-box">
+  <div class="top-box" id="tbTopNextBox">
     <span class="top-title">🎵 เพลงถัดไป</span>
     <div id="tbTopNext" class="top-content">-</div>
   </div>
@@ -29,7 +29,7 @@
   <div>
     <div class="section-title">⚡ คำสั่งด่วน Quick Talkback</div>
     <div class="quick-grid" id="quickButtonsContainer"></div>
-    <div id="quickLimitNotice" style="font-size: 10px; color: #888; margin-top: 4px; text-align: right;">
+    <div id="quickLimitNotice" style="font-size:10px;color:#888;margin-top:4px;text-align:right">
       * เพิ่ม/แก้ไขคำสั่งด่วนได้สูงสุด 6 ปุ่ม
     </div>
   </div>
@@ -42,7 +42,7 @@
 
   <!-- 5. Chat Display Box -->
   <div>
-    <div class="section-title" style="margin-bottom: 6px;">💬 จอแสดงท็อคแบ็ก (ห้องแชต)</div>
+    <div class="section-title" style="margin-bottom:6px">💬 จอแสดงท็อคแบ็ก (ห้องแชต)</div>
     <div class="chat-container" id="chatBox"></div>
   </div>
 </div>
@@ -56,7 +56,7 @@
 <!-- Popup: ตัดเพลง / เปลี่ยนฟีล (เพิ่ม onclick ปิดเมื่อแตะพื้นที่ภายนอก) -->
 <div id="feelModal" class="modal-overlay hidden" onclick="closeFeelModal(event)">
   <div class="feel-popup" onclick="event.stopPropagation()">
-    <div style="font-size: 14px; font-weight: 700; color: #3b82f6; text-align: center; border-bottom: 1px solid #2a2c38; padding-bottom: 8px;">
+    <div style="font-size:14px;font-weight:700;color:#3b82f6;text-align:center;border-bottom:1px solid #2a2c38;padding-bottom:8px">
       🎛️ สั่งงานด่วน: ตัดเพลง / เปลี่ยนฟีล
     </div>
     <div class="feel-grid">
@@ -71,16 +71,16 @@
       <div class="btn-feel-item" data-act="ท่อนต่อไปเล่นดิสโก้">ดิสโก้</div>
       <div class="btn-feel-item" data-act="ท่อนต่อไปเล่นเร็กเก้">เร็กเก้</div>
     </div>
-    <button id="btnCancelFeel" style="background: #2a2c38; color: #ccc; border: none; padding: 10px; border-radius: 8px; cursor: pointer; font-weight: 600;">ยกเลิก</button>
+    <button id="btnCancelFeel" style="background:#2a2c38;color:#ccc;border:none;padding:10px;border-radius:8px;cursor:pointer;font-weight:600">ยกเลิก</button>
   </div>
 </div>
 
 <!-- Modal: ลูกค้าขอเพลง (เพิ่ม onclick="closeRequestModal(event)" ที่คอนเทนเนอร์หลัก) -->
 <div id="requestModal" class="request-modal-container hidden" onclick="closeRequestModal(event)">
   <div class="request-modal-content" onclick="event.stopPropagation()">
-    <div style="display: flex; justify-content: space-between; align-items: center;">
-      <span style="font-size: 14px; font-weight: 700; color: #f59e0b;">📥 ลูกค้าขอเพลง</span>
-      <button id="btnCloseRequestModal" style="background: none; border: none; color: #aaa; font-size: 20px; cursor: pointer;">✕</button>
+    <div class="u-between">
+      <span style="font-size:14px;font-weight:700;color:#f59e0b">📥 ลูกค้าขอเพลง</span>
+      <button id="btnCloseRequestModal" style="background:none;border:none;color:#aaa;font-size:20px;cursor:pointer">✕</button>
     </div>
     <div class="search-row">
       <input type="text" id="reqSearchInput" placeholder="พิมพ์ชื่อเพลง หรือศิลปิน...">
@@ -240,14 +240,14 @@
       container.innerHTML = '';
 
       if (results.length === 0) {
-        container.innerHTML = '<div style="color:#666; font-size:11px; text-align:center; padding: 12px;">ไม่พบเพลงในระบบ (กด ✓ เพื่อนำชื่อนี้ไปใส่ช่องท็อคแบค)</div>';
+        container.innerHTML = '<div style="color:#666;font-size:11px;text-align:center;padding:12px">ไม่พบเพลงในระบบ (กด ✓ เพื่อนำชื่อนี้ไปใส่ช่องท็อคแบค)</div>';
         return;
       }
 
       results.slice(0, 15).forEach(s => {
         const div = document.createElement('div');
         div.className = 'db-song-item';
-        div.innerHTML = `<b>${s.title}</b> - ${s.artist} <span style="color:#f59e0b;">(${s.key || '-'})</span>`;
+        div.innerHTML = `<b>${s.title}</b> - ${s.artist} <span style="color:#f59e0b">(${s.key || '-'})</span>`;
         div.onclick = () => {
           document.getElementById('reqSearchInput').value = `${s.title} - ${s.artist}`;
           selectedReqSongObj = s;
@@ -381,6 +381,8 @@
         if (topNext) {
           topNext.innerText = nextSong ? `${nextSong.title} - ${nextSong.artist}` : '-';
         }
+        const tbBox = document.getElementById('tbTopNextBox');
+        if (tbBox) tbBox.className = 'top-box' + (nextSong && nextSong.set ? ' set-color-' + nextSong.set.replace('Set ', '') : '');
       });
 
       // ดึงข้อมูลแชต Realtime และ Scroll ลงล่างสุดเสมอ

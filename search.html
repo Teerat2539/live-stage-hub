@@ -22,7 +22,7 @@
 
   <!-- 2. ส่วนแสดงผลคิวเพลงตรงกลาง (เลื่อนดูรายชื่อได้อิสระ) -->
   <div class="search-main-content" id="searchQueueContainer">
-    <div style="text-align: center; color: #666; padding: 20px;">กำลังโหลดคิวเพลงแบบ Realtime...</div>
+    <div class="u-empty">กำลังโหลดคิวเพลงแบบ Realtime...</div>
   </div>
 
   <!-- 3. ช่องค้นหา (ย้ายมาลอยนิ่งติดขอบล่างเหนือแถบนำทาง) -->
@@ -83,8 +83,9 @@
         if (!container) return;
 
         if (!queueData || queueData.length === 0) {
-          container.innerHTML = '<div style="text-align: center; color: #666; padding: 20px;">ยังไม่มีข้อมูลคิวเพลงในขณะนี้</div>';
+          container.innerHTML = '<div class="u-empty">ยังไม่มีข้อมูลคิวเพลงในขณะนี้</div>';
           if (topNextText) topNextText.innerText = '-';
+          const tnb0 = document.getElementById('topNextBox'); if (tnb0) tnb0.className = 'top-box';
           return;
         }
 
@@ -93,6 +94,8 @@
         if (topNextText) {
           topNextText.innerText = nextSongObj ? `${nextSongObj.title} - ${nextSongObj.artist}` : 'จบการแสดง';
         }
+        const tnb = document.getElementById('topNextBox');
+        if (tnb) tnb.className = 'top-box' + (nextSongObj && nextSongObj.set ? ' set-color-' + nextSongObj.set.replace('Set ', '') : '');
 
         queueData.forEach((song) => {
           if (song.type === 'dummy_start' || song.type === 'dummy_end') {
@@ -128,10 +131,10 @@
 
           let cardHtml = `
             <div class="song-card ${setColorClass} ${customClass}" id="card_${song.id}" onclick="selectSongForSearch('${encodeURIComponent(song.title)}', '${encodeURIComponent(song.artist)}')">
-              <div style="flex: 1;">
-                <div style="font-size: 11px; color: #888; margin-bottom: 2px;">${setVal} | คีย์: ${song.key || '-'}</div>
-                <div class="song-title-main" style="font-size: 15px; font-weight: bold;">
-                  ${song.title} <span style="font-size: 12px; color: #ccc; font-weight: normal;">- ${song.artist}</span>
+              <div class="u-flex1">
+                <div class="u-meta" style="margin-bottom:2px">${/^Set \d+$/.test(setVal) ? '' : setVal + ' | '}คีย์: ${song.key || '-'}</div>
+                <div class="song-title-main" style="font-size:15px;font-weight:bold">
+                  ${song.title} <span style="font-size:12px;color:#ccc;font-weight:normal">- ${song.artist}</span>
                 </div>
               </div>
               <div>${statusBadge}</div>
