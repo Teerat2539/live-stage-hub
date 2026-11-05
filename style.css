@@ -1197,8 +1197,6 @@ input.has-clr { padding-right: 40px !important; }
 @media (prefers-reduced-motion: reduce) { .mq-inner.mq-run { animation-duration: calc(var(--mq-dur, 10s) * 2); } }
 
 /* หน้าท็อคแบค: ให้การ์ด/ปุ่ม/ฟองแชตหน้าตาเดียวกับหน้าจัดคิวและตั้งค่า */
-.btn-quick { background: var(--surface); border: 1px solid var(--line-strong); border-left: 5px solid var(--live); text-align: left; padding-left: 16px; }
-.btn-quick:active { border-color: var(--live); background: var(--surface-2); }
 .tg-control-card, .chat-container { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-lg); }
 .chat-container { background: var(--bg); }
 .chat-bubble.other { background: var(--surface-2); border: 1px solid var(--line); border-left: 4px solid var(--line-strong); }
@@ -1234,3 +1232,16 @@ input.has-clr { padding-right: 40px !important; }
 @keyframes slideDownIn { from { opacity: 0; transform: translateY(-70%); } to { opacity: 1; transform: none; } }
 .progress-caption { display: none !important; }
 @media (prefers-reduced-motion: reduce) { .slide-fwd, .slide-back, .splash-logo span, .splash-bars i, .page-spin { animation-duration: .01ms !important; } }
+
+/* หน้าท็อคแบค: ปุ่มตัดเพลง/ขอเพลง ใช้ลักษณะเดียวกับการ์ดเพลง (พื้นเข้ม + แถบสีซ้าย + กรอบ) */
+.btn-action-main.btn-feel, .btn-action-main.btn-request {
+  --set: var(--live);
+  background: linear-gradient(90deg, color-mix(in srgb, var(--set) 16%, var(--surface)) 0%, var(--surface) 70%);
+  border: 1px solid color-mix(in srgb, var(--set) 45%, var(--line));
+  border-left: 5px solid var(--set);
+  color: color-mix(in srgb, var(--set) 70%, #fff);
+  box-shadow: none; text-align: center;
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+}
+.btn-action-main.btn-request { --set: var(--request); }
+.btn-action-main.btn-feel:active, .btn-action-main.btn-request:active { background: var(--surface-3); filter: none; }
