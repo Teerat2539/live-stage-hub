@@ -2,11 +2,11 @@
 <!-- Top Bar (10%) -->
 <div class="tb-top-bar">
   <div class="top-box">
-    <span class="top-title">🎙️ ท็อคแบคล่าสุด</span>
+    <span class="top-title"><svg class="ic" aria-hidden="true"><use href="#i-mic"/></svg> ท็อคแบคล่าสุด</span>
     <div id="tbTopTalkback" class="top-content">รอคำสั่ง...</div>
   </div>
   <div class="top-box" id="tbTopNextBox">
-    <span class="top-title">🎵 เพลงถัดไป</span>
+    <span class="top-title"><svg class="ic" aria-hidden="true"><use href="#i-music"/></svg> เพลงถัดไป</span>
     <div id="tbTopNext" class="top-content">-</div>
   </div>
 </div>
@@ -16,7 +16,7 @@
   <!-- 1. Telegram Switch -->
   <div class="tg-control-card">
     <div class="tg-info">
-      <div class="tg-title">✈️ ส่งการแจ้งเตือนเข้า Telegram</div>
+      <div class="tg-title"><svg class="ic" aria-hidden="true"><use href="#i-send"/></svg> ส่งการแจ้งเตือนเข้า Telegram</div>
       <div id="tgStatusText" class="tg-status">กำลังตรวจสอบการเชื่อมต่อ...</div>
     </div>
     <label class="switch">
@@ -27,7 +27,7 @@
 
   <!-- 2. Quick Talkback Grid -->
   <div>
-    <div class="section-title">⚡ คำสั่งด่วน Quick Talkback</div>
+    <div class="section-title"><svg class="ic" aria-hidden="true"><use href="#i-bolt"/></svg> คำสั่งด่วน Quick Talkback</div>
     <div class="quick-grid" id="quickButtonsContainer"></div>
     <div id="quickLimitNotice" style="font-size:10px;color:#888;margin-top:4px;text-align:right">
       * เพิ่ม/แก้ไขคำสั่งด่วนได้สูงสุด 6 ปุ่ม
@@ -36,13 +36,13 @@
 
   <!-- 3 & 4. Action Row -->
   <div class="action-row">
-    <button class="btn-action-main btn-feel" id="btnOpenFeel">🎛️ ตัดเพลง / เปลี่ยนฟีล</button>
-    <button class="btn-action-main btn-request" id="btnOpenRequest">📥 ลูกค้าขอเพลง</button>
+    <button class="btn-action-main btn-feel" id="btnOpenFeel"><svg class="ic" aria-hidden="true"><use href="#i-sliders"/></svg> ตัดเพลง / เปลี่ยนฟีล</button>
+    <button class="btn-action-main btn-request" id="btnOpenRequest"><svg class="ic" aria-hidden="true"><use href="#i-inbox"/></svg> ลูกค้าขอเพลง</button>
   </div>
 
   <!-- 5. Chat Display Box -->
   <div>
-    <div class="section-title" style="margin-bottom:6px">💬 จอแสดงท็อคแบ็ก (ห้องแชต)</div>
+    <div class="section-title" style="margin-bottom:6px"><svg class="ic" aria-hidden="true"><use href="#i-chat"/></svg> จอแสดงท็อคแบ็ก (ห้องแชต)</div>
     <div class="chat-container" id="chatBox"></div>
   </div>
 </div>
@@ -57,7 +57,7 @@
 <div id="feelModal" class="modal-overlay hidden" onclick="closeFeelModal(event)">
   <div class="feel-popup" onclick="event.stopPropagation()">
     <div style="font-size:14px;font-weight:700;color:#3b82f6;text-align:center;border-bottom:1px solid #2a2c38;padding-bottom:8px">
-      🎛️ สั่งงานด่วน: ตัดเพลง / เปลี่ยนฟีล
+      <svg class="ic" aria-hidden="true"><use href="#i-sliders"/></svg> สั่งงานด่วน: ตัดเพลง / เปลี่ยนฟีล
     </div>
     <div class="feel-grid">
       <div class="btn-feel-item" data-act="เล่นเร็วกว่านี้">เร็วขึ้น</div>
@@ -79,12 +79,12 @@
 <div id="requestModal" class="request-modal-container hidden" onclick="closeRequestModal(event)">
   <div class="request-modal-content" onclick="event.stopPropagation()">
     <div class="u-between">
-      <span style="font-size:14px;font-weight:700;color:#f59e0b">📥 ลูกค้าขอเพลง</span>
-      <button id="btnCloseRequestModal" style="background:none;border:none;color:#aaa;font-size:20px;cursor:pointer">✕</button>
+      <span style="font-size:14px;font-weight:700;color:#f59e0b"><svg class="ic" aria-hidden="true"><use href="#i-inbox"/></svg> ลูกค้าขอเพลง</span>
+      <button id="btnCloseRequestModal" style="background:none;border:none;color:#aaa;font-size:20px;cursor:pointer"><svg class="ic ic-solo" aria-hidden="true"><use href="#i-close"/></svg></button>
     </div>
     <div class="search-row">
       <input type="text" id="reqSearchInput" placeholder="พิมพ์ชื่อเพลง หรือศิลปิน...">
-      <button class="btn-check" id="btnApplyReqSong">✓</button>
+      <button class="btn-check" id="btnApplyReqSong"><svg class="ic ic-solo" aria-hidden="true"><use href="#i-check"/></svg></button>
     </div>
     <div class="db-song-list" id="reqDbList"></div>
   </div>
@@ -229,18 +229,22 @@
         return;
       }
 
-      let prefixList = [], containsList = [];
+      // 3 ขั้น: ชื่อเพลงขึ้นต้นตรง → ชื่อเพลงมีคำนี้ → ชื่อศิลปินมีคำนี้ (เรียงตัวอักษรในแต่ละกลุ่ม)
+      let prefixList = [], containsList = [], artistList = [];
       allDbSongs.forEach(s => {
         let t = (s.title || '').toLowerCase();
+        let a = (s.artist || '').toLowerCase();
         if (t.startsWith(kw)) prefixList.push(s);
         else if (t.includes(kw)) containsList.push(s);
+        else if (a.includes(kw)) artistList.push(s);
       });
+      const byTitle = (x, y) => (x.title || '').localeCompare(y.title || '', 'th');
 
-      let results = [...prefixList, ...containsList];
+      let results = [...prefixList.sort(byTitle), ...containsList.sort(byTitle), ...artistList.sort(byTitle)];
       container.innerHTML = '';
 
       if (results.length === 0) {
-        container.innerHTML = '<div style="color:#666;font-size:11px;text-align:center;padding:12px">ไม่พบเพลงในระบบ (กด ✓ เพื่อนำชื่อนี้ไปใส่ช่องท็อคแบค)</div>';
+        container.innerHTML = '<div style="color:#666;font-size:11px;text-align:center;padding:12px">ไม่พบเพลงในระบบ (กด <svg class="ic" aria-hidden="true"><use href="#i-check"/></svg> เพื่อนำชื่อนี้ไปใส่ช่องท็อคแบค)</div>';
         return;
       }
 
@@ -371,7 +375,7 @@
 
       db.ref(`rooms/${selectedRoom}/latestTalkback`).on('value', (snap) => {
         const topEl = document.getElementById('tbTopTalkback');
-        if (topEl && snap.val()) topEl.innerText = snap.val();
+        if (topEl && snap.val()) { topEl.innerText = snap.val(); lshWatch(topEl, 'talk'); }
       });
 
       db.ref(`rooms/${selectedRoom}/queue/songs`).on('value', (snap) => {
@@ -379,10 +383,11 @@
         const nextSong = songs.find(s => s.status === 'next');
         const topNext = document.getElementById('tbTopNext');
         if (topNext) {
-          topNext.innerText = nextSong ? `${nextSong.title} - ${nextSong.artist}` : '-';
+          topNext.innerText = nextSong ? ((nextSong.type === 'dummy_start' || nextSong.type === 'dummy_end') ? lshPlain(nextSong.title) : `${nextSong.title} - ${nextSong.artist}`) : '-';
         }
         const tbBox = document.getElementById('tbTopNextBox');
         if (tbBox) tbBox.className = 'top-box' + (nextSong && nextSong.set ? ' set-color-' + nextSong.set.replace('Set ', '') : '');
+        lshWatch(topNext, 'next');
       });
 
       // ดึงข้อมูลแชต Realtime และ Scroll ลงล่างสุดเสมอ

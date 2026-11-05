@@ -24,20 +24,20 @@
     <div class="monitor-songs-section" onclick="openFullQueueModal()">
       <!-- เพลงกำลังเล่น -->
       <div class="song-box-current">
-        <div class="box-label">▶ กำลังเล่น</div>
+        <div class="box-label"><svg class="ic" aria-hidden="true"><use href="#i-play"/></svg> กำลังเล่น</div>
         <div id="mPlayingTitle" class="box-title-playing">-</div>
       </div>
 
       <!-- เพลงถัดไป (มีเอฟเฟกต์กระพริบเตือนเมื่อเพลงถัดไปเปลี่ยน) -->
       <div class="song-box-next" id="nextSongCardBox">
-        <div class="box-label" style="color:#00f2d1">⭐ เพลงถัดไป (เตรียมพร้อม)</div>
+        <div class="box-label" style="color:#00f2d1"><svg class="ic" aria-hidden="true"><use href="#i-star"/></svg> เพลงถัดไป (เตรียมพร้อม)</div>
         <div id="mNextTitle" class="box-title-next">-</div>
         <div id="mNextDetail" class="box-detail-next">-</div>
       </div>
 
       <!-- เพลงสแตนบาย -->
       <div class="song-box-standby">
-        <div class="box-label">⏳ เพลงสแตนบายถัดไป</div>
+        <div class="box-label"><svg class="ic" aria-hidden="true"><use href="#i-hourglass"/></svg> เพลงสแตนบายถัดไป</div>
         <div id="mStandbyTitle" class="box-title-standby">-</div>
       </div>
     </div>
@@ -56,8 +56,8 @@
   <div id="talkbackHistoryModal" class="slide-modal-overlay hidden" onclick="closeTalkbackHistoryModal(event)">
     <div class="slide-down-content" onclick="event.stopPropagation()">
       <div style="display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #333;padding-bottom:6px">
-        <span style="font-size:14px;font-weight:bold;color:#00f2d1">🎙️ ประวัติ 4 คำสั่งท็อคแบคล่าสุด</span>
-        <button onclick="closeTalkbackHistoryModal()" style="background:none;border:none;color:#aaa;font-size:16px;cursor:pointer">✕</button>
+        <span style="font-size:14px;font-weight:bold;color:#00f2d1"><svg class="ic" aria-hidden="true"><use href="#i-mic"/></svg> ประวัติ 4 คำสั่งท็อคแบคล่าสุด</span>
+        <button onclick="closeTalkbackHistoryModal()" style="background:none;border:none;color:#aaa;font-size:16px;cursor:pointer"><svg class="ic ic-solo" aria-hidden="true"><use href="#i-close"/></svg></button>
       </div>
       <div id="talkbackHistoryList" class="u-col-6"></div>
     </div>
@@ -66,8 +66,8 @@
   <div id="fullQueueModal" class="slide-modal-overlay hidden" onclick="closeFullQueueModal(event)">
     <div class="slide-up-content" onclick="event.stopPropagation()">
       <div style="display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #333;padding-bottom:6px">
-        <span style="font-size:15px;font-weight:bold;color:#00f2d1">🎵 รายการคิวเพลงทั้งหมด</span>
-        <button onclick="closeFullQueueModal()" style="background:none;border:none;color:#aaa;font-size:18px;cursor:pointer">✕</button>
+        <span style="font-size:15px;font-weight:bold;color:#00f2d1"><svg class="ic" aria-hidden="true"><use href="#i-music"/></svg> รายการคิวเพลงทั้งหมด</span>
+        <button onclick="closeFullQueueModal()" style="background:none;border:none;color:#aaa;font-size:18px;cursor:pointer"><svg class="ic ic-solo" aria-hidden="true"><use href="#i-close"/></svg></button>
       </div>
       <div id="fullQueueListContainer" style="flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:8px;padding:4px 0"></div>
     </div>
@@ -86,7 +86,7 @@
       function colorOf(s) { return (s.type === 'dummy_start' || s.type === 'dummy_end') ? '' : getSetColorClass(s.set); }
       // บรรทัดเดียว: ชื่อเพลง - ศิลปิน (คีย์: X) — ซ่อนส่วนที่ว่าง
       function songLine(s) {
-        let t = s.title || '';
+        let t = (s.type === 'dummy_start' || s.type === 'dummy_end') ? lshPlain(s.title) : (s.title || '');
         if (s.artist) t += ` - ${s.artist}`;
         if (s.key && s.key !== '-') t += ` (คีย์: ${s.key})`;
         return t;
@@ -139,13 +139,20 @@
           mPlayingTitle.innerText = '-';
         }
 
+        // กรอบเพลงถัดไปตามสีเซ็ต (เพลงพิเศษเตรียมพร้อม/จบการแสดง ใช้สีเดิม)
+        const nextBox = document.getElementById('nextSongCardBox');
+        if (nextBox) {
+          nextBox.className = nextBox.className.replace(/\bset-color-\S+/g, '').replace(/\s+/g, ' ').trim();
+          if (next && colorOf(next)) nextBox.classList.add(colorOf(next).replace('color-set-', 'set-color-'));
+        }
+
         const mNextTitle = document.getElementById('mNextTitle');
         if (next) {
           let setColorClass = colorOf(next);
           mNextTitle.className = `box-title-next ${setColorClass}`;
           let hasNote = next.note && next.note.trim() !== '' && next.note.trim() !== '-';
           let noteHtml = hasNote ? `<span class="song-note">(${next.note})</span>` : '';
-          mNextTitle.innerHTML = `${next.title}${noteHtml}`;
+          mNextTitle.innerHTML = `${(next.type === 'dummy_start' || next.type === 'dummy_end') ? lshPlain(next.title) : next.title}${noteHtml}`;
           document.getElementById('mNextDetail').innerText = (next.type === 'dummy_start' || next.type === 'dummy_end') ? '' : `${next.artist || '-'} | คีย์: ${next.key || '-'} | BPM: ${next.bpm || '-'}`;
         } else {
           mNextTitle.className = 'box-title-next';

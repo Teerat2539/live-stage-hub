@@ -11,11 +11,11 @@
   <!-- 1. แถบด้านบน (ล็อกลอยนิ่งแสดงท็อคแบคและเพลงถัดไป) -->
   <div class="search-top-bar">
     <div id="topTalkbackBox" class="top-box">
-      <span class="top-title">🎙️ ท็อคแบคล่าสุด</span>
+      <span class="top-title"><svg class="ic" aria-hidden="true"><use href="#i-mic"/></svg> ท็อคแบคล่าสุด</span>
       <div id="topTalkbackText" class="top-content">สแตนบายรอคำสั่ง...</div>
     </div>
     <div id="topNextBox" class="top-box">
-      <span class="top-title">🎵 เพลงถัดไป</span>
+      <span class="top-title"><svg class="ic" aria-hidden="true"><use href="#i-music"/></svg> เพลงถัดไป</span>
       <div id="topNextText" class="top-content">-</div>
     </div>
   </div>
@@ -27,10 +27,10 @@
 
   <!-- 3. ช่องค้นหา (ย้ายมาลอยนิ่งติดขอบล่างเหนือแถบนำทาง) -->
   <div class="search-input-section">
-    <div class="search-label">🔍 ค้นหาคอร์ดเพลงด่วน</div>
+    <div class="search-label"><svg class="ic" aria-hidden="true"><use href="#i-search"/></svg> ค้นหาคอร์ดเพลงด่วน</div>
     <div class="search-input-group">
       <input type="text" id="chordSearchInput" class="search-text-input" placeholder="แตะเลือกเพลงจากคิว หรือพิมพ์ชื่อเพลง...">
-      <button class="search-btn-submit" onclick="searchChordOnGoogle()">🔍</button>
+      <button class="search-btn-submit" onclick="searchChordOnGoogle()"><svg class="ic ic-solo" aria-hidden="true"><use href="#i-search"/></svg></button>
     </div>
   </div>
 
@@ -72,6 +72,7 @@
             const topText = document.getElementById('topTalkbackText');
             if (val && topText) {
               topText.innerText = `${val.sender || 'ระบบ'}: ${val.message || ''}`;
+              lshWatch(topText, 'talk');
             }
           });
         }
@@ -92,10 +93,11 @@
         let html = '';
         let nextSongObj = queueData.find(i => i.status === 'next');
         if (topNextText) {
-          topNextText.innerText = nextSongObj ? `${nextSongObj.title} - ${nextSongObj.artist}` : 'จบการแสดง';
+          topNextText.innerText = nextSongObj ? ((nextSongObj.type === 'dummy_start' || nextSongObj.type === 'dummy_end') ? lshPlain(nextSongObj.title) : `${nextSongObj.title} - ${nextSongObj.artist}`) : 'จบการแสดง';
         }
         const tnb = document.getElementById('topNextBox');
         if (tnb) tnb.className = 'top-box' + (nextSongObj && nextSongObj.set ? ' set-color-' + nextSongObj.set.replace('Set ', '') : '');
+        lshWatch(topNextText, 'next');
 
         queueData.forEach((song) => {
           if (song.type === 'dummy_start' || song.type === 'dummy_end') {
@@ -107,7 +109,7 @@
             } else if (song.status === 'played') {
               style = 'opacity: 0.4; text-decoration: line-through;';
             }
-            html += `<div class="special-card" style="${style}">${song.title}${stateLabel}</div>`;
+            html += `<div class="special-card" style="${style}">${lshIcon(song.type === 'dummy_start' ? 'dot' : 'flag')} ${lshPlain(song.title)}${stateLabel}</div>`;
             return;
           }
 

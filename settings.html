@@ -6,10 +6,10 @@
 <div class="settings-page">
   <!-- เมนูย่อย 4 แท็บ -->
   <div class="settings-tabs">
-    <button class="settings-tab-btn active" onclick="switchSettingsTab('profile')">👤 ยูสเซอร์โปรไฟล์</button>
-    <button class="settings-tab-btn" onclick="switchSettingsTab('talkback')">🎙️ ท็อคแบคด่วน</button>
-    <button class="settings-tab-btn" onclick="switchSettingsTab('backup')">💾 สำรองข้อมูล</button>
-    <button class="settings-tab-btn" onclick="switchSettingsTab('advanced')">⚙️ ตั้งค่าขั้นสูง</button>
+    <button class="settings-tab-btn active" onclick="switchSettingsTab('profile')"><svg class="ic" aria-hidden="true"><use href="#i-user"/></svg> ยูสเซอร์โปรไฟล์</button>
+    <button class="settings-tab-btn" onclick="switchSettingsTab('talkback')"><svg class="ic" aria-hidden="true"><use href="#i-mic"/></svg> ท็อคแบคด่วน</button>
+    <button class="settings-tab-btn" onclick="switchSettingsTab('backup')"><svg class="ic" aria-hidden="true"><use href="#i-save"/></svg> สำรองข้อมูล</button>
+    <button class="settings-tab-btn" onclick="switchSettingsTab('advanced')"><svg class="ic" aria-hidden="true"><use href="#i-gear"/></svg> ตั้งค่าขั้นสูง</button>
   </div>
 
   <!-- ================= TAB 1: USER PROFILE ================= -->
@@ -33,13 +33,13 @@
         <input type="text" id="profEmoji" maxlength="2">
       </div>
 
-      <button id="btnSaveProfile" class="btn-save-settings">💾 บันทึกการเปลี่ยนแปลงโปรไฟล์</button>
+      <button id="btnSaveProfile" class="btn-save-settings"><svg class="ic" aria-hidden="true"><use href="#i-save"/></svg> บันทึกการเปลี่ยนแปลงโปรไฟล์</button>
     </div>
 
     <div class="settings-card">
       <h3>ความปลอดภัยรหัส PIN</h3>
       <button onclick="openPinModal()" style="width:100%;padding:10px;background:#222430;border:1px solid #00f2d1;color:#00f2d1;border-radius:6px;font-weight:bold;cursor:pointer">
-        🔑 เปลี่ยนรหัส PIN
+        <svg class="ic" aria-hidden="true"><use href="#i-key"/></svg> เปลี่ยนรหัส PIN
       </button>
     </div>
   </div>
@@ -60,11 +60,11 @@
       <p style="font-size:13px;color:#aaa;margin-bottom:20px">สำรองเฉพาะข้อมูลเซ็ตลิสต์และคลังเพลงประจำห้องปัจจุบัน</p>
       
       <button id="btnExportJson" style="width:100%;padding:12px;background:#222430;border:1px solid #00f2d1;color:#00f2d1;border-radius:8px;font-weight:bold;cursor:pointer;margin-bottom:10px">
-        📤 Export JSON (สำรองข้อมูล)
+        <svg class="ic" aria-hidden="true"><use href="#i-upload"/></svg> Export JSON (สำรองข้อมูล)
       </button>
 
       <button onclick="document.getElementById('importFileObj').click()" style="width:100%;padding:12px;background:#222430;border:1px solid #f59e0b;color:#f59e0b;border-radius:8px;font-weight:bold;cursor:pointer">
-        📥 Import JSON (กู้คืนข้อมูล)
+        <svg class="ic" aria-hidden="true"><use href="#i-download"/></svg> Import JSON (กู้คืนข้อมูล)
       </button>
       <input type="file" id="importFileObj" accept=".json" class="hidden" onchange="importJsonData(event)">
     </div>
@@ -74,7 +74,7 @@
   <div id="tab-advanced" class="settings-content hidden">
     <!-- หน้ากาก Admin Gate (ล็อกด้วย PIN 6 หลัก) -->
     <div id="adminGateBox" class="settings-card" style="text-align:center;padding:30px">
-      <h3 style="color:#ef4444;text-align:center">🔒 ระบบความปลอดภัยแอดมิน</h3>
+      <h3 style="color:#ef4444;text-align:center"><svg class="ic" aria-hidden="true"><use href="#i-lock"/></svg> ระบบความปลอดภัยแอดมิน</h3>
       <p class="modal-desc">กรุณากรอกรหัส PIN แอดมิน 6 หลักเพื่อเข้าสู่ระบบ</p>
       <input type="password" id="adminPinInput" maxlength="6" placeholder="******" style="width:180px;padding:10px;text-align:center;font-size:18px;letter-spacing:4px;border-radius:6px;border:1px solid #333;background:#12131a;color:#fff;margin-bottom:15px">
       <div>
@@ -87,7 +87,7 @@
       <!-- 1. User Management -->
       <div class="settings-card">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;border-bottom:1px solid #333;padding-bottom:6px">
-          <h3 style="margin:0;border:none;padding:0">👥 จัดการสมาชิก</h3>
+          <h3 style="margin:0;border:none;padding:0"><svg class="ic" aria-hidden="true"><use href="#i-users"/></svg> จัดการสมาชิก</h3>
           <button onclick="openAddUserModal()" style="background:#00f2d1;border:none;color:#000;font-weight:bold;padding:4px 10px;border-radius:4px;font-size:12px;cursor:pointer">+ เพิ่มสมาชิก</button>
         </div>
         <div id="adminUserListContainer" class="u-col-10"></div>
@@ -96,7 +96,7 @@
       <!-- 2. Room Name Settings -->
       <div class="settings-card">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;border-bottom:1px solid #333;padding-bottom:6px">
-          <h3 style="margin:0;border:none;padding:0">🏢 จัดการชื่อวง / ห้อง</h3>
+          <h3 style="margin:0;border:none;padding:0"><svg class="ic" aria-hidden="true"><use href="#i-store"/></svg> จัดการชื่อวง / ห้อง</h3>
           <button onclick="openAddRoomModal()" style="background:#00f2d1;border:none;color:#000;font-weight:bold;padding:4px 10px;border-radius:4px;font-size:12px;cursor:pointer">+ เพิ่มวง</button>
         </div>
         <div id="adminRoomListContainer" class="u-col-10"></div>
@@ -104,9 +104,9 @@
 
       <!-- 3. Telegram Bot Settings -->
       <div class="settings-card">
-        <h3>🤖 ตั้งค่าแชตบอท Telegram</h3>
+        <h3><svg class="ic" aria-hidden="true"><use href="#i-bot"/></svg> ตั้งค่าแชตบอท Telegram</h3>
         <div id="adminTelegramContainer" style="display:flex;flex-direction:column;gap:12px"></div>
-        <button id="btnSaveTelegram" class="btn-save-settings" style="margin-top:15px">💾 บันทึกตั้งค่า Telegram ทั้งหมด</button>
+        <button id="btnSaveTelegram" class="btn-save-settings" style="margin-top:15px"><svg class="ic" aria-hidden="true"><use href="#i-save"/></svg> บันทึกตั้งค่า Telegram ทั้งหมด</button>
       </div>
     </div>
   </div>
@@ -116,7 +116,7 @@
   <!-- Popup เปลี่ยน PIN สมาชิก -->
   <div id="pinModal" class="set-overlay hidden" onclick="closePinModal()">
     <div class="set-modal-box" onclick="event.stopPropagation()">
-      <h3 class="modal-title">🔑 เปลี่ยนรหัส PIN</h3>
+      <h3 class="modal-title"><svg class="ic" aria-hidden="true"><use href="#i-key"/></svg> เปลี่ยนรหัส PIN</h3>
       <div class="form-group">
         <label>PIN เดิม</label>
         <input type="password" id="oldPinInput" maxlength="4" placeholder="****">
@@ -164,7 +164,7 @@
   <!-- Popup เพิ่มสมาชิกใหม่ -->
   <div id="addUserModal" class="set-overlay hidden" onclick="closeAddUserModal()">
     <div class="set-modal-box" onclick="event.stopPropagation()">
-      <h3 class="modal-title">➕ เพิ่มสมาชิกใหม่</h3>
+      <h3 class="modal-title"><svg class="ic" aria-hidden="true"><use href="#i-plus"/></svg> เพิ่มสมาชิกใหม่</h3>
       <div class="form-group">
         <label>Username (ภาษาอังกฤษ)</label>
         <input type="text" id="newUsernameInput" placeholder="เช่น jack_guitar">
@@ -187,7 +187,7 @@
   <!-- Popup เพิ่มวงใหม่ -->
   <div id="addRoomModal" class="set-overlay hidden" onclick="closeAddRoomModal()">
     <div class="set-modal-box" onclick="event.stopPropagation()">
-      <h3 class="modal-title">➕ เพิ่มวงใหม่</h3>
+      <h3 class="modal-title"><svg class="ic" aria-hidden="true"><use href="#i-plus"/></svg> เพิ่มวงใหม่</h3>
       <div class="form-group">
         <label>ชื่อวง / ห้อง</label>
         <input type="text" id="newRoomNameInput" placeholder="เช่น วงร็อกสยาม">
@@ -202,7 +202,7 @@
   <!-- Popup ยืนยันการกระทำ (Generic Confirm Modal) -->
   <div id="genericConfirmModal" class="set-overlay hidden">
     <div class="set-modal-box u-center">
-      <h3 id="genericConfirmTitle" class="modal-title is-warn">⚠️ ยืนยันการดำเนินการ</h3>
+      <h3 id="genericConfirmTitle" class="modal-title is-warn"><svg class="ic" aria-hidden="true"><use href="#i-alert"/></svg> ยืนยันการดำเนินการ</h3>
       <p id="genericConfirmDesc" class="modal-desc">คุณต้องการดำเนินการนี้ใช่หรือไม่?</p>
       <div class="u-row-center">
         <button id="btnExecuteGenericConfirm" class="btn-danger">ยืนยัน</button>
@@ -441,13 +441,13 @@
               <div class="u-between">
                 <!-- ช่องแก้ไข Username -->
                 <input type="text" id="adm_uname_${uName}" value="${uName}" placeholder="Username" style="padding:6px;font-size:12px;width:120px;background:#181920;color:#00f2d1;font-weight:bold;border:1px solid #333;border-radius:4px">
-                <button onclick="showGenericConfirm('ลบสมาชิก', 'ต้องการลบยูสเซอร์ ${uName} หรือไม่?', () => deleteUser('${uName}'))" style="background:#3a1a1a;border:1px solid #ef4444;color:#ef4444;border-radius:4px;padding:2px 6px;font-size:11px;cursor:pointer">🗑️ ลบ</button>
+                <button onclick="showGenericConfirm('ลบสมาชิก', 'ต้องการลบยูสเซอร์ ${uName} หรือไม่?', () => deleteUser('${uName}'))" style="background:#3a1a1a;border:1px solid #ef4444;color:#ef4444;border-radius:4px;padding:2px 6px;font-size:11px;cursor:pointer"><svg class="ic" aria-hidden="true"><use href="#i-trash"/></svg> ลบ</button>
               </div>
               <div style="display:flex;gap:6px;align-items:center">
                 <input type="password" id="adm_pin_${uName}" value="${u.pin || ''}" maxlength="4" placeholder="PIN 4 หลัก" style="flex:1;padding:6px;font-size:12px">
                 <span class="u-meta">ชื่อเล่นปัจจุบัน: <b style="color:#fff">${u.nickname || '-'}</b></span>
               </div>
-              <button onclick="saveAdminUser('${uName}')" style="background:#00f2d1;border:none;color:#000;font-weight:bold;padding:6px;border-radius:4px;font-size:12px;cursor:pointer">💾 บันทึกยูสเซอร์นี้</button>
+              <button onclick="saveAdminUser('${uName}')" style="background:#00f2d1;border:none;color:#000;font-weight:bold;padding:6px;border-radius:4px;font-size:12px;cursor:pointer"><svg class="ic" aria-hidden="true"><use href="#i-save"/></svg> บันทึกยูสเซอร์นี้</button>
             </div>
           `;
         });
@@ -497,8 +497,8 @@
             <div style="background:#12131a;padding:10px;border-radius:8px;border:1px solid #333;display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
               <input type="text" id="adm_room_${rName}" value="${rName}" ${isLocked ? 'disabled style="background:#181920; color:#666;"' : ''} style="flex:1; padding:6px; font-size:13px; margin-right:8px;">
               <div style="display:flex;gap:4px">
-                ${!isLocked ? `<button onclick="saveAdminRoom(\`${rName}\`)" style="background:#00f2d1;border:none;color:#000;font-weight:bold;padding:6px 10px;border-radius:4px;font-size:11px;cursor:pointer">💾</button>` : ''}
-                ${!isLocked ? `<button onclick="deleteRoom(\`${rName}\`)" style="background:#3a1a1a;border:1px solid #ef4444;color:#ef4444;border-radius:4px;padding:6px 8px;font-size:11px;cursor:pointer">🗑️ ลบ</button>` : ''}
+                ${!isLocked ? `<button onclick="saveAdminRoom(\`${rName}\`)" style="background:#00f2d1;border:none;color:#000;font-weight:bold;padding:6px 10px;border-radius:4px;font-size:11px;cursor:pointer"><svg class="ic ic-solo" aria-hidden="true"><use href="#i-save"/></svg></button>` : ''}
+                ${!isLocked ? `<button onclick="deleteRoom(\`${rName}\`)" style="background:#3a1a1a;border:1px solid #ef4444;color:#ef4444;border-radius:4px;padding:6px 8px;font-size:11px;cursor:pointer"><svg class="ic" aria-hidden="true"><use href="#i-trash"/></svg> ลบ</button>` : ''}
               </div>
             </div>
           `;
@@ -588,7 +588,7 @@
 
           html += `
             <div style="background:#12131a;padding:10px;border-radius:8px;border:1px solid #333;display:flex;flex-direction:column;gap:6px;margin-bottom:8px">
-              <div style="font-size:13px;font-weight:bold;color:#00f2d1;margin-bottom:2px">🏢 วง: ${rName}</div>
+              <div style="font-size:13px;font-weight:bold;color:#00f2d1;margin-bottom:2px"><svg class="ic" aria-hidden="true"><use href="#i-store"/></svg> วง: ${rName}</div>
               <input type="text" id="tg_token_${rName}" value="${cfg.BotToken || ''}" placeholder="Telegram Bot Token" style="padding:6px;font-size:12px;background:#181920;color:#fff;border:1px solid #333;border-radius:4px">
               <input type="text" id="tg_chat_${rName}" value="${cfg.ChatID || ''}" placeholder="Chat ID" style="padding:6px;font-size:12px;background:#181920;color:#fff;border:1px solid #333;border-radius:4px">
             </div>

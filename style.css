@@ -1042,7 +1042,7 @@ button,[onclick]{touch-action:manipulation}
 /* มอนิเตอร์บนจอเตี้ย (แนวนอน/แท็บเล็ตเล็ก): ลดขนาดตามความสูงให้เห็นครบทุกกล่อง */
 @media (max-height: 640px) {
   .monitor-container { gap: 6px; padding: 6px; }
-  .monitor-top-section { min-height: 64px; padding: 6px 14px 8px; }
+  .monitor-top-section { min-height: 78px; padding: 6px 14px 8px; }
   .monitor-talkback-text { font-size: clamp(20px, 7vh, 40px); }
   .song-box-current, .song-box-next, .song-box-standby { padding-top: 4px; padding-bottom: 4px; }
   .box-title-next { font-size: clamp(22px, 9vh, 60px); -webkit-line-clamp: 1; margin-bottom: 0; }
@@ -1051,3 +1051,98 @@ button,[onclick]{touch-action:manipulation}
   .box-label { font-size: 11px; margin-bottom: 0; }
 }
 .queue-main-content > *, .search-main-content > * { flex-shrink: 0; }
+
+/* ==========================================================================
+   v4 — ไอคอน SVG ชุดเดียวกันทุกหน้า (เส้น 2px, สีตามตัวหนังสือ)
+   ========================================================================== */
+.ic { width: 1.15em; height: 1.15em; vertical-align: -0.2em; flex: none;
+  fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round;
+  margin-inline-end: .4em; }
+.ic-solo { margin-inline-end: 0; }
+button > .ic:last-child, .ic:last-child { margin-inline-end: 0; }
+.star-btn.active .ic, #btnDetailStar.active .ic { fill: currentColor; }
+button .ic-solo { width: 1.25em; height: 1.25em; }
+nav .nav-ico .ic { margin: 0; width: 22px; height: 22px; }
+
+/* ==========================================================================
+   v4 — กรอบเพลงถัดไปตามสีเซ็ต (โทนสว่าง) / ท็อคแบคสีแดง / กรอบรวมมอนิเตอร์
+   ป้ายสถานะ "เพลงถัดไป" ยังคงสีเหลือง เพื่อแยกสถานะบนเวที
+   ========================================================================== */
+[class*="set-color-"] { --hi: color-mix(in srgb, var(--set) 58%, #fff); }
+
+/* แถบเพลงถัดไปด้านบน (ค้นหาคอร์ด / ท็อคแบค / จัดคิว) */
+.top-box[class*="set-color-"] {
+  border: 2px solid var(--hi) !important; border-left-width: 6px !important;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--set) 14%, transparent), 0 6px 20px color-mix(in srgb, var(--set) 22%, transparent);
+}
+.top-box[class*="set-color-"] .top-content { color: var(--hi); }
+
+/* การ์ด NEXT ในหน้าจัดคิว / ค้นหาคอร์ด */
+.song-card.next-song[class*="set-color-"] {
+  border-color: var(--hi) !important; border-left: 6px solid var(--hi) !important;
+  background: linear-gradient(90deg, color-mix(in srgb, var(--set) 20%, var(--surface)), var(--surface) 70%);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--set) 12%, transparent), 0 10px 30px color-mix(in srgb, var(--set) 24%, transparent);
+}
+.song-card.next-song[class*="set-color-"] [style*="color:#f59e0b"] { color: var(--hi) !important; }
+
+/* กล่องเพลงถัดไปในมอนิเตอร์ */
+.song-box-next[class*="set-color-"] {
+  border: 3px solid var(--hi) !important;
+  background: linear-gradient(135deg, color-mix(in srgb, var(--set) 22%, transparent), var(--surface) 70%);
+  box-shadow: 0 0 0 5px color-mix(in srgb, var(--set) 12%, transparent), 0 12px 40px color-mix(in srgb, var(--set) 26%, transparent);
+}
+.song-box-next[class*="set-color-"] .box-detail-next { color: var(--hi); }
+.song-box-next[class*="set-color-"] .box-title-next { color: var(--hi) !important; }
+
+/* ท็อคแบค = สีแดง (ตัวหนังสือ + กรอบ) */
+:root { --tb: var(--danger); }
+.top-box:has(#topTalkbackText), .top-box:has(#tbTopTalkback), #topTalkbackBox {
+  border: 2px solid var(--tb); background: color-mix(in srgb, var(--tb) 10%, var(--bg));
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--tb) 12%, transparent);
+}
+.top-box:has(#topTalkbackText) .top-content, .top-box:has(#tbTopTalkback) .top-content,
+#topTalkbackBox .top-content { color: var(--tb); }
+.top-box:has(#topTalkbackText) .top-title, .top-box:has(#tbTopTalkback) .top-title { color: color-mix(in srgb, var(--tb) 70%, #fff); }
+.monitor-top-section { border: 2px solid var(--tb); box-shadow: inset 0 3px 0 var(--tb), 0 0 0 3px color-mix(in srgb, var(--tb) 12%, transparent); }
+.monitor-talkback-text { color: var(--tb); }
+.monitor-top-header { color: color-mix(in srgb, var(--tb) 70%, #fff); }
+
+/* มอนิเตอร์: การ์ด 3 ใบอยู่ในกรอบเดียว */
+.monitor-songs-section {
+  border: 2px solid var(--line-strong); border-radius: var(--r-xl);
+  padding: 10px; background: rgba(255,255,255,.025);
+}
+@media (max-height: 640px) { .monitor-songs-section { padding: 5px; border-radius: var(--r-lg); } }
+
+/* แก้ลำดับ cascade: .song-card ประกาศ --set ทีหลัง .set-color-N ทำให้สีเซ็ตไม่ถูกใช้ในการ์ด */
+.song-card.set-color-1 { --set: var(--set-1); } .song-card.set-color-2 { --set: var(--set-2); }
+.song-card.set-color-3 { --set: var(--set-3); } .song-card.set-color-4 { --set: var(--set-4); }
+.song-card.set-color-5 { --set: var(--set-5); }
+.song-card.set-color-รีเควส { --set: var(--request); } .song-card.set-color-เพลงแทรก { --set: var(--custom); }
+.song-box-next .box-label { color: var(--next) !important; }
+
+/* ==========================================================================
+   v4 — แจ้งเตือนคำสั่งใหม่: กระพริบ + ขยายด้านข้าง 3 วินาที (JS ตั้ง data-attn บนแถบ)
+   กระพริบด้วยสีของกล่อง (ท็อคแบค=แดง / เพลงถัดไป=สีเซ็ต) ตัวหนังสือขาวเพื่ออ่านชัด
+   ========================================================================== */
+@keyframes attnPulse {
+  50% { background-color: color-mix(in srgb, var(--attn-c, var(--next)) 38%, #000);
+        box-shadow: 0 0 0 6px color-mix(in srgb, var(--attn-c, var(--next)) 50%, transparent), 0 0 30px var(--attn-c, var(--next)); }
+}
+@keyframes attnPulseBox {
+  50% { background: color-mix(in srgb, var(--attn-c, var(--next)) 34%, #000);
+        box-shadow: 0 0 0 8px color-mix(in srgb, var(--attn-c, var(--next)) 45%, transparent), 0 0 44px var(--attn-c, var(--next));
+        transform: scale(1.015); }
+}
+.queue-top-bar, .search-top-bar, .tb-top-bar { transition: grid-template-columns .35s var(--ease); }
+[data-attn="talk"] { grid-template-columns: 2.4fr 1fr; }
+[data-attn="next"] { grid-template-columns: 1fr 2.4fr; }
+[data-attn="talk"] > .top-box:first-child { --attn-c: var(--tb); animation: attnPulse .5s ease-in-out 6; }
+[data-attn="next"] > .top-box:last-child  { --attn-c: var(--set, var(--next)); animation: attnPulse .5s ease-in-out 6; }
+[data-attn="talk"] > .top-box:first-child .top-content,
+[data-attn="next"] > .top-box:last-child .top-content { color: #fff !important; }
+
+/* มอนิเตอร์ (JS เดิมเติม class): แทนเอฟเฟกต์เดิมด้วยแบบ 3 วินาที */
+.flashing { --attn-c: var(--tb); animation: attnPulse .5s ease-in-out 6; }
+.flash-cue-pink-active { --attn-c: var(--set, var(--next)); animation: attnPulseBox .5s ease-in-out 6; }
+@media (prefers-reduced-motion: reduce) { .flashing, .flash-cue-pink-active, [data-attn] > .top-box { animation-duration: 1.5s; } }
