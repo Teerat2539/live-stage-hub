@@ -612,7 +612,7 @@
           `;
         }
 
-        let cardClickAttr = stateClass !== 'playing' ? `onclick="openActionModal('${song.id}')"` : '';
+        let cardClickAttr = ''; // เดิมแตะการ์ดแล้วเปิดเมนู ย้าย/ข้าม/ลบ — ถอดออก: ย้ายใช้ลากวาง, ข้าม/ลบใช้ปัดการ์ดไปขวา
 
         return `
           <div class="song-card ${setColorClass} ${customClass}" ${cardClickAttr} data-qid="${song.id}" ${(stateClass === 'normal' || stateClass === 'next' || stateClass === 'standby') ? 'data-movable="1"' : ''}>
@@ -1374,6 +1374,7 @@ window.executeInsertAfterPlaying = function() {
         let card = null, sx = 0, sy = 0, dx = 0, mode = '', open = null;
         function closeOpen(animate) {
           if (!open) return;
+          if (!open.card.isConnected) { open.bar.remove(); open = null; return; }
           open.card.style.transition = animate === false ? 'none' : '';
           open.card.style.transform = '';
           const bar = open.bar; setTimeout(() => bar.remove(), animate === false ? 0 : 180);
@@ -1415,15 +1416,31 @@ window.executeInsertAfterPlaying = function() {
             card.style.transform = `translateX(${dx}px)`;
           }
         }, { passive: false });
-        function endSwipe() {
+        function endSwipe(e) {
           if (mode === 'swipe' && card && open) {
-            window.__lshDragAt = Date.now(); // กันคลิกที่ตามมา (ไม่ให้เปิดเมนูการ์ด)
+            window.__lshDragAt = Date.now(); // กันคลิกที่ตามมา
             card.style.transition = '';
-            if (dx > W * 0.45) { card.style.transform = `translateX(${W}px)`; }
+            // ปัดเกินนิดหน่อยก็ค้างเปิดรอเลือก (ไม่ปิดเองตอนปล่อยมือ) — ปิดเมื่อแตะที่อื่น/แตะการ์ดนั้นอีกครั้ง หรือปัดกลับซ้าย
+            if (dx > 24 || (e && e.type === 'touchcancel')) { card.style.transform = `translateX(${W}px)`; open.id = card.dataset.qid; }
             else { closeOpen(); }
           }
           card = null; mode = '';
         }
+        // แตะที่การ์ดที่ปัดค้างอยู่ = ปิดการปัด
+        box.addEventListener('click', (e) => {
+          if (open && e.target.closest('.song-card') === open.card && !e.target.closest('.swipe-actions')) closeOpen();
+        });
+        // วาดคิวใหม่ (ข้อมูลซิงก์จากเครื่องอื่น) แล้วต้องคงสถานะปัดค้างไว้
+        let restoring = false;
+        new MutationObserver(() => {
+          if (restoring || !open || !open.id) return;
+          if (open.card && open.card.isConnected) return;
+          const c = box.querySelector('.song-card[data-qid="' + open.id + '"][data-movable="1"]');
+          restoring = true;
+          if (c) { c.style.transition = 'none'; c.style.transform = `translateX(${W}px)`; open = { card: c, bar: makeBar(c), id: open.id, base: W }; }
+          else { open = null; }
+          setTimeout(() => { restoring = false; }, 0);
+        }).observe(box, { childList: true });
         box.addEventListener('touchend', endSwipe);
         box.addEventListener('touchcancel', endSwipe);
       })();

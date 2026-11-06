@@ -122,6 +122,7 @@
         lshWatch(topNextText, 'next');
 
         queueData.forEach((song) => {
+          if (song.status === 'removed') return; // เพลงที่ลบออกจากคิวแล้ว ไม่แสดงในหน้าค้นหา
           if (song.type === 'dummy_start' || song.type === 'dummy_end') {
             let stateLabel = '';
             let style = '';
