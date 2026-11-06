@@ -23,6 +23,12 @@
     </div>
   </div>
 
+  <!-- แถบชื่อร้าน (ชื่อลิสต์ที่เลือก) + เวลาโชว์ -->
+  <div id="queueShowBar" class="queue-show-bar hidden">
+    <span id="queueVenueName" class="qsb-venue">-</span>
+    <button type="button" id="queueTimerChip" class="qsb-chip" onclick="openShowTimerModal()"><svg class="ic" aria-hidden="true"><use href="#i-clock"/></svg><span id="queueTimerText">1:30</span></button>
+  </div>
+
   <!-- 2. พื้นที่แสดงผลหลัก (62%) -->
   <div class="queue-main-content" id="queueContainer"></div>
 
@@ -31,6 +37,24 @@
     <button class="btn-control btn-prev" onclick="prevSong()"><svg class="ic" aria-hidden="true"><use href="#i-prev"/></svg> ก่อนหน้า</button>
     <button class="btn-control btn-insert" onclick="openInsertModal()"><svg class="ic" aria-hidden="true"><use href="#i-plus"/></svg> แทรกเพลง</button>
     <button class="btn-control btn-next" onclick="nextSong()"><svg class="ic" aria-hidden="true"><use href="#i-next"/></svg> เพลงถัดไป</button>
+  </div>
+
+  <!-- ตั้งเวลาโชว์ -->
+  <div id="showTimerModal" class="slide-modal-overlay hidden" onclick="closeShowTimerModal(event)">
+    <div class="popup-dialog" onclick="event.stopPropagation()">
+      <div class="modal-head"><div class="modal-title"><svg class="ic" aria-hidden="true"><use href="#i-clock"/></svg> เวลาโชว์</div></div>
+      <button type="button" id="stToggleBtn" class="popup-btn popup-btn-live" onclick="toggleShowTimer()">เปิดตัวจับเวลา</button>
+      <div class="st-stepper">
+        <button type="button" onclick="adjustShowTimer(-15)">-15</button>
+        <button type="button" onclick="adjustShowTimer(-5)">-5</button>
+        <div id="stDurationText" class="st-duration">1:30</div>
+        <button type="button" onclick="adjustShowTimer(5)">+5</button>
+        <button type="button" onclick="adjustShowTimer(15)">+15</button>
+      </div>
+      <div id="stStatusText" class="tb-sound-note"></div>
+      <button type="button" class="popup-btn popup-btn-skip" onclick="resetShowTimer()">รีเซ็ตจับเวลา (เริ่มนับใหม่)</button>
+      <button type="button" class="popup-btn popup-btn-cancel" onclick="closeShowTimerModal()">ปิด</button>
+    </div>
   </div>
 
   <!-- 4. หน้าต่างสไลด์ "แทรกเพลง" -->
@@ -209,11 +233,46 @@
         }
       }
         
+      // 📌 แถบชื่อร้าน + เวลาโชว์เหนือการ์ดคิว
+      function updateShowBar() {
+        const bar = document.getElementById('queueShowBar');
+        if (!bar) return;
+        const has = window.queueData && window.queueData.length > 0;
+        bar.classList.toggle('hidden', !has);
+        if (!has) return;
+        document.getElementById('queueVenueName').textContent = window.queueVenue || 'ลิสต์เพลง';
+        const t = window.lshShowTimer ? window.lshShowTimer : null;
+        const st = t ? t.state() : { enabled: false };
+        const chip = document.getElementById('queueTimerChip');
+        chip.classList.toggle('off', !st.enabled);
+        chip.classList.toggle('over', !!(st.enabled && t.info().over));
+        document.getElementById('queueTimerText').textContent = st.enabled ? t.info().text : 'ปิด';
+      }
+      if (window.lshShowTimer && !window.__qShowBarBound) { window.__qShowBarBound = true; window.lshShowTimer.onChange(() => { try { updateShowBar(); refreshShowTimerModal(); } catch (e) {} }); }
+
+      function refreshShowTimerModal() {
+        const t = window.lshShowTimer; if (!t) return;
+        const st = t.state(), i = t.info();
+        const dur = Number(st.durationMin) || 90;
+        const tg = document.getElementById('stToggleBtn'); if (tg) tg.textContent = st.enabled ? 'ปิดตัวจับเวลา' : 'เปิดตัวจับเวลา';
+        const d = document.getElementById('stDurationText'); if (d) d.textContent = Math.floor(dur / 60) + ':' + String(dur % 60).padStart(2, '0');
+        const s = document.getElementById('stStatusText'); if (s) s.textContent = !st.enabled ? 'ปิดอยู่ — ไม่แสดงเวลาที่แถบด้านบน' : (st.startedAt ? 'กำลังนับ: เหลือ ' + i.text : 'ยังไม่เริ่ม (เริ่มเมื่อเพลงแรกกำลังเล่น)');
+      }
+      window.openShowTimerModal = function() { refreshShowTimerModal(); document.getElementById('showTimerModal').classList.remove('hidden'); };
+      window.closeShowTimerModal = function(e) { if (!e || e.target.id === 'showTimerModal') document.getElementById('showTimerModal').classList.add('hidden'); };
+      window.toggleShowTimer = function() { const t = window.lshShowTimer; t.setConfig({ enabled: !t.state().enabled }); };
+      window.adjustShowTimer = function(delta) {
+        const t = window.lshShowTimer; const cur = Number(t.state().durationMin) || 90;
+        t.setConfig({ durationMin: Math.min(480, Math.max(5, cur + delta)) });
+      };
+      window.resetShowTimer = function() { window.lshShowTimer.reset(); lshToast('รีเซ็ตตัวจับเวลาแล้ว', 'ok'); };
+
       // 📌 รับคิวจาก Firebase มาใช้ที่เครื่องนี้ (และเก็บสำเนาลง LocalStorage)
       function applyRemoteQueue(fb) {
         let songs = fb && fb.songs ? fb.songs : [];
         if (!Array.isArray(songs)) songs = Object.keys(songs).sort((a, b) => a - b).map(k => songs[k]);
         window.queueData = songs.filter(Boolean);
+        window.queueVenue = (fb && fb.venue) || '';
         if (fb && fb.activeSetlistId !== undefined && fb.activeSetlistId !== null) {
           // เก็บ id ลิสต์ที่ใช้งานอยู่ไว้ที่เครื่องนี้ด้วย กันเครื่องนี้เขียนทับเป็นค่าว่างตอนซิงค์
           localStorage.setItem('lsh_active_setlist_id', fb.activeSetlistId);
@@ -234,6 +293,7 @@
         const ref = db.ref(`rooms/${room}/queue`);
         const cb = (snap) => {
           if (!document.getElementById('queueContainer')) return; // ออกจากหน้านี้แล้ว
+          if (window.__lshDragging) return; // กำลังลากการ์ดอยู่ — ไม่รีเฟรชทับ
           const fb = snap.val();
           if (fb && fb.updatedAt && fb.updatedAt === window.lastQueueWriteAt) return; // ข้อมูลที่เครื่องนี้เพิ่งเขียนเอง
           if (window.firebaseSyncTimer) return; // เครื่องนี้มีการแก้ที่รอซิงค์อยู่ — ให้ของเครื่องนี้เขียนก่อน
@@ -405,6 +465,7 @@
       function renderQueue() {
         const container = document.getElementById('queueContainer');
         if (!container) return;
+        updateShowBar();
 
         if (!window.queueData || window.queueData.length === 0) {
           container.innerHTML = `
@@ -472,8 +533,10 @@
         });
 
         container.innerHTML = html;
+        initQueueSortable(container);
         updateTopBarNext(nextItem);
         updateControlButtons();
+        if (window.lshShowTimer) window.lshShowTimer.maybeStart(window.queueData); // เพลงจริงเพลงแรกเริ่มเล่น → เริ่มจับเวลา
         saveQueueToStorage(true);
       }
 
@@ -539,7 +602,7 @@
         let cardClickAttr = stateClass !== 'playing' ? `onclick="openActionModal('${song.id}')"` : '';
 
         return `
-          <div class="song-card ${setColorClass} ${customClass}" ${cardClickAttr}>
+          <div class="song-card ${setColorClass} ${customClass}" ${cardClickAttr} data-qid="${song.id}" ${(stateClass === 'normal' || stateClass === 'next' || stateClass === 'standby') ? 'data-movable="1"' : ''}>
             <div class="u-flex1">
               <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:2px">
                 <div class="u-meta">
@@ -1239,6 +1302,25 @@ window.executeInsertAfterPlaying = function() {
               i.type !== 'dummy_start' && i.type !== 'dummy_end') idxs.push(idx);
         });
         return idxs;
+      }
+
+      // ลากวางจัดลำดับ: ลากได้เฉพาะเพลงที่ปุ่มเลื่อนเดิมเลื่อนได้ ส่วนการ์ดอื่น (กำลังเล่น/เล่นแล้ว/เตรียมพร้อม/จบการแสดง) ล็อกไว้
+      function initQueueSortable(container) {
+        if (container.__sortable || !window.lshDnD) return;
+        container.__sortable = window.lshDnD.make(container, {
+          draggable: '.song-card[data-movable="1"]',
+          onEnd: function() {
+            const order = Array.from(container.querySelectorAll('.song-card[data-movable="1"]')).map(el => el.dataset.qid);
+            const idxs = getMovableIndexes();
+            const byId = {};
+            idxs.forEach(i => { byId[window.queueData[i].id] = window.queueData[i]; });
+            if (order.length === idxs.length && order.every(id => byId[id])) {
+              idxs.forEach((qi, k) => { window.queueData[qi] = byId[order[k]]; });
+            }
+            renderQueue();
+          }
+        });
+        if (container.__sortable === null) container.__sortable = undefined;
       }
 
       function swapMovable(id, dir) {

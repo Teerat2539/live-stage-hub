@@ -14,6 +14,7 @@
       <div class="monitor-top-header">
         <span id="tbTime">-:--</span>
         <span id="tbSender">- 🎵</span>
+        <button type="button" id="tbSoundBtn" class="tb-sound-btn" aria-label="ตั้งค่าเสียงท็อคแบค" onclick="openTbSoundPanel(event)"><svg class="ic" aria-hidden="true"><use href="#i-volume-off"/></svg></button>
       </div>
       <div class="monitor-talkback-body">
         <div id="monitorTalkbackText" class="monitor-talkback-text">สแตนบายรอคำสั่ง...</div>
@@ -53,6 +54,19 @@
   </div>
 
   <!-- Modals -->
+  <!-- ตั้งค่าเสียงท็อคแบค -->
+  <div id="tbSoundPanel" class="slide-modal-overlay hidden" onclick="closeTbSoundPanel(event)">
+    <div class="popup-dialog" onclick="event.stopPropagation()">
+      <div class="modal-head"><div class="modal-title"><svg class="ic" aria-hidden="true"><use href="#i-volume"/></svg> เสียงท็อคแบค</div></div>
+      <button type="button" id="tbSoundToggle" class="popup-btn popup-btn-live" onclick="toggleTbSound()">เปิดเสียง</button>
+      <label class="tb-slide"><span>ความดัง (Master) <b id="tbVolVal">100%</b></span><input type="range" id="tbVolRange" min="0" max="100" step="5" value="100"></label>
+      <label class="tb-slide"><span>ความเร็วในการอ่าน <b id="tbRateVal">1.0x</b></span><input type="range" id="tbRateRange" min="0.6" max="1.6" step="0.1" value="1"></label>
+      <div id="tbSoundNote" class="tb-sound-note"></div>
+      <button type="button" class="popup-btn popup-btn-move" onclick="testTbSound()">ลองฟังเสียง</button>
+      <button type="button" class="popup-btn popup-btn-cancel" onclick="closeTbSoundPanel()">ปิด</button>
+    </div>
+  </div>
+
   <div id="talkbackHistoryModal" class="slide-modal-overlay hidden" onclick="closeTalkbackHistoryModal(event)">
     <div class="slide-down-content" onclick="event.stopPropagation()">
       <div style="display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #333;padding-bottom:6px">
@@ -212,24 +226,63 @@
 
       function initMonitorTalkbackListener() {
         if (typeof db !== 'undefined' && db && db.ref) {
+          let lastTbKey = null; // key ข้อความล่าสุดที่แสดงแล้ว (null = ยังไม่เคยโหลด)
           db.ref(`rooms/${selectedRoom}/talkbacks`).limitToLast(4).on('value', (snapshot) => {
             const val = snapshot.val() || {};
-            let list = Object.keys(val).map(k => val[k]).reverse();
+            const keys = Object.keys(val);
+            let list = keys.map(k => val[k]).reverse();
 
             if (list.length > 0) {
               let latest = list[0];
+              const latestKey = keys[keys.length - 1];
+              const isNewMessage = lastTbKey !== null && latestKey !== lastTbKey;
+              lastTbKey = latestKey;
               let timeStr = new Date(latest.timestamp || Date.now()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-              
+
               document.getElementById('tbTime').innerText = timeStr;
               document.getElementById('tbSender').innerText = `${latest.sender || 'ระบบ'} ${latest.emoji || '🎵'}`;
-              document.getElementById('monitorTalkbackText').innerText = latest.message || '';
+              setTalkbackText(latest.message || '');
 
-              triggerTalkbackFlashAlert();
+              // กระพริบ/เลื่อนเข้า/เสียง เฉพาะ "ข้อความใหม่จริง" (ไม่ทำตอนโหลดหน้าครั้งแรกหรือข้อมูลอื่นเปลี่ยน)
+              if (isNewMessage) {
+                triggerTalkbackFlashAlert();
+                slideInTalkback();
+                announceTalkback(latest.message || '');
+              }
               renderTalkbackHistory(list);
+            } else if (lastTbKey === null) {
+              lastTbKey = '';
             }
           });
         }
       }
+
+      // แสดงข้อความท็อคแบค: วิ่งเฉพาะเมื่อยาวเกินกล่อง ถ้าพอดีจอให้แสดงนิ่ง
+      function setTalkbackText(text) {
+        const el = document.getElementById('monitorTalkbackText');
+        if (!el) return;
+        el.textContent = text;
+        fitTalkbackText();
+      }
+      function fitTalkbackText() {
+        const el = document.getElementById('monitorTalkbackText');
+        const box = el && el.parentElement;
+        if (!el || !box) return;
+        el.classList.remove('tb-run');
+        el.style.removeProperty('--tb-start'); el.style.removeProperty('--tb-end'); el.style.removeProperty('--tb-dur');
+        requestAnimationFrame(() => {
+          const w = el.scrollWidth, bw = box.clientWidth;
+          if (bw > 0 && w > bw) {
+            const dist = bw + w;
+            el.style.setProperty('--tb-start', bw + 'px');
+            el.style.setProperty('--tb-end', '-' + w + 'px');
+            el.style.setProperty('--tb-dur', Math.max(6, dist / 110).toFixed(1) + 's');
+            el.classList.add('tb-run');
+          }
+        });
+      }
+      window.addEventListener('resize', fitTalkbackText);
+      if (document.fonts && document.fonts.ready) document.fonts.ready.then(fitTalkbackText);
 
       function triggerTalkbackFlashAlert() {
         const topBar = document.getElementById('monitorTopBar');
@@ -240,6 +293,86 @@
           }, 10);
         }
       }
+
+      // แอนิเมชันข้อความใหม่: ชื่อผู้ส่งขึ้นก่อน แล้วข้อความไหลขึ้นตาม
+      function slideInTalkback() {
+        [['tbSender', 0], ['monitorTalkbackText', 120]].forEach(([id, d]) => {
+          const el = document.getElementById(id);
+          if (!el) return;
+          el.classList.remove('slide-fwd'); void el.offsetWidth;
+          el.style.setProperty('--slide-delay', d + 'ms');
+          el.classList.add('slide-fwd');
+          el.addEventListener('animationend', () => el.classList.remove('slide-fwd'), { once: true });
+        });
+      }
+
+      // ===== เสียงท็อคแบค: ปี๊บสั้นๆ แล้วอ่านเฉพาะข้อความ =====
+      const TB_SND_KEY = 'lsh_tb_sound';
+      const tbSnd = { on: false, vol: 1, rate: 1 };
+      try { Object.assign(tbSnd, JSON.parse(localStorage.getItem(TB_SND_KEY)) || {}); } catch (e) {}
+      let tbAudioCtx = null;
+      let tbThaiVoice = null;
+      function saveTbSnd() { try { localStorage.setItem(TB_SND_KEY, JSON.stringify(tbSnd)); } catch (e) {} }
+      function pickThaiVoice() {
+        if (!('speechSynthesis' in window)) return;
+        tbThaiVoice = speechSynthesis.getVoices().find(v => /^th/i.test(v.lang)) || null;
+        updateTbSoundUi();
+      }
+      if ('speechSynthesis' in window) { pickThaiVoice(); speechSynthesis.onvoiceschanged = pickThaiVoice; }
+      function tbBeep(done) {
+        try {
+          tbAudioCtx = tbAudioCtx || new (window.AudioContext || window.webkitAudioContext)();
+          if (tbAudioCtx.state === 'suspended') tbAudioCtx.resume();
+          const t = tbAudioCtx.currentTime;
+          const osc = tbAudioCtx.createOscillator(), g = tbAudioCtx.createGain();
+          osc.type = 'sine'; osc.frequency.value = 988;
+          g.gain.setValueAtTime(0.0001, t);
+          g.gain.exponentialRampToValueAtTime(Math.max(0.0002, 0.5 * tbSnd.vol), t + 0.02);
+          g.gain.exponentialRampToValueAtTime(0.0001, t + 0.2);
+          osc.connect(g); g.connect(tbAudioCtx.destination);
+          osc.start(t); osc.stop(t + 0.22);
+          setTimeout(done, 260);
+        } catch (e) { done(); }
+      }
+      function tbSpeak(text) {
+        if (!('speechSynthesis' in window)) return;
+        const clean = String(text).replace(/[\u{1F000}-\u{1FAFF}\u{2600}-\u{27BF}\u{FE0F}\u{200D}]/gu, ' ').replace(/\s+/g, ' ').trim();
+        if (!clean) return;
+        const u = new SpeechSynthesisUtterance(clean);
+        u.lang = 'th-TH';
+        if (tbThaiVoice) u.voice = tbThaiVoice;
+        u.volume = tbSnd.vol; u.rate = tbSnd.rate;
+        speechSynthesis.speak(u);
+      }
+      function announceTalkback(text) {
+        if (!tbSnd.on) return;
+        try { if ('speechSynthesis' in window) speechSynthesis.cancel(); } catch (e) {}
+        tbBeep(() => tbSpeak(text));
+      }
+      function updateTbSoundUi() {
+        const btn = document.getElementById('tbSoundBtn');
+        if (btn) btn.innerHTML = `<svg class="ic" aria-hidden="true"><use href="#i-${tbSnd.on ? 'volume' : 'volume-off'}"/></svg>`;
+        if (btn) btn.classList.toggle('on', tbSnd.on);
+        const tg = document.getElementById('tbSoundToggle');
+        if (tg) tg.textContent = tbSnd.on ? 'ปิดเสียง' : 'เปิดเสียง';
+        const vr = document.getElementById('tbVolRange'), rr = document.getElementById('tbRateRange');
+        if (vr) { vr.value = Math.round(tbSnd.vol * 100); document.getElementById('tbVolVal').textContent = vr.value + '%'; }
+        if (rr) { rr.value = tbSnd.rate; document.getElementById('tbRateVal').textContent = Number(tbSnd.rate).toFixed(1) + 'x'; }
+        const note = document.getElementById('tbSoundNote');
+        if (note) note.textContent = !('speechSynthesis' in window) ? 'เบราว์เซอร์นี้ไม่รองรับเสียงอ่าน (จะมีแค่เสียงปี๊บ)'
+          : (tbThaiVoice ? '' : 'เครื่องนี้อาจไม่มีเสียงอ่านภาษาไทย (จะลองใช้เสียงเริ่มต้นของเครื่อง)');
+      }
+      function openTbSoundPanel(e) { if (e) e.stopPropagation(); updateTbSoundUi(); document.getElementById('tbSoundPanel').classList.remove('hidden'); }
+      function closeTbSoundPanel(e) { if (!e || e.target.id === 'tbSoundPanel') document.getElementById('tbSoundPanel').classList.add('hidden'); }
+      function toggleTbSound() {
+        tbSnd.on = !tbSnd.on; saveTbSnd(); updateTbSoundUi();
+        if (tbSnd.on) { testTbSound(); } // การแตะครั้งนี้ปลดล็อกเสียงของเบราว์เซอร์
+      }
+      function testTbSound() { try { speechSynthesis.cancel(); } catch (e) {} tbBeep(() => tbSpeak('ทดสอบเสียงท็อคแบค')); }
+      document.getElementById('tbVolRange').addEventListener('input', (e) => { tbSnd.vol = e.target.value / 100; saveTbSnd(); updateTbSoundUi(); });
+      document.getElementById('tbRateRange').addEventListener('input', (e) => { tbSnd.rate = parseFloat(e.target.value); saveTbSnd(); updateTbSoundUi(); });
+      updateTbSoundUi();
+      Object.assign(window, { openTbSoundPanel, closeTbSoundPanel, toggleTbSound, testTbSound });
 
       // ฟังก์ชันกระพริบเตือนเมื่อเพลงถัดไปเปลี่ยน (แก้ให้ใช้ setTimeout หน่วงเวลาแทน)
       function triggerNextSongFlashAlert() {

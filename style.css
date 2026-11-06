@@ -50,7 +50,7 @@
   --r-sm:8px; --r-md:12px; --r-lg:16px; --r-xl:24px; --r-pill:999px;
   --tap:48px; --tap-lg:56px;
   --header-h:56px;
-  --nav-h:calc(68px + env(safe-area-inset-bottom, 0px));
+  --nav-h:calc(52px + env(safe-area-inset-bottom, 0px));
   --pad:14px;
 
   --shadow-card: 0 1px 0 rgba(255,255,255,.03) inset, 0 6px 18px rgba(0,0,0,.35);
@@ -408,10 +408,12 @@ nav button.active::before {
 }
 .monitor-talkback-body { flex: 1; display: flex; align-items: center; overflow: hidden; position: relative; min-height: 1.2em; }
 .monitor-talkback-text {
-  position: absolute; left: 0; white-space: nowrap;
+  position: relative; white-space: nowrap;
   font-size: clamp(28px, 5.4vw, 68px); font-weight: 800; line-height: 1.1; color: var(--text);
-  animation: marquee 12s linear infinite;
 }
+/* วิ่งเฉพาะเมื่อข้อความยาวเกินกล่อง (JS ใส่คลาส tb-run และค่า --tb-*) */
+.monitor-talkback-text.tb-run { position: absolute; left: 0; animation: tbRun var(--tb-dur, 12s) linear infinite; }
+@keyframes tbRun { from { transform: translateX(var(--tb-start, 100%)); } to { transform: translateX(var(--tb-end, -100%)); } }
 
 /* 6.2 คิวเพลง 3 ใบ */
 .monitor-songs-section { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 10px; overflow: hidden; cursor: pointer; }
@@ -949,8 +951,7 @@ input:disabled + .slider { opacity: .3; cursor: not-allowed; }
 /* ============================ 15. RESPONSIVE =========================== */
 /* โทรศัพท์จอเตี้ย / แนวนอน: ลดระยะ เพิ่มพื้นที่เนื้อหา */
 @media (max-height: 520px) {
-  :root { --header-h: 48px; --nav-h: calc(56px + env(safe-area-inset-bottom, 0px)); }
-  nav button > *:first-child { font-size: 18px; }
+  :root { --header-h: 48px; --nav-h: calc(44px + env(safe-area-inset-bottom, 0px)); }
   .queue-bottom-bar { height: 64px; }
 }
 
@@ -1270,3 +1271,75 @@ input.has-clr { padding-right: 40px !important; }
 .popup-btn-live   { --set: var(--live); }
 .popup-btn-move:active, .popup-btn-skip:active, .popup-btn-delete:active, .popup-btn-live:active { background: var(--surface-3); }
 .popup-btn-cancel { border: 1px solid var(--line); }
+
+/* ปุ่ม/แผงเสียงท็อคแบค (มอนิเตอร์) */
+.tb-sound-btn { margin-left: 8px; width: 30px; height: 30px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; background: var(--surface-2); border: 1px solid var(--line-strong); color: var(--text-2); flex: none; }
+.tb-sound-btn.on { background: color-mix(in srgb, var(--tb) 30%, var(--surface)); border-color: var(--tb); color: #fff; }
+.tb-sound-btn .ic { width: 16px; height: 16px; }
+.monitor-top-header { align-items: center; }
+.tb-slide { display: flex; flex-direction: column; gap: 6px; font-size: 13px; color: var(--text-2); }
+.tb-slide span { display: flex; justify-content: space-between; }
+.tb-slide b { color: var(--text); }
+.tb-slide input[type=range] { width: 100%; accent-color: var(--live); height: 28px; }
+.tb-sound-note { font-size: 12px; color: var(--next); min-height: 0; }
+.tb-sound-note:empty { display: none; }
+
+/* ===== แถบนำทางล่างแบบกะทัดรัด: ไอคอนอย่างเดียว / ปุ่มที่เลือกกางเป็นแคปซูลพร้อมชื่อ ===== */
+nav { display: flex; align-items: center; gap: 2px; padding-left: 8px; padding-right: 8px; }
+nav button { flex: 1 1 0; min-width: 0; min-height: 44px; height: calc(var(--nav-h) - 12px - env(safe-area-inset-bottom, 0px)); max-height: 44px; flex-direction: row; gap: 0; border-radius: var(--r-pill); overflow: hidden; transition: flex-grow .28s var(--ease), background .2s, color .2s, gap .2s; }
+nav button .nav-label { max-width: 0; opacity: 0; white-space: nowrap; font-size: 13px; font-weight: 800; transition: max-width .28s var(--ease), opacity .2s; }
+nav button.active { flex-grow: 2.4; gap: 7px; background: var(--live); color: var(--live-ink); }
+nav button.active::before { display: none; }
+nav button.active .nav-label { max-width: 90px; opacity: 1; }
+nav button:active:not(.active) { background: var(--surface-2); }
+@media (prefers-reduced-motion: reduce) { nav button, nav button .nav-label { transition: none; } }
+
+/* ===== header: ปุ่มเมนู+ping | ตัวจับเวลาโชว์ (กลาง) | นาฬิกา+อีโมจิ ===== */
+header { display: grid; grid-template-columns: 1fr auto 1fr; }
+header .header-right { justify-content: flex-end; }
+.drawer-user { max-width: none; white-space: normal; font-size: 15px; margin-bottom: 10px; color: var(--text); }
+
+/* ตัวจับเวลาโชว์ (กลาง header) */
+.show-timer { display: flex; flex-direction: column; align-items: center; justify-content: center; line-height: 1.1; min-width: 0; }
+.show-timer.hidden { display: none; }
+.st-time { font-size: 20px; font-weight: 800; font-variant-numeric: tabular-nums; color: var(--text); letter-spacing: .02em; }
+.st-sub { font-size: 10px; font-weight: 600; color: var(--text-2); white-space: nowrap; }
+.show-timer.idle .st-time { color: var(--text-3); }
+.show-timer.over .st-time, .show-timer.over .st-sub { color: var(--danger); }
+@media (max-height: 520px) { .st-time { font-size: 17px; } }
+
+/* แถบชื่อร้าน + เวลาโชว์ (หน้าจัดคิว) */
+.queue-show-bar { flex: 0 0 auto; display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 6px 14px 2px; }
+.queue-show-bar.hidden { display: none; }
+.qsb-venue { font-size: 13px; font-weight: 800; color: var(--text); min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.qsb-chip { flex: none; display: inline-flex; align-items: center; gap: 6px; min-height: 34px; padding: 0 12px; border-radius: var(--r-pill); background: var(--surface-2); border: 1px solid var(--line-strong); color: var(--live); font-weight: 800; font-size: 13px; font-variant-numeric: tabular-nums; }
+.qsb-chip .ic { width: 15px; height: 15px; }
+.qsb-chip.off { color: var(--text-3); }
+.qsb-chip.over { color: var(--danger); border-color: var(--danger); }
+.st-stepper { display: grid; grid-template-columns: 1fr 1fr 1.6fr 1fr 1fr; gap: 6px; align-items: center; }
+.st-stepper button { min-height: 44px; border-radius: var(--r-md); background: var(--surface-2); border: 1px solid var(--line-strong); color: var(--text); font-weight: 800; }
+.st-stepper button:active { background: var(--surface-3); }
+.st-duration { text-align: center; font-size: 26px; font-weight: 800; font-variant-numeric: tabular-nums; color: var(--live); }
+
+/* ลากวาง */
+.drag-ghost { opacity: .35; }
+.drag-chosen { box-shadow: 0 0 0 2px var(--live), 0 10px 30px rgba(0,0,0,.5); }
+.drag-active { transform: scale(1.02); }
+.song-card[data-movable="1"], .editor-song-item, .tb-item-box:not(.empty) { -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; }
+
+/* โลโก้วงในหน้าเลือกวง */
+.room-square-btn.has-logo { padding: 8px; display: flex; align-items: center; justify-content: center; }
+.room-square-btn.has-logo img { max-width: 100%; max-height: 100%; object-fit: contain; display: block; }
+/* ตั้งค่าโลโก้ (แอดมิน) */
+.logo-row { display: flex; align-items: center; gap: 10px; background: var(--bg); border: 1px solid var(--line); border-radius: var(--r-md); padding: 8px 10px; }
+.logo-prev { width: 56px; height: 56px; flex: none; display: flex; align-items: center; justify-content: center; background: var(--surface-2); border-radius: var(--r-sm); color: var(--text-3); overflow: hidden; }
+.logo-prev img { max-width: 100%; max-height: 100%; object-fit: contain; }
+.logo-name { flex: 1; min-width: 0; font-weight: 700; font-size: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.btn-logo { flex: none; min-height: 40px; padding: 0 12px; display: inline-flex; align-items: center; border-radius: var(--r-md); background: var(--live); color: var(--live-ink); font-weight: 800; font-size: 13px; cursor: pointer; border: 0; }
+.btn-logo.del { background: transparent; color: var(--danger); border: 1px solid var(--danger); }
+
+/* แถบแจ้งเตือนเน็ตหลุด/กลับมา */
+.net-banner { position: fixed; left: 0; right: 0; top: calc(var(--header-h) + env(safe-area-inset-top, 0px)); z-index: 19000; padding: 8px 14px; text-align: center; font-size: 13px; font-weight: 800; }
+.net-banner.off { background: var(--danger); color: #fff; }
+.net-banner.on { background: var(--live); color: var(--live-ink); }
+.net-banner.hidden { display: none; }

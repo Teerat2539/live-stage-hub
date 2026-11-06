@@ -548,6 +548,7 @@
         updates[`rooms/${selectedRoom}/latestTalkback`] = "สแตนบายรอคำสั่ง...";
         updates[`rooms/${selectedRoom}/currentCue`] = null;
         updates[`rooms/${selectedRoom}/requestStats`] = null;
+        updates[`rooms/${selectedRoom}/showTimer/startedAt`] = null; // รีเซ็ตตัวจับเวลาโชว์เมื่อเลือกลิสต์ใหม่
 
         // ส่งคำสั่งอัปเดตเข้า Firebase พร้อมกัน
         await db.ref().update(updates);
@@ -654,7 +655,7 @@
         const setNum = setVal.replace('Set ', '');
 
         html += `
-          <div class="editor-song-item set-color-${setNum}">
+          <div class="editor-song-item set-color-${setNum}" data-idx="${idx}">
             <div>
               <b style="color:#fff;font-size:14px">${idx + 1}. ${title}</b>
               <span class="u-meta"> - ${artist}</span>
@@ -687,6 +688,18 @@
         `;
       });
       container.innerHTML = html;
+      if (!container.__sortable && window.lshDnD) {
+        container.__sortable = window.lshDnD.make(container, {
+          draggable: '.editor-song-item',
+          onEnd: function(evt) {
+            if (evt.oldIndex === evt.newIndex) return;
+            const moved = editorSongsList.splice(evt.oldIndex, 1)[0];
+            editorSongsList.splice(evt.newIndex, 0, moved);
+            isEditorDirty = true;
+            renderEditorSongsList();
+          }
+        });
+      }
     }
 
     window.moveSetlistSong = function(idx, dir) {

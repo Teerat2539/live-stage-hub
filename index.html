@@ -5,8 +5,16 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Live Stage Hub</title>
   <link rel="stylesheet" href="style.css">
+  <link rel="manifest" href="manifest.webmanifest">
+  <meta name="theme-color" content="#0a0b0f">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Stage Hub">
+  <link rel="apple-touch-icon" href="icon-192.png">
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.2/Sortable.min.js"></script>
 </head>
 <body>
   <!-- หน้าโหลดตอนเปิดแอป: ซ่อนอัตโนมัติเมื่อหน้าแรกได้ข้อมูลจาก Firebase (สูงสุด 8 วินาที) -->
@@ -15,8 +23,9 @@
     <div class="splash-bars" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></div>
   </div>
   <div id="lshSpin" class="page-spin" aria-hidden="true"></div>
+  <div id="lshNetBanner" class="net-banner hidden" role="status" aria-live="polite"></div>
   <!-- ชุดไอคอนเส้นบางกลาง (ใช้ <svg class="ic"><use href="#i-ชื่อ"/></svg>) -->
-  <svg xmlns="http://www.w3.org/2000/svg" style="display:none" aria-hidden="true"><symbol id="i-close" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></symbol><symbol id="i-trash" viewBox="0 0 24 24"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 12a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-12M9 7V4h6v3"/></symbol><symbol id="i-menu" viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h16"/></symbol><symbol id="i-mail" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/></symbol><symbol id="i-home" viewBox="0 0 24 24"><path d="M4 11l8-7 8 7"/><path d="M6 9.5V20h12V9.5"/></symbol><symbol id="i-calendar" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></symbol><symbol id="i-mic" viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="12" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></symbol><symbol id="i-music" viewBox="0 0 24 24"><path d="M9 18V5l11-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="17" cy="16" r="3"/></symbol><symbol id="i-play" viewBox="0 0 24 24"><path d="M7 4.5l12 7.5-12 7.5z" fill="currentColor"/></symbol><symbol id="i-prev" viewBox="0 0 24 24"><path d="M18 5L8 12l10 7z"/><path d="M6 5v14"/></symbol><symbol id="i-next" viewBox="0 0 24 24"><path d="M6 5l10 7-10 7z"/><path d="M18 5v14"/></symbol><symbol id="i-star" viewBox="0 0 24 24"><path d="M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1L3.2 9.5l6.1-.9z"/></symbol><symbol id="i-hourglass" viewBox="0 0 24 24"><path d="M6 3h12M6 21h12M7 3c0 5 5 6 5 9s-5 4-5 9M17 3c0 5-5 6-5 9s5 4 5 9"/></symbol><symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol><symbol id="i-pin" viewBox="0 0 24 24"><path d="M12 17v5M9 3h6l-1 6 3 3v2H7v-2l3-3z"/></symbol><symbol id="i-inbox" viewBox="0 0 24 24"><path d="M4 13l2-8h12l2 8v6H4z"/><path d="M4 13h5l1 2h4l1-2h5"/></symbol><symbol id="i-download" viewBox="0 0 24 24"><path d="M12 4v12M7 11l5 5 5-5M4 20h16"/></symbol><symbol id="i-upload" viewBox="0 0 24 24"><path d="M12 16V4M7 9l5-5 5 5M4 20h16"/></symbol><symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></symbol><symbol id="i-alert" viewBox="0 0 24 24"><path d="M12 3l10 18H2z"/><path d="M12 10v5M12 18h.01"/></symbol><symbol id="i-dot" viewBox="0 0 24 24"><circle cx="12" cy="12" r="5" fill="currentColor"/></symbol><symbol id="i-flag" viewBox="0 0 24 24"><path d="M5 21V4M5 4h12l-2 4 2 4H5"/></symbol><symbol id="i-edit" viewBox="0 0 24 24"><path d="M4 20h4L19 9l-4-4L4 16z"/><path d="M13 7l4 4"/></symbol><symbol id="i-save" viewBox="0 0 24 24"><path d="M5 3h11l3 3v15H5z"/><path d="M8 3v6h8V3M8 21v-7h8v7"/></symbol><symbol id="i-note" viewBox="0 0 24 24"><path d="M6 3h9l4 4v14H6z"/><path d="M14 3v5h5M9 13h7M9 17h7"/></symbol><symbol id="i-folder" viewBox="0 0 24 24"><path d="M3 6h6l2 2h10v11H3z"/></symbol><symbol id="i-key" viewBox="0 0 24 24"><circle cx="8" cy="15" r="4"/><path d="M11 12l9-9M16 7l3 3"/></symbol><symbol id="i-users" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.5"/><path d="M2 20c0-4 3-6 7-6s7 2 7 6"/><circle cx="17" cy="9" r="2.5"/><path d="M17 14c3 0 5 2 5 5"/></symbol><symbol id="i-store" viewBox="0 0 24 24"><path d="M4 21V3h12v18M16 9h4v12M8 7h4M8 11h4M8 15h4"/></symbol><symbol id="i-bot" viewBox="0 0 24 24"><rect x="4" y="8" width="16" height="11" rx="3"/><path d="M12 8V4"/><circle cx="12" cy="3" r="1"/><path d="M9 13.5h.01M15 13.5h.01"/></symbol><symbol id="i-gear" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></symbol><symbol id="i-sliders" viewBox="0 0 24 24"><path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12M20 18h0"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="18" r="2"/></symbol><symbol id="i-user" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></symbol><symbol id="i-send" viewBox="0 0 24 24"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4z"/></symbol><symbol id="i-bolt" viewBox="0 0 24 24"><path d="M13 2L4 14h7l-1 8 9-12h-7z"/></symbol><symbol id="i-chat" viewBox="0 0 24 24"><path d="M21 12a8 8 0 0 1-11.6 7.1L4 20l1.2-4.6A8 8 0 1 1 21 12z"/></symbol><symbol id="i-check" viewBox="0 0 24 24"><path d="M5 12l5 5 9-10"/></symbol><symbol id="i-sparkles" viewBox="0 0 24 24"><path d="M12 3l2 5 5 2-5 2-2 5-2-5-5-2 5-2z"/></symbol><symbol id="i-dice" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="3"/><path d="M9 9h.01M15 9h.01M9 15h.01M15 15h.01M12 12h.01"/></symbol><symbol id="i-chev-up" viewBox="0 0 24 24"><path d="M6 15l6-6 6 6"/></symbol><symbol id="i-chev-down" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></symbol><symbol id="i-chev-right" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></symbol><symbol id="i-eraser" viewBox="0 0 24 24"><path d="M3 17l9-9 6 6-6 6H7z"/><path d="M11 20h10"/></symbol><symbol id="i-lock" viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></symbol></svg>
+  <svg xmlns="http://www.w3.org/2000/svg" style="display:none" aria-hidden="true"><symbol id="i-volume" viewBox="0 0 24 24"><path d="M4 9v6h4l5 4V5L8 9H4zM16.5 8.5a5 5 0 0 1 0 7M19 6a8.5 8.5 0 0 1 0 12"/></symbol><symbol id="i-volume-off" viewBox="0 0 24 24"><path d="M4 9v6h4l5 4V5L8 9H4zM17 9.5l5 5M22 9.5l-5 5"/></symbol><symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></symbol><symbol id="i-image" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="10" r="1.6"/><path d="M21 16l-5-5-8 8"/></symbol><symbol id="i-close" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></symbol><symbol id="i-trash" viewBox="0 0 24 24"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 12a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-12M9 7V4h6v3"/></symbol><symbol id="i-menu" viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h16"/></symbol><symbol id="i-mail" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/></symbol><symbol id="i-home" viewBox="0 0 24 24"><path d="M4 11l8-7 8 7"/><path d="M6 9.5V20h12V9.5"/></symbol><symbol id="i-calendar" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></symbol><symbol id="i-mic" viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="12" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></symbol><symbol id="i-music" viewBox="0 0 24 24"><path d="M9 18V5l11-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="17" cy="16" r="3"/></symbol><symbol id="i-play" viewBox="0 0 24 24"><path d="M7 4.5l12 7.5-12 7.5z" fill="currentColor"/></symbol><symbol id="i-prev" viewBox="0 0 24 24"><path d="M18 5L8 12l10 7z"/><path d="M6 5v14"/></symbol><symbol id="i-next" viewBox="0 0 24 24"><path d="M6 5l10 7-10 7z"/><path d="M18 5v14"/></symbol><symbol id="i-star" viewBox="0 0 24 24"><path d="M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1L3.2 9.5l6.1-.9z"/></symbol><symbol id="i-hourglass" viewBox="0 0 24 24"><path d="M6 3h12M6 21h12M7 3c0 5 5 6 5 9s-5 4-5 9M17 3c0 5-5 6-5 9s5 4 5 9"/></symbol><symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol><symbol id="i-pin" viewBox="0 0 24 24"><path d="M12 17v5M9 3h6l-1 6 3 3v2H7v-2l3-3z"/></symbol><symbol id="i-inbox" viewBox="0 0 24 24"><path d="M4 13l2-8h12l2 8v6H4z"/><path d="M4 13h5l1 2h4l1-2h5"/></symbol><symbol id="i-download" viewBox="0 0 24 24"><path d="M12 4v12M7 11l5 5 5-5M4 20h16"/></symbol><symbol id="i-upload" viewBox="0 0 24 24"><path d="M12 16V4M7 9l5-5 5 5M4 20h16"/></symbol><symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></symbol><symbol id="i-alert" viewBox="0 0 24 24"><path d="M12 3l10 18H2z"/><path d="M12 10v5M12 18h.01"/></symbol><symbol id="i-dot" viewBox="0 0 24 24"><circle cx="12" cy="12" r="5" fill="currentColor"/></symbol><symbol id="i-flag" viewBox="0 0 24 24"><path d="M5 21V4M5 4h12l-2 4 2 4H5"/></symbol><symbol id="i-edit" viewBox="0 0 24 24"><path d="M4 20h4L19 9l-4-4L4 16z"/><path d="M13 7l4 4"/></symbol><symbol id="i-save" viewBox="0 0 24 24"><path d="M5 3h11l3 3v15H5z"/><path d="M8 3v6h8V3M8 21v-7h8v7"/></symbol><symbol id="i-note" viewBox="0 0 24 24"><path d="M6 3h9l4 4v14H6z"/><path d="M14 3v5h5M9 13h7M9 17h7"/></symbol><symbol id="i-folder" viewBox="0 0 24 24"><path d="M3 6h6l2 2h10v11H3z"/></symbol><symbol id="i-key" viewBox="0 0 24 24"><circle cx="8" cy="15" r="4"/><path d="M11 12l9-9M16 7l3 3"/></symbol><symbol id="i-users" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.5"/><path d="M2 20c0-4 3-6 7-6s7 2 7 6"/><circle cx="17" cy="9" r="2.5"/><path d="M17 14c3 0 5 2 5 5"/></symbol><symbol id="i-store" viewBox="0 0 24 24"><path d="M4 21V3h12v18M16 9h4v12M8 7h4M8 11h4M8 15h4"/></symbol><symbol id="i-bot" viewBox="0 0 24 24"><rect x="4" y="8" width="16" height="11" rx="3"/><path d="M12 8V4"/><circle cx="12" cy="3" r="1"/><path d="M9 13.5h.01M15 13.5h.01"/></symbol><symbol id="i-gear" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></symbol><symbol id="i-sliders" viewBox="0 0 24 24"><path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12M20 18h0"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="18" r="2"/></symbol><symbol id="i-user" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></symbol><symbol id="i-send" viewBox="0 0 24 24"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4z"/></symbol><symbol id="i-bolt" viewBox="0 0 24 24"><path d="M13 2L4 14h7l-1 8 9-12h-7z"/></symbol><symbol id="i-chat" viewBox="0 0 24 24"><path d="M21 12a8 8 0 0 1-11.6 7.1L4 20l1.2-4.6A8 8 0 1 1 21 12z"/></symbol><symbol id="i-check" viewBox="0 0 24 24"><path d="M5 12l5 5 9-10"/></symbol><symbol id="i-sparkles" viewBox="0 0 24 24"><path d="M12 3l2 5 5 2-5 2-2 5-2-5-5-2 5-2z"/></symbol><symbol id="i-dice" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="3"/><path d="M9 9h.01M15 9h.01M9 15h.01M15 15h.01M12 12h.01"/></symbol><symbol id="i-chev-up" viewBox="0 0 24 24"><path d="M6 15l6-6 6 6"/></symbol><symbol id="i-chev-down" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></symbol><symbol id="i-chev-right" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></symbol><symbol id="i-eraser" viewBox="0 0 24 24"><path d="M3 17l9-9 6 6-6 6H7z"/><path d="M11 20h10"/></symbol><symbol id="i-lock" viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></symbol></svg>
   <script>
     (function () {
       var splashDone = false, timer = null;
@@ -423,6 +432,92 @@
       }).observe(document.body, { childList: true, subtree: true });
       scan(document.body);
     })();
+
+    // ===== ตัวจับเวลาโชว์ (นับถอยหลัง) — เก็บที่ rooms/{วง}/showTimer {enabled,durationMin,startedAt} =====
+    window.lshShowTimer = (function () {
+      const DEFAULT = { enabled: true, durationMin: 90, startedAt: null };
+      const MAX_OVER_MIN = 30;   // ติดลบสูงสุด 30 นาทีแล้วหยุด
+      const MIN_PER_SONG = 5;    // เฉลี่ยเพลงละ 5 นาที
+      let st = Object.assign({}, DEFAULT), room = null, ref = null, cb = null, tick = null;
+      const listeners = [];
+      function info() {
+        const dur = Number(st.durationMin) > 0 ? Number(st.durationMin) : DEFAULT.durationMin;
+        let remMs = dur * 60000;
+        if (st.startedAt) remMs = dur * 60000 - (Date.now() - st.startedAt);
+        remMs = Math.max(remMs, -MAX_OVER_MIN * 60000);
+        const over = remMs < 0;
+        const m = over ? -Math.floor(-remMs / 60000) : Math.ceil(remMs / 60000);
+        const a = Math.abs(m);
+        const text = (m < 0 ? '-' : '') + Math.floor(a / 60) + ':' + String(a % 60).padStart(2, '0');
+        const songs = Math.max(0, Math.round(Math.max(m, 0) / MIN_PER_SONG));
+        return { text, over, idle: !st.startedAt, songs };
+      }
+      function render() {
+        const el = document.getElementById('showTimerDisplay');
+        if (el) {
+          if (!room || !st.enabled) { el.classList.add('hidden'); }
+          else {
+            const i = info();
+            el.classList.remove('hidden');
+            el.classList.toggle('over', i.over);
+            el.classList.toggle('idle', i.idle);
+            el.innerHTML = '<span class="st-time">' + i.text + '</span><span class="st-sub">' +
+              (i.over ? 'เกินเวลา' : 'เหลืออีก ~' + i.songs + ' เพลง') + '</span>';
+          }
+        }
+        listeners.forEach(fn => { try { fn(st, info()); } catch (e) {} });
+      }
+      function bind(r) {
+        if (!r || r === room) return;
+        unbind();
+        room = r;
+        if (typeof db === 'undefined' || !db || !db.ref) return;
+        ref = db.ref('rooms/' + room + '/showTimer');
+        cb = (snap) => { st = Object.assign({}, DEFAULT, snap.val() || {}); render(); };
+        ref.on('value', cb);
+        tick = setInterval(render, 15000);
+        render();
+      }
+      function unbind() {
+        if (ref && cb) { try { ref.off('value', cb); } catch (e) {} }
+        clearInterval(tick); ref = cb = tick = null; room = null; st = Object.assign({}, DEFAULT); render();
+      }
+      return {
+        bind, unbind, render,
+        state: () => Object.assign({}, st), info,
+        onChange: (fn) => { listeners.push(fn); },
+        setConfig: (patch) => ref ? ref.update(patch) : Promise.resolve(),
+        // เริ่มจับเวลา (ครั้งเดียว: ถ้ามีค่าอยู่แล้วจะไม่ทับ)
+        start: () => ref ? ref.child('startedAt').transaction(v => v || Date.now()) : Promise.resolve(),
+        reset: () => ref ? ref.update({ startedAt: null }) : Promise.resolve(),
+        // เรียกจากหน้าจัดคิว: เมื่อมีเพลงจริงเพลงแรกกำลังเล่น ให้เริ่มจับเวลา
+        maybeStart: (queue) => {
+          if (!ref || !st.enabled || st.startedAt) return;
+          if ((queue || []).some(s => s && s.status === 'playing' && s.type !== 'dummy_start' && s.type !== 'dummy_end')) window.lshShowTimer.start();
+        }
+      };
+    })();
+
+    // ===== ลากวางจัดลำดับ (SortableJS): กดค้างที่การ์ด ~0.3 วินาทีแล้วลาก — ถ้าโหลดไลบรารีไม่ได้ ปุ่มเดิมยังใช้ได้ =====
+    window.lshDnD = {
+      make: function (el, opts) {
+        if (!el || typeof Sortable === 'undefined') return null;
+        const o = Object.assign({
+          delay: 300, delayOnTouchOnly: true, touchStartThreshold: 8, animation: 160,
+          filter: 'button, select, input, textarea, a', preventOnFilter: false,
+          ghostClass: 'drag-ghost', chosenClass: 'drag-chosen', dragClass: 'drag-active',
+          scroll: true, scrollSensitivity: 60, scrollSpeed: 12, forceFallback: false
+        }, opts || {});
+        const userEnd = o.onEnd, userStart = o.onStart;
+        o.onStart = function (e) { window.__lshDragging = true; if (navigator.vibrate) { try { navigator.vibrate(15); } catch (x) {} } if (userStart) userStart(e); };
+        o.onEnd = function (e) { window.__lshDragging = false; window.__lshDragAt = Date.now(); if (userEnd) userEnd(e); };
+        // กันการ "คลิก" ที่เกิดขึ้นทันทีหลังปล่อยจากการลาก (เช่น เปิดเมนูการ์ดโดยไม่ตั้งใจ)
+        el.addEventListener('click', function (e) {
+          if (Date.now() - (window.__lshDragAt || 0) < 350) { e.stopPropagation(); e.preventDefault(); }
+        }, true);
+        return Sortable.create(el, o);
+      }
+    };
     window.lshPlain = function(s) { return String(s || '').replace(/^[^\p{L}\p{N}(]+/u, ''); };
   </script>
 
@@ -432,6 +527,7 @@
   <div id="drawerOverlay" class="overlay hidden" onclick="toggleDrawer(false)"></div>
   <aside id="sideDrawer" class="drawer">
     <div class="drawer-header">
+      <div id="displayUserInfo" class="user-info-text drawer-user">ยังไม่ได้เลือกห้อง</div>
       <div style="font-size:12px;color:#a0a0ab">เวลา Session ที่เหลืออยู่:</div>
       <div id="sessionCountdown" style="font-size:18px;font-weight:bold;color:#00f2d1;margin-top:4px">--:--:--</div>
     </div>
@@ -549,9 +645,9 @@
   <header>
     <div class="header-left">
       <button onclick="toggleDrawer(true)" style="background:none;border:none;color:#fff;font-size:20px;cursor:pointer"><svg class="ic ic-solo" aria-hidden="true"><use href="#i-menu"/></svg></button>
-      <span id="displayUserInfo" class="user-info-text">ยังไม่ได้เลือกห้อง</span>
       <span id="pingBadge" class="ping-badge ping-green">-- ms</span>
     </div>
+    <div id="showTimerDisplay" class="show-timer hidden" aria-live="off"></div>
     <div class="header-right">
       <span id="clockDisplay" style="font-size:13px;font-weight:bold;font-family:monospace">00:00:00</span>
       <span id="userEmojiDisplay" style="font-size:18px">👤</span>
@@ -567,19 +663,19 @@
   <nav>
     <button id="nav-monitor" onclick="setActiveNav('monitor')">
       <span class="nav-ico"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="13" rx="2"/><path d="M8 21h8M12 17v4"/></svg></span>
-      <span>มอนิเตอร์</span>
+      <span class="nav-label">Monitor</span>
     </button>
     <button id="nav-search" onclick="setActiveNav('search')">
       <span class="nav-ico"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg></span>
-      <span>ค้นหาคอร์ด</span>
+      <span class="nav-label">Search</span>
     </button>
     <button id="nav-talkback" onclick="setActiveNav('talkback')">
       <span class="nav-ico"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="3" width="6" height="12" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg></span>
-      <span>ท็อคแบค</span>
+      <span class="nav-label">TalkBack</span>
     </button>
     <button id="nav-queue" onclick="setActiveNav('queue')">
       <span class="nav-ico"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg></span>
-      <span>จัดคิว</span>
+      <span class="nav-label">Queue</span>
     </button>
   </nav>
 
@@ -609,9 +705,54 @@
     window.onload = function() {
       startClock();
       startPingCheck();
+      startNetWatch();
+      if ('serviceWorker' in navigator && /^(https:|http:\/\/localhost)/.test(location.protocol + '//' + location.hostname)) {
+        navigator.serviceWorker.register('sw.js').catch(() => {});
+      }
       checkSession();
       setInterval(checkSessionExpiry, 1000);
     };
+
+    // แจ้งเตือนเมื่อเน็ตหลุด/กลับมา (ดูจาก .info/connected ของ Firebase + เหตุการณ์ online/offline ของเบราว์เซอร์)
+    function startNetWatch() {
+      const banner = document.getElementById('lshNetBanner');
+      let wasOffline = false, firstValue = true, hideTimer = null;
+      function show(kind, text) {
+        clearTimeout(hideTimer);
+        banner.className = 'net-banner ' + kind;
+        banner.textContent = text;
+        if (kind === 'on') hideTimer = setTimeout(() => banner.classList.add('hidden'), 3500);
+      }
+      function setOnline(online) {
+        if (!online && !wasOffline) { wasOffline = true; show('off', 'ออฟไลน์ — การแก้ไขอาจยังไม่ซิงค์ จะส่งอัตโนมัติเมื่อกลับมาออนไลน์'); }
+        else if (online && wasOffline) { wasOffline = false; show('on', 'กลับมาออนไลน์แล้ว'); }
+      }
+      db.ref('.info/connected').on('value', (snap) => {
+        const ok = snap.val() === true;
+        if (firstValue) { firstValue = false; if (!ok) setOnline(false); return; }
+        setOnline(ok);
+      });
+      window.addEventListener('offline', () => setOnline(false));
+    }
+
+    // กันหน้าจอดับ (เฉพาะหน้ามอนิเตอร์) — ขอใหม่อัตโนมัติเมื่อกลับมาที่แท็บ
+    window.lshWakeLock = (function () {
+      let lock = null, want = false;
+      async function acquire() {
+        if (!('wakeLock' in navigator) || lock) return;
+        try {
+          lock = await navigator.wakeLock.request('screen');
+          lock.addEventListener('release', () => { lock = null; });
+        } catch (e) { lock = null; }
+      }
+      document.addEventListener('visibilitychange', () => { if (want && document.visibilityState === 'visible') acquire(); });
+      return {
+        sync: function (page) {
+          want = (page === 'monitor');
+          if (want) acquire(); else if (lock) { try { lock.release(); } catch (e) {} lock = null; }
+        }
+      };
+    })();
 
     function startClock() {
       setInterval(() => {
@@ -712,6 +853,7 @@
         updates[`rooms/${room}/latestTalkback`] = "สแตนบายรอคำสั่ง...";
         updates[`rooms/${room}/currentCue`] = null;
         updates[`rooms/${room}/requestStats`] = null;
+        updates[`rooms/${room}/showTimer/startedAt`] = null; // รีเซ็ตตัวจับเวลาโชว์
 
         await db.ref().update(updates);
         localStorage.removeItem('lsh_queue_data');
@@ -886,6 +1028,7 @@
       const userDisplayText = `${session.nickname} ${session.role} : ${session.room}`;
       document.getElementById('displayUserInfo').innerText = userDisplayText;
       document.getElementById('userEmojiDisplay').innerText = session.emoji || '👤';
+      if (window.lshShowTimer) window.lshShowTimer.bind(session.room);
 
       const lastPage = localStorage.getItem('lsh_last_page') || 'monitor';
       const isNavPage = ['monitor', 'search', 'talkback', 'queue'].includes(lastPage);
@@ -935,13 +1078,29 @@
         const mainRooms = roomKeys.filter(r => r !== 'วงเฉพาะกิจ');
         
         mainRooms.forEach(rName => {
-          html += `<button onclick="selectRoom(\`${rName}\`, true)" class="room-square-btn">${rName}<br><span style="font-size:10px;font-weight:normal">(สำหรับสมาชิก)</span></button>`;
+          html += `<button onclick="selectRoom(\`${rName}\`, true)" class="room-square-btn" data-room="${String(rName).replace(/"/g, '&quot;')}">${rName}<br><span style="font-size:10px;font-weight:normal">(สำหรับสมาชิก)</span></button>`;
         });
         
         html += '</div>';
         html += `<button onclick="selectRoom('วงเฉพาะกิจ', false)" class="room-full-btn">วงเฉพาะกิจ (Public)</button>`;
 
         box.innerHTML = html;
+
+        // ถ้าวงมีโลโก้ (roomConfig/{วง}/logo) ให้แสดงโลโก้อย่างเดียวแทนชื่อ — อ่านเฉพาะฟิลด์ logo ไม่อ่าน BotToken/ChatID
+        if (typeof db !== 'undefined' && db && db.ref) {
+          box.querySelectorAll('.room-square-btn[data-room]').forEach(btn => {
+            const name = btn.getAttribute('data-room');
+            db.ref('roomConfig/' + name + '/logo').once('value').then(snap => {
+              const v = snap.val();
+              if (typeof v === 'string' && v.startsWith('data:image/')) {
+                btn.classList.add('has-logo');
+                btn.setAttribute('aria-label', name);
+                btn.innerHTML = '<img alt="">';
+                btn.firstChild.src = v;
+              }
+            }).catch(() => {});
+          });
+        }
       };
 
       try {
@@ -965,6 +1124,7 @@
       localStorage.removeItem('lsh_session');
       localStorage.setItem('lsh_last_page', 'monitor');
       document.getElementById('displayUserInfo').innerText = 'ยังไม่ได้เลือกห้อง';
+      if (window.lshShowTimer) window.lshShowTimer.unbind();
       document.getElementById('mainContentArea').innerHTML = '<p class="u-empty is-lg">กรุณาล็อกอินเพื่อเริ่มใช้งาน...</p>';
       showRoomModal();
     }
@@ -979,6 +1139,7 @@
     }
 
     async function loadPage(pageName) {
+      if (window.lshWakeLock) window.lshWakeLock.sync(pageName);
       const sessionStr = localStorage.getItem('lsh_session');
       if (!sessionStr) {
         showRoomModal();

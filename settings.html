@@ -102,6 +102,13 @@
         <div id="adminRoomListContainer" class="u-col-10"></div>
       </div>
 
+      <!-- 2.1 โลโก้วง (แสดงแทนชื่อวงตอนเลือกวงก่อนล็อกอิน) -->
+      <div class="settings-card">
+        <h3><svg class="ic" aria-hidden="true"><use href="#i-image"/></svg> โลโก้วง</h3>
+        <p style="font-size:12px;color:#aaa;margin:0 0 10px">โลโก้จะแสดงแทนชื่อวงในหน้าเลือกวงเท่านั้น (ระบบย่อรูปให้อัตโนมัติ)</p>
+        <div id="adminLogoContainer" class="u-col-10"></div>
+      </div>
+
       <!-- 3. Telegram Bot Settings -->
       <div class="settings-card">
         <h3><svg class="ic" aria-hidden="true"><use href="#i-bot"/></svg> ตั้งค่าแชตบอท Telegram</h3>
@@ -327,6 +334,7 @@
       if (!currentUser) return;
       db.ref(`users/${currentUser}/talkbackCommands`).on('value', (snapshot) => {
         const commands = snapshot.val() || {};
+        window.__tbCmds = commands;
         const grid = document.getElementById('talkbackButtonsGrid');
         let html = '';
 
@@ -346,6 +354,22 @@
           }
         }
         grid.innerHTML = html;
+        if (!grid.__sortable && window.lshDnD) {
+          // ลากวางสลับตำแหน่งปุ่มคำสั่งด่วน (ช่อง 0-5; ลากช่องว่างไม่ได้)
+          grid.__sortable = window.lshDnD.make(grid, {
+            draggable: '.tb-item-box:not(.empty)',
+            onEnd: function(evt) {
+              if (evt.oldIndex === evt.newIndex || !currentUser) return;
+              const arr = [];
+              for (let i = 0; i < 6; i++) arr.push((window.__tbCmds || {})[i] || null);
+              const moved = arr.splice(evt.oldIndex, 1)[0];
+              arr.splice(evt.newIndex, 0, moved);
+              const out = {};
+              arr.forEach((c, i) => { if (c) out[i] = c; });
+              db.ref(`users/${currentUser}/talkbackCommands`).set(Object.keys(out).length ? out : null);
+            }
+          });
+        }
       });
     }
 
@@ -424,7 +448,12 @@
     document.getElementById('btnSubmitAdminPin').onclick = async function() {
       const pin = document.getElementById('adminPinInput').value.trim();
       const snap = await db.ref('users/admin/pin').once('value');
-      const adminPin = String(snap.val() || '123580');
+      // รหัสแอดมินอยู่ที่ users/admin/pin ในฐานข้อมูลเท่านั้น (ไม่มีรหัสสำรองในโค้ด และเปลี่ยนได้ที่ฐานข้อมูลโดยตรง)
+      if (snap.val() === null || snap.val() === undefined || String(snap.val()) === '') {
+        lshAlert('ยังไม่ได้ตั้งรหัสแอดมินในฐานข้อมูล (users/admin/pin) กรุณาติดต่อผู้ดูแลระบบ');
+        return;
+      }
+      const adminPin = String(snap.val());
 
       if (pin === adminPin) {
         document.getElementById('adminGateBox').classList.add('hidden');
@@ -438,6 +467,7 @@
     function loadAdminDashboard() {
       loadAdminUsers();
       loadAdminRooms();
+      loadAdminLogos();
       loadAdminTelegram();
     }
 
@@ -522,6 +552,75 @@
         container.innerHTML = html;
       });
     }
+
+    // 4.2 โลโก้วง: เก็บเป็นข้อความรูป (base64) ที่ roomConfig/{วง}/logo (ฟิลด์เดียว ไม่แตะ BotToken/ChatID)
+    window.__logoRooms = [];
+    async function loadAdminLogos() {
+      const container = document.getElementById('adminLogoContainer');
+      if (!container) return;
+      const rs = await db.ref('rooms').once('value');
+      const rooms = Object.keys(rs.val() || {}).filter(r => r !== 'วงเฉพาะกิจ');
+      window.__logoRooms = rooms;
+      container.innerHTML = rooms.map((r, i) => `
+        <div class="logo-row">
+          <div class="logo-prev" id="logoPrev_${i}"><span>—</span></div>
+          <div class="logo-name"></div>
+          <label class="btn-logo">อัปโหลด<input type="file" accept="image/*" hidden onchange="uploadRoomLogo(${i}, this)"></label>
+          <button type="button" class="btn-logo del" onclick="removeRoomLogo(${i})">ลบ</button>
+        </div>`).join('') || '<div class="u-empty">ยังไม่มีวง</div>';
+      container.querySelectorAll('.logo-name').forEach((el, i) => { el.textContent = rooms[i]; });
+      rooms.forEach(async (r, i) => {
+        const v = (await db.ref(`roomConfig/${r}/logo`).once('value')).val();
+        const prev = document.getElementById('logoPrev_' + i);
+        if (prev && typeof v === 'string' && v.startsWith('data:image/')) prev.innerHTML = '<img alt="">', prev.firstChild.src = v;
+      });
+    }
+
+    // ย่อรูปในเครื่องก่อนส่ง: สูงไม่เกิน 256px กว้างไม่เกิน 512px เป็น PNG (คงพื้นโปร่งใส) และพยายามให้ไม่เกินราว 60 KB
+    function shrinkLogo(file) {
+      return new Promise((resolve, reject) => {
+        const url = URL.createObjectURL(file);
+        const img = new Image();
+        img.onload = () => {
+          URL.revokeObjectURL(url);
+          let scale = Math.min(1, 256 / img.height, 512 / img.width);
+          for (let n = 0; n < 8; n++) {
+            const c = document.createElement('canvas');
+            c.width = Math.max(1, Math.round(img.width * scale));
+            c.height = Math.max(1, Math.round(img.height * scale));
+            c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+            const out = c.toDataURL('image/png');
+            if (out.length <= 82000) return resolve(out);
+            scale *= 0.8;
+          }
+          reject(new Error('รูปซับซ้อนเกินไป ลองใช้รูปที่เรียบง่ายหรือขนาดเล็กลง'));
+        };
+        img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('อ่านไฟล์รูปไม่ได้')); };
+        img.src = url;
+      });
+    }
+    window.uploadRoomLogo = async function(i, input) {
+      const file = input.files && input.files[0];
+      const room = window.__logoRooms[i];
+      input.value = '';
+      if (!file || !room) return;
+      if (!/^image\//.test(file.type)) { lshAlert('กรุณาเลือกไฟล์รูปภาพ'); return; }
+      try {
+        const dataUrl = await shrinkLogo(file);
+        await db.ref(`roomConfig/${room}/logo`).set(dataUrl);
+        const prev = document.getElementById('logoPrev_' + i);
+        if (prev) { prev.innerHTML = '<img alt="">'; prev.firstChild.src = dataUrl; }
+        lshToast('บันทึกโลโก้วง ' + room + ' แล้ว', 'ok');
+      } catch (e) { lshAlert('อัปโหลดโลโก้ไม่สำเร็จ: ' + e.message); }
+    };
+    window.removeRoomLogo = async function(i) {
+      const room = window.__logoRooms[i];
+      if (!room) return;
+      await db.ref(`roomConfig/${room}/logo`).remove();
+      const prev = document.getElementById('logoPrev_' + i);
+      if (prev) prev.innerHTML = '<span>—</span>';
+      lshToast('ลบโลโก้วง ' + room + ' แล้ว', 'ok');
+    };
 
     // ฟังก์ชันลบวงที่รองรับชื่อที่มีเครื่องหมายพิเศษ
     window.deleteRoom = async function(rName) {
