@@ -525,7 +525,7 @@
           bpm: finalBpm,
           note: item.note || '-',
           set: item.set || 'Set 1',
-          status: idx === 0 ? 'playing' : (idx === 1 ? 'next' : (idx === 2 ? 'standby' : 'normal')),
+          status: idx === 0 ? 'next' : (idx === 1 ? 'standby' : 'normal'), // เพลงแรกรอที่ "ถัดไป" — การ์ดเริ่มการแสดงเป็นตัวกำลังเล่นก่อน
           type: 'normal'
         });
       });
@@ -539,7 +539,11 @@
           activeSetlistId: currentPlaylistId,
           venue: pl.venue || '',
           date: pl.date || '',
-          songs: queuePayload,
+          songs: [
+            { id: 'dummy_start', title: '🔴 เตรียมพร้อมสำหรับการแสดง', artist: '', status: 'playing', type: 'dummy_start' },
+            ...queuePayload,
+            { id: 'dummy_end', title: '🏁 จบการแสดง', artist: '', status: 'normal', type: 'dummy_end' }
+          ],
           updatedAt: Date.now()
         };
 

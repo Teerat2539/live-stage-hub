@@ -256,7 +256,7 @@
         const dur = Number(st.durationMin) || 90;
         const tg = document.getElementById('stToggleBtn'); if (tg) tg.textContent = st.enabled ? 'ปิดตัวจับเวลา' : 'เปิดตัวจับเวลา';
         const d = document.getElementById('stDurationText'); if (d) d.textContent = Math.floor(dur / 60) + ':' + String(dur % 60).padStart(2, '0');
-        const s = document.getElementById('stStatusText'); if (s) s.textContent = !st.enabled ? 'ปิดอยู่ — ไม่แสดงเวลาที่แถบด้านบน' : (st.startedAt ? 'กำลังนับ: เหลือ ' + i.text : 'ยังไม่เริ่ม (เริ่มเมื่อเพลงแรกกำลังเล่น)');
+        const s = document.getElementById('stStatusText'); if (s) s.textContent = !st.enabled ? 'ปิดอยู่ — ไม่แสดงเวลาที่แถบด้านบน' : (st.startedAt ? 'กำลังนับ: เหลือ ' + i.text : 'ยังไม่เริ่ม (เริ่มเมื่อกดเริ่มการแสดง)');
       }
       window.openShowTimerModal = function() { refreshShowTimerModal(); document.getElementById('showTimerModal').classList.remove('hidden'); };
       window.closeShowTimerModal = function(e) { if (!e || e.target.id === 'showTimerModal') document.getElementById('showTimerModal').classList.add('hidden'); };
@@ -267,11 +267,24 @@
       };
       window.resetShowTimer = function() { window.lshShowTimer.reset(); lshToast('รีเซ็ตตัวจับเวลาแล้ว', 'ok'); };
 
+      // 📌 คิวเก่าที่ไม่มีการ์ดเริ่มต้น/จบ: เติมให้ (ถ้าเริ่มเล่นไปแล้วการ์ดเริ่มต้นเป็น "played" ไม่ย้อนสถานะคิวเดิม)
+      function ensureQueueBookends(list) {
+        if (!list || list.length === 0) return;
+        if (!list.some(i => i.type === 'dummy_start')) {
+          const started = list.some(i => i.type !== 'dummy_end' && (i.status === 'playing' || i.status === 'played'));
+          list.unshift({ id: 'dummy_start', title: '🔴 เตรียมพร้อมสำหรับการแสดง', artist: '', status: started ? 'played' : 'playing', type: 'dummy_start' });
+        }
+        if (!list.some(i => i.type === 'dummy_end')) {
+          list.push({ id: 'dummy_end', title: '🏁 จบการแสดง', artist: '', status: 'normal', type: 'dummy_end' });
+        }
+      }
+
       // 📌 รับคิวจาก Firebase มาใช้ที่เครื่องนี้ (และเก็บสำเนาลง LocalStorage)
       function applyRemoteQueue(fb) {
         let songs = fb && fb.songs ? fb.songs : [];
         if (!Array.isArray(songs)) songs = Object.keys(songs).sort((a, b) => a - b).map(k => songs[k]);
         window.queueData = songs.filter(Boolean);
+        ensureQueueBookends(window.queueData);
         window.queueVenue = (fb && fb.venue) || '';
         if (fb && fb.activeSetlistId !== undefined && fb.activeSetlistId !== null) {
           // เก็บ id ลิสต์ที่ใช้งานอยู่ไว้ที่เครื่องนี้ด้วย กันเครื่องนี้เขียนทับเป็นค่าว่างตอนซิงค์
@@ -506,7 +519,7 @@
             let highlightStyle = '';
 
             if (song.status === 'playing') {
-              stateLabel = ' (กำลังสแตนบายหน้าเวที)';
+              stateLabel = song.type === 'dummy_start' ? ' — ยังไม่เริ่ม (กด "เริ่มการแสดง" เมื่อพร้อม)' : ' (กำลังสแตนบายหน้าเวที)';
               highlightStyle = 'border: 2px solid #00f2d1; color: #00f2d1; background: #1a3a3a; padding: 14px; font-size: 15px;';
             } else if (song.status === 'next') {
               stateLabel = ' (เพลงถัดไป)';
@@ -1192,6 +1205,8 @@ window.executeInsertAfterPlaying = function() {
         const lastRealSong = realSongs.length > 0 ? realSongs[realSongs.length - 1] : null;
 
         const isAtStart = Boolean(startCard && startCard.status === 'playing');
+        const nextLabel = isAtStart ? '<svg class="ic" aria-hidden="true"><use href="#i-play"/></svg> เริ่มการแสดง' : '<svg class="ic" aria-hidden="true"><use href="#i-next"/></svg> เพลงถัดไป';
+        if (btnNext.dataset.lbl !== (isAtStart ? 's' : 'n')) { btnNext.innerHTML = nextLabel; btnNext.dataset.lbl = isAtStart ? 's' : 'n'; }
         if (isAtStart) {
           btnPrev.disabled = true;
           btnPrev.style.background = '#222';
