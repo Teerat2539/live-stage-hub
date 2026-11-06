@@ -1343,3 +1343,9 @@ header .header-right { justify-content: flex-end; }
 .net-banner.off { background: var(--danger); color: #fff; }
 .net-banner.on { background: var(--live); color: var(--live-ink); }
 .net-banner.hidden { display: none; }
+
+.drag-grip { flex: none; color: var(--text-3); font-size: 18px; letter-spacing: -2px; user-select: none; }
+.logo-row { -webkit-user-select: none; user-select: none; }
+
+.drawer-menu .drawer-install { margin-top: 12px; border-top: 1px solid var(--line); color: var(--live); }
+.drawer-menu .drawer-install.hidden { display: none; }

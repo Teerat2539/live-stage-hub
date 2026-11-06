@@ -226,34 +226,41 @@
 
       function initMonitorTalkbackListener() {
         if (typeof db !== 'undefined' && db && db.ref) {
-          let lastTbKey = null; // key ข้อความล่าสุดที่แสดงแล้ว (null = ยังไม่เคยโหลด)
-          db.ref(`rooms/${selectedRoom}/talkbacks`).limitToLast(4).on('value', (snapshot) => {
+          // ปลดตัวฟังเก่าก่อนเสมอ (กันตัวฟังซ้อนเมื่อเข้าหน้านี้ซ้ำ ซึ่งทำให้พูดซ้ำ/กระพริบซ้ำ)
+          if (window.__monTbRef && window.__monTbCb) { try { window.__monTbRef.off('value', window.__monTbCb); } catch (e) {} }
+          window.__tbSeenKeys = window.__tbSeenKeys || new Set();
+          let first = true;
+          const ref = db.ref(`rooms/${selectedRoom}/talkbacks`).limitToLast(4);
+          const cb = (snapshot) => {
+            if (!document.getElementById('monitorTalkbackText')) return; // ออกจากหน้ามอนิเตอร์แล้ว
             const val = snapshot.val() || {};
             const keys = Object.keys(val);
             let list = keys.map(k => val[k]).reverse();
 
+            // ข้อความใหม่จริง = key ที่ยังไม่เคยเห็น (โหลดครั้งแรกถือว่าเห็นหมดแล้ว ไม่อ่านย้อนหลัง)
+            const newKeys = first ? [] : keys.filter(k => !window.__tbSeenKeys.has(k));
+            keys.forEach(k => window.__tbSeenKeys.add(k));
+            first = false;
+
             if (list.length > 0) {
               let latest = list[0];
-              const latestKey = keys[keys.length - 1];
-              const isNewMessage = lastTbKey !== null && latestKey !== lastTbKey;
-              lastTbKey = latestKey;
               let timeStr = new Date(latest.timestamp || Date.now()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
               document.getElementById('tbTime').innerText = timeStr;
               document.getElementById('tbSender').innerText = `${latest.sender || 'ระบบ'} ${latest.emoji || '🎵'}`;
               setTalkbackText(latest.message || '');
 
-              // กระพริบ/เลื่อนเข้า/เสียง เฉพาะ "ข้อความใหม่จริง" (ไม่ทำตอนโหลดหน้าครั้งแรกหรือข้อมูลอื่นเปลี่ยน)
-              if (isNewMessage) {
+              // กระพริบ/เลื่อนเข้า 1 ครั้ง และเข้าคิวเสียงพูดทีละข้อความตามลำดับที่ส่งมา
+              if (newKeys.length > 0) {
                 triggerTalkbackFlashAlert();
                 slideInTalkback();
-                announceTalkback(latest.message || '');
+                newKeys.forEach(k => announceTalkback((val[k] && val[k].message) || ''));
               }
               renderTalkbackHistory(list);
-            } else if (lastTbKey === null) {
-              lastTbKey = '';
             }
-          });
+          };
+          ref.on('value', cb);
+          window.__monTbRef = ref; window.__monTbCb = cb;
         }
       }
 
@@ -334,20 +341,36 @@
           setTimeout(done, 260);
         } catch (e) { done(); }
       }
-      function tbSpeak(text) {
-        if (!('speechSynthesis' in window)) return;
+      // พูดข้อความ 1 รอบ แล้วเรียก done เมื่อจบ (มีตัวจับเวลาสำรองเผื่อเบราว์เซอร์ไม่ส่งสัญญาณจบ)
+      function tbSpeak(text, done) {
+        let finished = false;
+        const finish = () => { if (finished) return; finished = true; clearTimeout(guard); if (done) done(); };
         const clean = String(text).replace(/[\u{1F000}-\u{1FAFF}\u{2600}-\u{27BF}\u{FE0F}\u{200D}]/gu, ' ').replace(/\s+/g, ' ').trim();
-        if (!clean) return;
+        const guard = setTimeout(finish, 5000 + clean.length * 260);
+        if (!('speechSynthesis' in window) || !clean) { finish(); return; }
         const u = new SpeechSynthesisUtterance(clean);
         u.lang = 'th-TH';
         if (tbThaiVoice) u.voice = tbThaiVoice;
         u.volume = tbSnd.vol; u.rate = tbSnd.rate;
-        speechSynthesis.speak(u);
+        u.onend = finish; u.onerror = finish;
+        try { speechSynthesis.speak(u); } catch (e) { finish(); }
+      }
+      // คิวเสียง: ข้อความแรกอ่านจบก่อน แล้วค่อยปี๊บ + อ่านข้อความถัดไป (รอไม่เกิน 5 ข้อความ)
+      window.__tbSpeechQ = window.__tbSpeechQ || { items: [], busy: false };
+      function runTbQueue() {
+        const q = window.__tbSpeechQ;
+        if (q.busy) return;
+        const t = q.items.shift();
+        if (t === undefined) return;
+        q.busy = true;
+        tbBeep(() => tbSpeak(t, () => { q.busy = false; setTimeout(runTbQueue, 350); }));
       }
       function announceTalkback(text) {
         if (!tbSnd.on) return;
-        try { if ('speechSynthesis' in window) speechSynthesis.cancel(); } catch (e) {}
-        tbBeep(() => tbSpeak(text));
+        const q = window.__tbSpeechQ;
+        q.items.push(text);
+        while (q.items.length > 5) q.items.shift();
+        runTbQueue();
       }
       function updateTbSoundUi() {
         const btn = document.getElementById('tbSoundBtn');
@@ -368,7 +391,7 @@
         tbSnd.on = !tbSnd.on; saveTbSnd(); updateTbSoundUi();
         if (tbSnd.on) { testTbSound(); } // การแตะครั้งนี้ปลดล็อกเสียงของเบราว์เซอร์
       }
-      function testTbSound() { try { speechSynthesis.cancel(); } catch (e) {} tbBeep(() => tbSpeak('ทดสอบเสียงท็อคแบค')); }
+      function testTbSound() { tbBeep(() => tbSpeak('ทดสอบเสียงท็อคแบค')); }
       document.getElementById('tbVolRange').addEventListener('input', (e) => { tbSnd.vol = e.target.value / 100; saveTbSnd(); updateTbSoundUi(); });
       document.getElementById('tbRateRange').addEventListener('input', (e) => { tbSnd.rate = parseFloat(e.target.value); saveTbSnd(); updateTbSoundUi(); });
       updateTbSoundUi();

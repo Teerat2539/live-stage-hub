@@ -104,8 +104,8 @@
 
       <!-- 2.1 โลโก้วง (แสดงแทนชื่อวงตอนเลือกวงก่อนล็อกอิน) -->
       <div class="settings-card">
-        <h3><svg class="ic" aria-hidden="true"><use href="#i-image"/></svg> โลโก้วง</h3>
-        <p style="font-size:12px;color:#aaa;margin:0 0 10px">โลโก้จะแสดงแทนชื่อวงในหน้าเลือกวงเท่านั้น (ระบบย่อรูปให้อัตโนมัติ)</p>
+        <h3><svg class="ic" aria-hidden="true"><use href="#i-image"/></svg> โลโก้วงและลำดับปุ่มวง</h3>
+        <p style="font-size:12px;color:#aaa;margin:0 0 10px">กดค้างที่แถวแล้วลากเพื่อสลับลำดับปุ่มวงในหน้าเลือกวง (วงที่ยังไม่ได้จัดลำดับจะอยู่ท้ายสุด) โลโก้จะแสดงแทนชื่อวงเฉพาะหน้าเลือกวง ระบบย่อรูปให้อัตโนมัติ
         <div id="adminLogoContainer" class="u-col-10"></div>
       </div>
 
@@ -553,27 +553,44 @@
       });
     }
 
-    // 4.2 โลโก้วง: เก็บเป็นข้อความรูป (base64) ที่ roomConfig/{วง}/logo (ฟิลด์เดียว ไม่แตะ BotToken/ChatID)
-    window.__logoRooms = [];
+    // 4.2 โลโก้วง + ลำดับปุ่มวง: เก็บที่ roomConfig/{วง}/logo (base64) และ roomConfig/{วง}/sortOrder (ตัวเลข) — ไม่แตะ BotToken/ChatID
     async function loadAdminLogos() {
       const container = document.getElementById('adminLogoContainer');
       if (!container) return;
       const rs = await db.ref('rooms').once('value');
-      const rooms = Object.keys(rs.val() || {}).filter(r => r !== 'วงเฉพาะกิจ');
-      window.__logoRooms = rooms;
-      container.innerHTML = rooms.map((r, i) => `
+      const names = Object.keys(rs.val() || {}).filter(r => r !== 'วงเฉพาะกิจ');
+      const meta = await Promise.all(names.map(async r => {
+        const [o, l] = await Promise.all([db.ref(`roomConfig/${r}/sortOrder`).once('value'), db.ref(`roomConfig/${r}/logo`).once('value')]);
+        const order = Number(o.val());
+        return { name: r, order: Number.isFinite(order) && o.val() !== null ? order : Infinity, logo: l.val() };
+      }));
+      meta.sort((a, b) => (a.order - b.order) || a.name.localeCompare(b.name, 'th'));
+      container.innerHTML = meta.map(() => `
         <div class="logo-row">
-          <div class="logo-prev" id="logoPrev_${i}"><span>—</span></div>
+          <span class="drag-grip" aria-hidden="true">⋮⋮</span>
+          <div class="logo-prev"><span>—</span></div>
           <div class="logo-name"></div>
-          <label class="btn-logo">อัปโหลด<input type="file" accept="image/*" hidden onchange="uploadRoomLogo(${i}, this)"></label>
-          <button type="button" class="btn-logo del" onclick="removeRoomLogo(${i})">ลบ</button>
+          <label class="btn-logo">อัปโหลด<input type="file" accept="image/*" hidden onchange="uploadRoomLogo(this)"></label>
+          <button type="button" class="btn-logo del" onclick="removeRoomLogo(this)">ลบ</button>
         </div>`).join('') || '<div class="u-empty">ยังไม่มีวง</div>';
-      container.querySelectorAll('.logo-name').forEach((el, i) => { el.textContent = rooms[i]; });
-      rooms.forEach(async (r, i) => {
-        const v = (await db.ref(`roomConfig/${r}/logo`).once('value')).val();
-        const prev = document.getElementById('logoPrev_' + i);
-        if (prev && typeof v === 'string' && v.startsWith('data:image/')) prev.innerHTML = '<img alt="">', prev.firstChild.src = v;
+      container.querySelectorAll('.logo-row').forEach((row, i) => {
+        row.dataset.room = meta[i].name;
+        row.querySelector('.logo-name').textContent = meta[i].name;
+        const v = meta[i].logo;
+        if (typeof v === 'string' && v.startsWith('data:image/')) { const prev = row.querySelector('.logo-prev'); prev.innerHTML = '<img alt="">'; prev.firstChild.src = v; }
       });
+      // ลากวางสลับลำดับปุ่มวง (กดค้างที่แถว) — บันทึกทันทีเป็น sortOrder 1..N
+      if (!container.__sortable && window.lshDnD) {
+        container.__sortable = window.lshDnD.make(container, {
+          draggable: '.logo-row',
+          onEnd: async function() {
+            const upd = {};
+            container.querySelectorAll('.logo-row').forEach((row, i) => { upd[`roomConfig/${row.dataset.room}/sortOrder`] = i + 1; });
+            try { await db.ref().update(upd); lshToast('บันทึกลำดับปุ่มวงแล้ว', 'ok'); }
+            catch (e) { lshAlert('บันทึกลำดับไม่สำเร็จ: ' + e.message); }
+          }
+        });
+      }
     }
 
     // ย่อรูปในเครื่องก่อนส่ง: สูงไม่เกิน 256px กว้างไม่เกิน 512px เป็น PNG (คงพื้นโปร่งใส) และพยายามให้ไม่เกินราว 60 KB
@@ -599,26 +616,27 @@
         img.src = url;
       });
     }
-    window.uploadRoomLogo = async function(i, input) {
+    window.uploadRoomLogo = async function(input) {
       const file = input.files && input.files[0];
-      const room = window.__logoRooms[i];
+      const row = input.closest('.logo-row');
+      const room = row && row.dataset.room;
       input.value = '';
       if (!file || !room) return;
       if (!/^image\//.test(file.type)) { lshAlert('กรุณาเลือกไฟล์รูปภาพ'); return; }
       try {
         const dataUrl = await shrinkLogo(file);
         await db.ref(`roomConfig/${room}/logo`).set(dataUrl);
-        const prev = document.getElementById('logoPrev_' + i);
-        if (prev) { prev.innerHTML = '<img alt="">'; prev.firstChild.src = dataUrl; }
+        const prev = row.querySelector('.logo-prev');
+        prev.innerHTML = '<img alt="">'; prev.firstChild.src = dataUrl;
         lshToast('บันทึกโลโก้วง ' + room + ' แล้ว', 'ok');
       } catch (e) { lshAlert('อัปโหลดโลโก้ไม่สำเร็จ: ' + e.message); }
     };
-    window.removeRoomLogo = async function(i) {
-      const room = window.__logoRooms[i];
+    window.removeRoomLogo = async function(btn) {
+      const row = btn.closest('.logo-row');
+      const room = row && row.dataset.room;
       if (!room) return;
       await db.ref(`roomConfig/${room}/logo`).remove();
-      const prev = document.getElementById('logoPrev_' + i);
-      if (prev) prev.innerHTML = '<span>—</span>';
+      row.querySelector('.logo-prev').innerHTML = '<span>—</span>';
       lshToast('ลบโลโก้วง ' + room + ' แล้ว', 'ok');
     };
 

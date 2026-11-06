@@ -538,6 +538,7 @@
       <button onclick="openClearQueueConfirm()">เคลียร์คิว</button>
       <button onclick="menuAction('ตั้งค่า')">ตั้งค่า</button>
       <button onclick="openLogoutConfirm()" class="is-danger">ออกจากระบบ</button>
+      <button id="menuInstallApp" onclick="openInstallApp()" class="drawer-install"><svg class="ic" aria-hidden="true"><use href="#i-download"/></svg> ติดตั้งแอปลงหน้าจอ</button>
     </div>
   </aside>
 
@@ -545,6 +546,16 @@
   <!-- 2. POPUPS & MODALS                         -->
   <!-- ========================================== -->
   
+  <!-- POPUP ติดตั้งแอปลงหน้าจอ (PWA) -->
+  <div id="installAppModal" class="overlay hidden" onclick="closeInstallApp(event)">
+    <div class="box" onclick="event.stopPropagation()">
+      <h3 style="margin-bottom:10px"><svg class="ic" aria-hidden="true"><use href="#i-download"/></svg> ติดตั้งแอปลงหน้าจอ</h3>
+      <p id="installAppText" class="modal-desc">ต้องการติดตั้ง Live Stage Hub ไว้ที่หน้าจอหลักของเครื่องนี้ใช่หรือไม่?</p>
+      <button id="installAppConfirmBtn" onclick="confirmInstallApp()" class="btn-primary">ติดตั้ง</button>
+      <button onclick="closeInstallApp()" class="btn-ghost">ยกเลิก</button>
+    </div>
+  </div>
+
   <!-- POPUP ยืนยันออกจากระบบ -->
   <div id="logoutConfirmModal" class="overlay hidden">
     <div class="box">
@@ -706,6 +717,7 @@
       startClock();
       startPingCheck();
       startNetWatch();
+      refreshInstallMenu();
       if ('serviceWorker' in navigator && /^(https:|http:\/\/localhost)/.test(location.protocol + '//' + location.hostname)) {
         navigator.serviceWorker.register('sw.js').catch(() => {});
       }
@@ -864,6 +876,41 @@
       } catch (error) {
         lshAlert('เกิดข้อผิดพลาดในการเคลียร์คิว: ' + error.message);
       }
+    }
+
+    // ===== ติดตั้งแอปลงหน้าจอ (PWA) =====
+    window.__deferredInstall = null;
+    window.addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); window.__deferredInstall = e; });
+    function isStandaloneApp() { return (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) || window.navigator.standalone === true; }
+    function isIosDevice() { return /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1); }
+    function refreshInstallMenu() { const b = document.getElementById('menuInstallApp'); if (b) b.classList.toggle('hidden', isStandaloneApp()); }
+    window.addEventListener('appinstalled', () => { window.__deferredInstall = null; refreshInstallMenu(); });
+    function openInstallApp() {
+      toggleDrawer(false);
+      const txt = document.getElementById('installAppText');
+      const btn = document.getElementById('installAppConfirmBtn');
+      if (window.__deferredInstall) {
+        txt.textContent = 'ต้องการติดตั้ง Live Stage Hub ไว้ที่หน้าจอหลักของเครื่องนี้ใช่หรือไม่?';
+        btn.textContent = 'ติดตั้ง';
+      } else if (isIosDevice()) {
+        txt.textContent = 'บน iPad/iPhone: แตะปุ่มแชร์ (สี่เหลี่ยมมีลูกศรขึ้น) ที่แถบของเบราว์เซอร์ แล้วเลือก "เพิ่มลงในหน้าจอโฮม" (Add to Home Screen)';
+        btn.textContent = 'เข้าใจแล้ว';
+      } else {
+        txt.textContent = 'เบราว์เซอร์นี้ยังไม่เปิดให้ติดตั้งจากปุ่มนี้ ให้เปิดเมนูของเบราว์เซอร์ (⋮ หรือ ≡) แล้วเลือก "ติดตั้งแอป" หรือ "เพิ่มไปยังหน้าจอหลัก"';
+        btn.textContent = 'เข้าใจแล้ว';
+      }
+      document.getElementById('installAppModal').classList.remove('hidden');
+    }
+    function closeInstallApp(e) {
+      if (!e || e.target.id === 'installAppModal') document.getElementById('installAppModal').classList.add('hidden');
+    }
+    async function confirmInstallApp() {
+      const ev = window.__deferredInstall;
+      document.getElementById('installAppModal').classList.add('hidden');
+      if (!ev) return;
+      window.__deferredInstall = null;
+      try { await ev.prompt(); await ev.userChoice; } catch (e) {}
+      refreshInstallMenu();
     }
 
     function openLogoutConfirm() {
@@ -1069,38 +1116,39 @@
       modal.classList.remove('hidden');
       if (box) box.innerHTML = '<h3 style="color:#00f2d1">กำลังโหลดรายชื่อวง...</h3>';
 
-      const renderRoomButtons = (roomKeys) => {
+      const renderRoomButtons = async (roomKeys) => {
         if (!box) return;
-        
+        const mainRooms = roomKeys.filter(r => r !== 'วงเฉพาะกิจ');
+
+        // อ่านเฉพาะฟิลด์ sortOrder และ logo ของแต่ละวง (ไม่อ่าน BotToken/ChatID) รอไม่เกิน 1.5 วินาที
+        const metaOf = {};
+        if (typeof db !== 'undefined' && db && db.ref) {
+          const fetchMeta = Promise.all(mainRooms.map(async (r) => {
+            try {
+              const [o, l] = await Promise.all([db.ref('roomConfig/' + r + '/sortOrder').once('value'), db.ref('roomConfig/' + r + '/logo').once('value')]);
+              const n = Number(o.val());
+              metaOf[r] = { order: (o.val() !== null && Number.isFinite(n)) ? n : Infinity, logo: l.val() };
+            } catch (e) { metaOf[r] = { order: Infinity, logo: null }; }
+          }));
+          await Promise.race([fetchMeta, new Promise(res => setTimeout(res, 1500))]);
+        }
+        const ord = (r) => (metaOf[r] ? metaOf[r].order : Infinity);
+        mainRooms.sort((a, b) => (ord(a) - ord(b)) || String(a).localeCompare(String(b), 'th'));
+
         let html = '<h3 style="margin-bottom:10px;color:#00f2d1">เลือกวงดนตรี</h3>';
         html += '<div class="room-grid">';
-        
-        const mainRooms = roomKeys.filter(r => r !== 'วงเฉพาะกิจ');
-        
         mainRooms.forEach(rName => {
-          html += `<button onclick="selectRoom(\`${rName}\`, true)" class="room-square-btn" data-room="${String(rName).replace(/"/g, '&quot;')}">${rName}<br><span style="font-size:10px;font-weight:normal">(สำหรับสมาชิก)</span></button>`;
+          const logo = metaOf[rName] && metaOf[rName].logo;
+          const hasLogo = typeof logo === 'string' && logo.startsWith('data:image/');
+          html += `<button onclick="selectRoom(\`${rName}\`, true)" class="room-square-btn${hasLogo ? ' has-logo' : ''}" data-room="${String(rName).replace(/"/g, '&quot;')}"${hasLogo ? ` aria-label="${String(rName).replace(/"/g, '&quot;')}"` : ''}>${hasLogo ? '<img alt="">' : rName + '<br><span style="font-size:10px;font-weight:normal">(สำหรับสมาชิก)</span>'}</button>`;
         });
-        
         html += '</div>';
         html += `<button onclick="selectRoom('วงเฉพาะกิจ', false)" class="room-full-btn">วงเฉพาะกิจ (Public)</button>`;
-
         box.innerHTML = html;
-
-        // ถ้าวงมีโลโก้ (roomConfig/{วง}/logo) ให้แสดงโลโก้อย่างเดียวแทนชื่อ — อ่านเฉพาะฟิลด์ logo ไม่อ่าน BotToken/ChatID
-        if (typeof db !== 'undefined' && db && db.ref) {
-          box.querySelectorAll('.room-square-btn[data-room]').forEach(btn => {
-            const name = btn.getAttribute('data-room');
-            db.ref('roomConfig/' + name + '/logo').once('value').then(snap => {
-              const v = snap.val();
-              if (typeof v === 'string' && v.startsWith('data:image/')) {
-                btn.classList.add('has-logo');
-                btn.setAttribute('aria-label', name);
-                btn.innerHTML = '<img alt="">';
-                btn.firstChild.src = v;
-              }
-            }).catch(() => {});
-          });
-        }
+        box.querySelectorAll('.room-square-btn.has-logo').forEach(btn => {
+          const m = metaOf[btn.getAttribute('data-room')];
+          if (m && btn.firstChild) btn.firstChild.src = m.logo;
+        });
       };
 
       try {
