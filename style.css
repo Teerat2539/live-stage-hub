@@ -1403,3 +1403,119 @@ header .header-right { justify-content: flex-end; }
 #insertModal.ins-dragging > * { opacity: 0; }
 .ins-ghost { position: fixed; top: 0; left: 0; z-index: 100000; max-width: 80vw; padding: 10px 14px; border-radius: 12px; background: var(--surface-3); border: 1px solid var(--live); color: var(--text); font-weight: 700; font-size: 14px; pointer-events: none; box-shadow: 0 8px 24px rgba(0,0,0,.5); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .ins-dropline { position: fixed; z-index: 100000; height: 4px; border-radius: 2px; background: var(--live); pointer-events: none; box-shadow: 0 0 10px var(--live); }
+
+/* ==========================================================================
+   DESIGN v3 — ตามภาพจำลองที่อนุมัติ: เรียบ แบน ไม่มีแสงเรือง
+   สีสดใช้บอกความหมายเท่านั้น (สีเซ็ต = แถบซ้าย, ถัดไป = น้ำเงิน, กำลังเล่น = มินต์)
+   ========================================================================== */
+:root {
+  --bg: #0B0C10; --surface: #14161C; --surface-2: #1A1D26; --surface-3: #262A33;
+  --line: #20232B; --line-strong: #333845;
+  --text: #F2F3F5; --text-2: #A7ADB8; --text-3: #8A909C;
+  --live: #2EE6C5; --live-ink: #04201B; --live-soft: rgba(46,230,197,.12); --live-line: rgba(46,230,197,.5);
+  --next: #8FB0FF; --next-ink: #0B1530; --next-soft: rgba(79,140,255,.16);
+  --danger: #FF5A5F;
+  --r-lg: 14px; --r-md: 10px;
+  --shadow-card: none;
+}
+body, main { background: var(--bg); }
+header, nav { background: var(--bg); }
+.song-card, .top-box, .tg-control-card, .settings-card, .monitor-top-section, .monitor-progress-bar-container,
+.song-box-current, .song-box-next, .song-box-standby, .monitor-songs-section {
+  box-shadow: none !important; text-shadow: none;
+}
+.badge-playing { box-shadow: none; }
+
+/* แถบบน: ท็อคแบคล่าสุด + เพลงถัดไป */
+.queue-top-bar, .search-top-bar, .tb-top-bar { gap: 8px; padding: 10px 14px; background: var(--bg); border-bottom: 0; }
+.top-box { background: var(--surface) !important; border: 1px solid var(--line-strong) !important; border-radius: 12px; padding: 8px 12px; animation-name: none; }
+.top-box:has(#topTalkbackText), .top-box:has(#tbTopTalkback), #topTalkbackBox { border: 1px solid var(--line-strong) !important; background: var(--surface) !important; }
+.top-box .top-title { font-size: 11px; font-weight: 500; letter-spacing: 0; text-transform: none; color: var(--text-3) !important; }
+.top-box .top-content { font-size: 15px; font-weight: 700; }
+.top-box:has(#topTalkbackText) .top-content, .top-box:has(#tbTopTalkback) .top-content { color: #FF8A8E; }
+.top-box[class*="set-color-"], .top-box#topNextBox, .top-box#tbTopNextBox { border-left: 4px solid var(--set, var(--info)) !important; }
+.top-box[class*="set-color-"] .top-content { color: var(--text); }
+
+/* การ์ดเพลงในคิว: กะทัดรัด เลขซ้าย ชื่อ/ศิลปินเรียงลง เซ็ตเป็นแถบซ้าย */
+.song-card { display: flex; align-items: center; gap: 12px; background: var(--surface) !important; border: 1px solid var(--line-strong); border-radius: 12px; padding: 10px 14px; min-height: 56px; margin: 0 14px 8px; }
+.song-card[class*="set-color-"] { background: var(--surface) !important; border-left: 4px solid var(--set) !important; }
+.song-card .q-no { width: 20px; flex: none; text-align: center; font-size: 15px; font-weight: 500; color: var(--text-3); font-variant-numeric: tabular-nums; }
+.song-card .q-body { min-width: 0; }
+.song-card .song-title-main { font-size: 17px !important; font-weight: 700; margin: 0 !important; line-height: 1.25; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.song-card .q-artist { font-size: 13px; color: var(--text-2); margin-top: 1px; display: flex; align-items: center; gap: 8px; }
+.song-card .q-side { flex: none; font-size: 14px; font-weight: 500; color: var(--text-2); font-variant-numeric: tabular-nums; }
+.song-card .set-pill { font-size: 11px; font-weight: 700; padding: 1px 8px; border-radius: 999px; background: var(--surface-3); color: var(--text-2); }
+.badge-tag { margin: 0; font-size: 11px; font-weight: 700; padding: 1px 8px; border-radius: 999px; }
+.song-card .q-playing { flex: none; display: flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 700; color: var(--live); }
+.song-card .q-playing i { width: 7px; height: 7px; border-radius: 50%; background: var(--live); }
+.song-card.played { opacity: .45; border-style: solid; }
+.song-card.played .song-title-main { text-decoration: line-through; text-decoration-thickness: 1px; font-size: 15px !important; }
+
+/* เพลงถัดไป: การ์ดใหญ่ กรอบน้ำเงิน ชิป KEY / BPM */
+.song-card.next-song { flex-wrap: nowrap; align-items: flex-start; padding: 14px 14px 14px 14px; border: 1.5px solid var(--info) !important; background: var(--surface) !important; animation: none; }
+.song-card.next-song .song-title-main { font-size: 22px !important; font-weight: 800; }
+.song-card.next-song .q-artist { font-size: 15px; }
+.song-card.next-song .q-no { padding-top: 6px; }
+.q-tag { display: inline-block; align-self: flex-start; margin-bottom: 6px; padding: 2px 10px; border-radius: 8px; background: rgba(79,140,255,.18); color: var(--next); font-size: 12px; font-weight: 700; }
+.q-chips { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
+.q-chip { padding: 4px 10px; border-radius: 8px; background: var(--surface-3); color: var(--text); font-size: 12px; font-weight: 700; letter-spacing: .02em; }
+.q-note { margin-top: 10px; font-size: 13px; color: var(--text-2); }
+.song-card.inserted-request, .song-card.inserted-custom { background: var(--surface) !important; }
+.song-card.inserted-request .song-title-main { color: var(--text); }
+
+/* ปุ่มเลื่อนขึ้น/ลง: เล็กเรียบ */
+.btn-move { width: 44px; height: 40px; min-height: 0; border-radius: 10px; background: var(--surface-2); border: 1px solid var(--line-strong); color: var(--text); }
+.btn-move:disabled { background: transparent; border-color: var(--line); color: var(--text-3); opacity: .5; cursor: not-allowed; }
+.move-buttons { display: flex; flex-direction: column; gap: 6px; }
+.song-card:not(.next-song) .move-buttons { flex-direction: row; }
+.song-card:not(.next-song) .btn-move { width: 38px; height: 36px; }
+
+/* แถบล่าง + นำทาง */
+.queue-bottom-bar { background: var(--bg); border-top: 1px solid var(--line); gap: 10px; padding: 12px 14px; }
+nav { border-top: 1px solid var(--line); }
+nav button { color: var(--text-3); }
+nav button.active { color: var(--live); }
+nav button.active::before { background: var(--live-soft); border-radius: 22px; box-shadow: none; }
+.btn-action-main { background: transparent; border-radius: 14px; }
+.btn-feel { border: 1.5px solid var(--live-line); color: var(--live); }
+.btn-request { border: 1.5px solid rgba(255,95,210,.55); color: #FF8AE0; }
+.chat-bubble.other { border-left: 1px solid var(--line-strong); border-radius: 14px; }
+.chat-bubble.self { background: rgba(46,230,197,.14); color: var(--text); border: 1px solid var(--live-line); border-radius: 14px; font-weight: 500; }
+.song-card { margin: 0 0 8px; }
+.top-box { flex: 1 1 0; min-width: 0; }
+.top-box .top-content { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.btn-prev, .btn-insert { background: transparent; border: 1.5px solid var(--line-strong); color: var(--text); }
+.btn-insert { color: var(--text); }
+.btn-next { background: var(--live); color: var(--live-ink); }
+.btn-control:disabled { background: var(--surface-2); border: 1px solid var(--line); color: var(--text-3); opacity: .6; cursor: not-allowed; }
+.search-top-bar, .queue-top-bar, .tb-top-bar { grid-template-columns: minmax(0,1fr) minmax(0,1fr); }
+.song-card .q-go { flex: none; width: 20px; height: 20px; color: var(--text-3); }
+.search-main-content { padding: 4px 14px 14px; }
+.search-main-content .song-card .song-title-main { font-size: 17px !important; }
+.search-main-content .song-card.next-song { align-items: center; padding: 10px 14px; }
+.search-main-content .song-card.next-song .song-title-main { font-size: 17px !important; font-weight: 700; }
+.search-input-section { background: var(--bg); border-top: 1px solid var(--line); padding: 12px 14px; }
+.search-text-input { background: var(--surface); border: 1px solid var(--line-strong); border-radius: 12px; }
+.search-btn-submit { background: var(--live); color: var(--live-ink); border-radius: 12px; }
+
+/* ท็อคแบค: ปุ่มสั่งงานเรียงแถวเดียว เรียบ */
+.action-row { flex-direction: row; gap: 10px; }
+.action-row .btn-action-main { flex: 1 1 0; min-width: 0; min-height: 52px; padding: 0 8px; font-size: 14px; font-weight: 700; background: transparent !important; box-shadow: none !important; border-left-width: 1.5px !important; display: flex; align-items: center; justify-content: center; gap: 8px; text-align: center; }
+.btn-feel { background: rgba(46,230,197,.08) !important; }
+.btn-request { background: rgba(255,95,210,.08) !important; }
+.section-title { font-size: 13px; font-weight: 500; letter-spacing: 0; text-transform: none; color: var(--text-3); }
+.tg-control-card { padding: 12px 16px; }
+.tb-input { background: var(--surface); border: 1px solid var(--line-strong); border-radius: 12px; }
+.btn-send { background: var(--live); color: var(--live-ink); border-radius: 12px; box-shadow: none; }
+.tb-bottom-bar { background: var(--bg); border-top: 1px solid var(--line); }
+
+/* มอนิเตอร์: แบน เพลงถัดไปเด่นสุด (กรอบน้ำเงิน) */
+.monitor-container { gap: 10px; padding: 12px 14px; }
+.monitor-top-section { border: 1px solid var(--line-strong) !important; background: var(--surface) !important; border-radius: 16px; }
+.monitor-songs-section { background: transparent !important; border: 0 !important; padding: 0 !important; gap: 10px; }
+.song-box-current, .song-box-standby { background: var(--surface) !important; border: 1px solid var(--line-strong) !important; border-radius: 12px; }
+.song-box-current { border-left: 4px solid var(--live) !important; }
+.song-box-next { background: var(--surface) !important; border: 1.5px solid var(--info) !important; border-radius: 16px; animation-name: none; }
+.song-box-next .box-label { color: var(--next) !important; }
+.box-label { font-size: 12px; font-weight: 700; letter-spacing: 0; text-transform: none; }
+.monitor-progress-bar-container { background: var(--surface); border: 1px solid var(--line); }

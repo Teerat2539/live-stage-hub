@@ -564,21 +564,24 @@
 
         if (song.type === 'inserted-custom') {
           customClass = 'inserted-custom';
-          badgeHtml = '<span class="badge-tag badge-custom">[เพลงแทรก]</span>';
+          badgeHtml = '<span class="badge-tag badge-custom">แทรก</span>';
         } else if (song.type === 'inserted-request') {
           customClass = 'inserted-request';
-          badgeHtml = '<span class="badge-tag badge-request">[ลูกค้ารีเควส]</span>';
+          badgeHtml = '<span class="badge-tag badge-request">รีเควส</span>';
         }
 
         if (stateClass === 'next') customClass += ' next-song';
         if (stateClass === 'played') customClass += ' played';
 
-        let bpmDisplay = (song.bpm && song.bpm !== '-') ? ` | BPM: ${song.bpm}` : '';
+        const hasBpm = song.bpm && song.bpm !== '-';
+        const hasKey = song.key && song.key !== '-';
+        const hasNote = song.note && String(song.note).trim() && String(song.note).trim() !== '-';
+        const isNext = stateClass === 'next';
 
         let actionsHtml = '';
         if (stateClass === 'playing') {
-          actionsHtml = `<div style="font-size:11px;color:#00f2d1;font-weight:bold;background:#1a3a3a;padding:4px 8px;border-radius:4px;border:1px solid #00f2d1">กำลังเล่น</div>`;
-        } else {
+          actionsHtml = `<div class="q-playing"><i></i>กำลังเล่น</div>`;
+        } else if (stateClass !== 'played') {
           let movableSongs = window.queueData.filter(i => 
             i.status !== 'removed' && 
             i.status !== 'played' && 
@@ -591,16 +594,8 @@
           let isFirstMovable = (movableIndex === 0);
           let isLastMovable = (movableIndex === movableSongs.length - 1);
 
-          let btnActiveStyle = `background: #222; border: 1px solid #444; color: #fff; cursor: pointer;`;
-          let btnDisabledStyle = `background: #181920; border: 1px solid #2a2c38; color: #444; cursor: not-allowed;`;
-
-          let upBtnAttr = isFirstMovable 
-            ? `disabled style="${btnDisabledStyle}"` 
-            : `onclick="event.stopPropagation(); moveSongUp('${song.id}')" style="${btnActiveStyle}"`;
-
-          let downBtnAttr = isLastMovable 
-            ? `disabled style="${btnDisabledStyle}"` 
-            : `onclick="event.stopPropagation(); moveSongDown('${song.id}')" style="${btnActiveStyle}"`;
+          let upBtnAttr = isFirstMovable ? 'disabled' : `onclick="event.stopPropagation(); moveSongUp('${song.id}')"`;
+          let downBtnAttr = isLastMovable ? 'disabled' : `onclick="event.stopPropagation(); moveSongDown('${song.id}')"`;
 
           actionsHtml = `
             <div class="song-actions">
@@ -614,25 +609,23 @@
 
         let cardClickAttr = ''; // เดิมแตะการ์ดแล้วเปิดเมนู ย้าย/ข้าม/ลบ — ถอดออก: ย้ายใช้ลากวาง, ข้าม/ลบใช้ปัดการ์ดไปขวา
 
+        const setPill = /^Set \d+$/.test(setVal) ? '' : `<span class="set-pill">${setVal}</span>`;
+        const chips = isNext
+          ? `<div class="q-chips">${hasKey ? `<span class="q-chip">KEY ${song.key}</span>` : ''}${hasBpm ? `<span class="q-chip">${song.bpm} BPM</span>` : ''}</div>${hasNote ? `<div class="q-note">โน้ต: ${song.note}</div>` : ''}`
+          : '';
+        const side = (!isNext && stateClass !== 'playing' && (hasKey || hasBpm))
+          ? `<div class="q-side">${[hasKey ? song.key : '', hasBpm ? song.bpm : ''].filter(Boolean).join(' · ')}</div>` : '';
+
         return `
           <div class="song-card ${setColorClass} ${customClass}" ${cardClickAttr} data-qid="${song.id}" ${(stateClass === 'normal' || stateClass === 'next' || stateClass === 'standby') ? 'data-movable="1"' : ''}>
-            <div class="u-flex1">
-              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:2px">
-                <div class="u-meta">
-                  ${stateClass.toUpperCase()} ${badgeHtml}
-                </div>
-                ${/^Set \d+$/.test(setVal) ? '' : `<div class="set-pill">${setVal}</div>`}
-              </div>
-              <div class="u-meta">
-                ${indexLabel}. ลำดับคิว
-              </div>
-              <div class="song-title-main" style="font-size:16px;font-weight:bold;margin:2px 0">
-                ${song.title} <span style="font-size:12px;color:#fff;font-weight:normal">- ${song.artist}</span>
-              </div>
-              <div style="font-size:12px;color:#f59e0b">
-                คีย์: ${song.key}${bpmDisplay}${(song.note && String(song.note).trim() && String(song.note).trim() !== '-') ? ' | โน้ต: ' + song.note : ''}
-              </div>
+            <div class="q-no">${indexLabel}</div>
+            <div class="u-flex1 q-body">
+              ${isNext ? '<div class="q-tag">ถัดไป</div>' : ''}
+              <div class="song-title-main">${song.title}${badgeHtml}</div>
+              <div class="q-artist">${song.artist || ''}${setPill}</div>
+              ${chips}
             </div>
+            ${side}
             ${actionsHtml}
           </div>
         `;
@@ -1207,34 +1200,13 @@ window.executeInsertAfterPlaying = function() {
         const isAtStart = Boolean(startCard && startCard.status === 'playing');
         const nextLabel = isAtStart ? '<svg class="ic" aria-hidden="true"><use href="#i-play"/></svg> เริ่มการแสดง' : '<svg class="ic" aria-hidden="true"><use href="#i-next"/></svg> เพลงถัดไป';
         if (btnNext.dataset.lbl !== (isAtStart ? 's' : 'n')) { btnNext.innerHTML = nextLabel; btnNext.dataset.lbl = isAtStart ? 's' : 'n'; }
-        if (isAtStart) {
-          btnPrev.disabled = true;
-          btnPrev.style.background = '#222';
-          btnPrev.style.borderColor = '#444';
-          btnPrev.style.color = '#555';
-          btnPrev.style.cursor = 'not-allowed';
-        } else {
-          btnPrev.disabled = false;
-          btnPrev.style.background = '#00f2d1';
-          btnPrev.style.borderColor = '#00f2d1';
-          btnPrev.style.color = '#00382f';
-          btnPrev.style.cursor = 'pointer';
-        }
+        // สีปุ่มกำหนดใน style.css (.btn-prev / .btn-next / :disabled) — ไม่ใส่สไตล์ inline
+        btnPrev.disabled = isAtStart;
+        ['background', 'borderColor', 'color', 'cursor'].forEach(k => { btnPrev.style[k] = ''; });
 
         const isAtEnd = Boolean(lastRealSong && lastRealSong.status === 'playing');
-        if (isAtEnd) {
-          btnNext.disabled = true;
-          btnNext.style.background = '#222';
-          btnNext.style.borderColor = '#444';
-          btnNext.style.color = '#555';
-          btnNext.style.cursor = 'not-allowed';
-        } else {
-          btnNext.disabled = false;
-          btnNext.style.background = '#00f2d1';
-          btnNext.style.borderColor = '#00f2d1';
-          btnNext.style.color = '#00382f';
-          btnNext.style.cursor = 'pointer';
-        }
+        btnNext.disabled = isAtEnd;
+        ['background', 'borderColor', 'color', 'cursor'].forEach(k => { btnNext.style[k] = ''; });
       }
 
       window.nextSong = function() {
@@ -1365,84 +1337,93 @@ window.executeInsertAfterPlaying = function() {
         lshWatch(topNextText, 'next');
       }
 
-      // ===== ปัดการ์ดไปขวา → ปุ่ม ข้าม / ลบ (ต้องแตะปุ่มอีกครั้ง แล้วผ่านป๊อปอัพยืนยันเดิม) =====
+      // ===== ปัดการ์ดไปขวา → ปุ่ม ข้าม / ลบ (ปัดแล้วค้างเปิดจนกว่าจะเลือกหรือปิดเอง) =====
+      // สถานะ "เปิดอยู่" เก็บเป็น openId (ไม่ผูกกับ element) แล้วคอยวาดซ้ำให้ตรงเสมอ
+      // ถึงคิวจะถูกวาดใหม่ หรือ touchend ตกหล่น ก็ไม่หลุด ปิดได้เฉพาะ: แตะการ์ดนั้น / แตะที่อื่น / ปัดกลับซ้าย / กดปุ่ม
       (function initQueueSwipe() {
         const box = document.getElementById('queueContainer');
         if (!box || box.__swipeInit) return;
         box.__swipeInit = true;
         const W = 148;
-        let card = null, sx = 0, sy = 0, dx = 0, mode = '', open = null;
-        function closeOpen(animate) {
-          if (!open) return;
-          if (!open.card.isConnected) { open.bar.remove(); open = null; return; }
-          open.card.style.transition = animate === false ? 'none' : '';
-          open.card.style.transform = '';
-          const bar = open.bar; setTimeout(() => bar.remove(), animate === false ? 0 : 180);
-          open = null;
-        }
+        let openId = null, card = null, bar = null;
+        let tracking = null, mode = '', dx = 0, lastMove = 0, endedAt = 0;
+        const cardOf = (id) => box.querySelector('.song-card[data-qid="' + id + '"][data-movable="1"]');
+        function removeBar() { if (bar) { bar.remove(); bar = null; } }
         function makeBar(c) {
-          const bar = document.createElement('div');
+          removeBar();
+          bar = document.createElement('div');
           bar.className = 'swipe-actions';
           bar.style.cssText = `top:${c.offsetTop}px;left:${c.offsetLeft}px;height:${c.offsetHeight}px;width:${W}px`;
           const id = c.dataset.qid;
           bar.innerHTML = '<button type="button" class="swipe-btn swipe-skip">' + lshIcon('next') + '<span>ข้าม</span></button>' +
                           '<button type="button" class="swipe-btn swipe-del">' + lshIcon('trash') + '<span>ลบ</span></button>';
-          bar.querySelector('.swipe-skip').onclick = (e) => { e.stopPropagation(); closeOpen(); window.selectedSongId = id; window.confirmSkipSong(); };
-          bar.querySelector('.swipe-del').onclick = (e) => { e.stopPropagation(); closeOpen(); window.selectedSongId = id; window.confirmDeleteSong(); };
+          bar.querySelector('.swipe-skip').onclick = (e) => { e.stopPropagation(); closeSwipe(); window.selectedSongId = id; window.confirmSkipSong(); };
+          bar.querySelector('.swipe-del').onclick = (e) => { e.stopPropagation(); closeSwipe(); window.selectedSongId = id; window.confirmDeleteSong(); };
           box.appendChild(bar);
-          return bar;
+        }
+        // วาดสถานะ "เปิดอยู่" ให้ตรงกับ openId (เรียกซ้ำได้ ไม่เป็นไร)
+        function applyOpen() {
+          if (!openId || mode === 'swipe') return;
+          const c = cardOf(openId);
+          if (!c) { openId = null; card = null; removeBar(); return; }
+          if (c !== card || !bar || !bar.isConnected) { card = c; makeBar(c); c.style.transition = 'none'; }
+          if (c.style.transform !== `translateX(${W}px)`) c.style.transform = `translateX(${W}px)`;
+        }
+        function closeSwipe() {
+          const c = card; openId = null; card = null;
+          if (c && c.isConnected) { c.style.transition = ''; c.style.transform = ''; }
+          const b = bar; bar = null; if (b) setTimeout(() => b.remove(), 180);
+        }
+        function finish() {
+          if (mode !== 'swipe') { tracking = null; mode = ''; return; }
+          endedAt = Date.now(); window.__lshDragAt = endedAt; // กันคลิกที่ตามมา
+          mode = ''; tracking = null;
+          if (card) card.style.transition = '';
+          if (dx > 24) { openId = card ? card.dataset.qid : null; applyOpen(); }
+          else closeSwipe();
         }
         box.addEventListener('touchstart', (e) => {
           const t = e.touches[0];
           const c = e.target.closest && e.target.closest('.song-card[data-movable="1"]');
-          if (open && (!c || c !== open.card) && !e.target.closest('.swipe-actions')) closeOpen();
-          card = c || null; sx = t.clientX; sy = t.clientY; dx = 0; mode = '';
+          if (openId && !(c && c.dataset.qid === openId) && !e.target.closest('.swipe-actions')) closeSwipe();
+          tracking = c || null; sx0 = t.clientX; sy0 = t.clientY; dx = 0; mode = '';
         }, { passive: true });
+        let sx0 = 0, sy0 = 0;
         box.addEventListener('touchmove', (e) => {
-          if (!card || window.__lshDragging) return;
-          const t = e.touches[0], mx = t.clientX - sx, my = t.clientY - sy;
+          if (!tracking || window.__lshDragging) return;
+          const t = e.touches[0], mx = t.clientX - sx0, my = t.clientY - sy0;
           if (!mode) {
+            const isOpen = openId && tracking.dataset.qid === openId;
             if (Math.abs(mx) < 10 && Math.abs(my) < 10) return;
-            if (Math.abs(mx) > Math.abs(my) * 1.5 && (mx > 0 || (open && open.card === card))) {
+            if (Math.abs(mx) > Math.abs(my) * 1.5 && (mx > 0 || isOpen)) {
               mode = 'swipe';
-              if (!open || open.card !== card) { closeOpen(false); open = { card, bar: makeBar(card) }; open.base = 0; }
-              else open.base = W;
+              if (!isOpen) { card = tracking; makeBar(card); openId = null; dx = 0; sx0 = t.clientX - 10; }
+              else { sx0 = t.clientX - (mx > 0 ? 10 : -10); }
               card.style.transition = 'none';
-            } else { mode = 'scroll'; card = null; return; }
+            } else { mode = 'scroll'; tracking = null; return; }
           }
           if (mode === 'swipe') {
             if (e.cancelable) e.preventDefault();
-            dx = Math.max(0, Math.min(W, (open ? open.base : 0) + mx));
+            const base = openId ? W : 0;
+            dx = Math.max(0, Math.min(W, base + (t.clientX - sx0)));
+            lastMove = Date.now();
             card.style.transform = `translateX(${dx}px)`;
           }
         }, { passive: false });
-        function endSwipe(e) {
-          if (mode === 'swipe' && card && open) {
-            window.__lshDragAt = Date.now(); // กันคลิกที่ตามมา
-            card.style.transition = '';
-            // ปัดเกินนิดหน่อยก็ค้างเปิดรอเลือก (ไม่ปิดเองตอนปล่อยมือ) — ปิดเมื่อแตะที่อื่น/แตะการ์ดนั้นอีกครั้ง หรือปัดกลับซ้าย
-            if (dx > 24 || (e && e.type === 'touchcancel')) { card.style.transform = `translateX(${W}px)`; open.id = card.dataset.qid; }
-            else { closeOpen(); }
-          }
-          card = null; mode = '';
-        }
-        // แตะที่การ์ดที่ปัดค้างอยู่ = ปิดการปัด
+        box.addEventListener('touchend', finish);
+        box.addEventListener('touchcancel', finish);
+        // แตะการ์ดที่เปิดค้างอยู่ = ปิด (ไม่นับคลิกที่เกิดจากการปัดเมื่อครู่)
         box.addEventListener('click', (e) => {
-          if (open && e.target.closest('.song-card') === open.card && !e.target.closest('.swipe-actions')) closeOpen();
+          if (Date.now() - endedAt < 600) return;
+          if (openId && e.target.closest('.song-card') === card && !e.target.closest('.swipe-actions')) closeSwipe();
         });
-        // วาดคิวใหม่ (ข้อมูลซิงก์จากเครื่องอื่น) แล้วต้องคงสถานะปัดค้างไว้
-        let restoring = false;
-        new MutationObserver(() => {
-          if (restoring || !open || !open.id) return;
-          if (open.card && open.card.isConnected) return;
-          const c = box.querySelector('.song-card[data-qid="' + open.id + '"][data-movable="1"]');
-          restoring = true;
-          if (c) { c.style.transition = 'none'; c.style.transform = `translateX(${W}px)`; open = { card: c, bar: makeBar(c), id: open.id, base: W }; }
-          else { open = null; }
-          setTimeout(() => { restoring = false; }, 0);
-        }).observe(box, { childList: true });
-        box.addEventListener('touchend', endSwipe);
-        box.addEventListener('touchcancel', endSwipe);
+        // ถ้าคิวถูกวาดใหม่ หรืออะไรรีเซ็ตตำแหน่งการ์ด → วาดสถานะเปิดกลับให้ตรง
+        new MutationObserver(() => applyOpen()).observe(box, { childList: true });
+        const wd = setInterval(() => {
+          if (!box.isConnected) { clearInterval(wd); return; }
+          if (mode === 'swipe' && Date.now() - lastMove > 500) finish(); // touchend ตกหล่น
+          else applyOpen();
+        }, 250);
       })();
 
       // ===== กดค้างเพลงในแผงแทรก (แนะนำ/ค้นหา/รีเควส) แล้วลากไปวางตำแหน่งที่ต้องการในคิว =====

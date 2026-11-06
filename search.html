@@ -156,13 +156,13 @@
 
           let cardHtml = `
             <div class="song-card ${setColorClass} ${customClass}" id="card_${song.id}" onclick="selectSongForSearch('${encodeURIComponent(song.title)}', '${encodeURIComponent(song.artist)}')">
-              <div class="u-flex1">
-                <div class="u-meta" style="margin-bottom:2px">${/^Set \d+$/.test(setVal) ? '' : setVal + ' | '}คีย์: ${song.key || '-'}</div>
-                <div class="song-title-main" style="font-size:15px;font-weight:bold">
-                  ${song.title} <span style="font-size:12px;color:#ccc;font-weight:normal">- ${song.artist}</span>
-                </div>
+              <div class="u-flex1 q-body">
+                ${song.status === 'next' ? '<div class="q-tag">ถัดไป</div>' : ''}
+                ${song.status === 'playing' ? '<div class="q-playing" style="margin-bottom:2px"><i></i>กำลังเล่น</div>' : ''}
+                <div class="song-title-main">${song.title}</div>
+                <div class="q-artist">${song.artist || ''}${/^Set \d+$/.test(setVal) ? '' : `<span class="set-pill">${setVal}</span>`}</div>
               </div>
-              <div>${statusBadge}</div>
+              <svg class="ic q-go" aria-hidden="true"><use href="#i-search"/></svg>
             </div>
           `;
           html += cardHtml;
