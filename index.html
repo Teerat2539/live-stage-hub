@@ -17,6 +17,10 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.2/Sortable.min.js"></script>
 </head>
 <body>
+  <div id="lshRotateHint" role="alert">
+    <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="7" y="2" width="10" height="20" rx="2"/><path d="M11 18h2"/></svg>
+    <div>กรุณาหมุนเครื่องเป็นแนวตั้ง</div>
+  </div>
   <!-- หน้าโหลดตอนเปิดแอป: ซ่อนอัตโนมัติเมื่อหน้าแรกได้ข้อมูลจาก Firebase (สูงสุด 8 วินาที) -->
   <div id="lshSplash" role="status" aria-live="polite">
     <div class="splash-logo"><span>Live</span> <span>Stage</span> <span>Hub</span></div>
@@ -747,21 +751,36 @@
       window.addEventListener('offline', () => setOnline(false));
     }
 
-    // กันหน้าจอดับ (เฉพาะหน้ามอนิเตอร์) — ขอใหม่อัตโนมัติเมื่อกลับมาที่แท็บ
+    // กันหน้าจอดับ (ทุกหน้า) — ขอใหม่อัตโนมัติเมื่อกลับมาที่แอป/แตะจอ เพื่อไม่ให้ต้องปลดล็อกใหม่
     window.lshWakeLock = (function () {
-      let lock = null, want = false;
+      let lock = null, want = true, busy = false;
       async function acquire() {
-        if (!('wakeLock' in navigator) || lock) return;
+        if (!('wakeLock' in navigator) || lock || busy || document.visibilityState !== 'visible') return;
+        busy = true;
         try {
           lock = await navigator.wakeLock.request('screen');
           lock.addEventListener('release', () => { lock = null; });
         } catch (e) { lock = null; }
+        busy = false;
       }
       document.addEventListener('visibilitychange', () => { if (want && document.visibilityState === 'visible') acquire(); });
+      window.addEventListener('focus', () => { if (want) acquire(); });
+      window.addEventListener('pageshow', () => { if (want) acquire(); });
+      // บางเครื่องปล่อยล็อกเงียบๆ: ขอซ้ำเมื่อแตะจอ (ต้องมีการกระทำของผู้ใช้) และตรวจทุก 20 วินาที
+      ['touchstart', 'pointerdown', 'click'].forEach(ev => document.addEventListener(ev, () => { if (want) acquire(); }, { passive: true }));
+      setInterval(() => { if (want) acquire(); }, 20000);
+      acquire();
       return {
         sync: function (page) {
-          want = (page === 'monitor');
-          if (want) acquire(); else if (lock) { try { lock.release(); } catch (e) {} lock = null; }
+          want = true; acquire();
+          // มอนิเตอร์หมุนได้ ทุกหน้าอื่นล็อกแนวตั้ง
+          document.body.classList.toggle('lsh-page-monitor', page === 'monitor');
+          try {
+            if (screen.orientation && screen.orientation.lock) {
+              if (page === 'monitor') screen.orientation.unlock();
+              else screen.orientation.lock('portrait').catch(() => {});
+            }
+          } catch (e) {}
         }
       };
     })();

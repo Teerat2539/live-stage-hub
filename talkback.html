@@ -176,7 +176,7 @@
       buttons.forEach(btn => {
         const b = document.createElement('button');
         b.className = 'btn-quick';
-        if (btn.color) b.style.background = btn.color;
+        if (btn.color) b.style.setProperty('--qc', btn.color); // สีตามที่ตั้งไว้: ย้อมพื้นและขอบ
         b.innerText = btn.name;
         b.onclick = () => setInputValue(btn.action);
         container.appendChild(b);

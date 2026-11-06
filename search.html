@@ -40,6 +40,31 @@
     window.initSearchPageModule = function() {
       let currentQueueList = [];
 
+      // ค่าตั้งค่าการค้นหารายบุคคล: users/{ชื่อผู้ใช้}/searchPrefs (ตั้งในหน้าตั้งค่า)
+      let searchPrefs = { suffix: 'คอร์ด', includeArtist: true, copy: true, copyMode: 'title' };
+      try {
+        const __u = (JSON.parse(localStorage.getItem('lsh_session') || '{}')).username;
+        if (__u) db.ref('users/' + __u + '/searchPrefs').once('value').then(sn => {
+          if (sn.val()) searchPrefs = Object.assign(searchPrefs, sn.val());
+        }).catch(() => {});
+      } catch (e) {}
+      function copyToClipboard(text) {
+        try {
+          if (navigator.clipboard && navigator.clipboard.writeText) {
+            return navigator.clipboard.writeText(text);
+          }
+        } catch (e) {}
+        return new Promise((res, rej) => {
+          try {
+            const t = document.createElement('textarea');
+            t.value = text; t.style.position = 'fixed'; t.style.opacity = '0';
+            document.body.appendChild(t); t.select();
+            const ok = document.execCommand('copy'); t.remove();
+            ok ? res() : rej();
+          } catch (e) { rej(e); }
+        });
+      }
+
       function initSearchQueueListener() {
         const sessionStr = localStorage.getItem('lsh_session');
         const session = sessionStr ? JSON.parse(sessionStr) : {};
@@ -157,7 +182,14 @@
         let artist = decodeURIComponent(encodedArtist);
         let inputEl = document.getElementById('chordSearchInput');
         if (inputEl) {
-          inputEl.value = `${title} ${artist}`; // ไม่สั่งโฟกัส: ไม่เปิดคีย์บอร์ดโดยไม่ตั้งใจ
+          // ไม่สั่งโฟกัส: ไม่เปิดคีย์บอร์ดโดยไม่ตั้งใจ
+          inputEl.value = (searchPrefs.includeArtist === false || !artist) ? title : `${title} ${artist}`;
+        }
+        if (searchPrefs.copy !== false) {
+          const text = (searchPrefs.copyMode === 'both' && artist) ? `${title} ${artist}` : title;
+          copyToClipboard(text)
+            .then(() => lshToast('คัดลอก “' + text + '” แล้ว', 'ok'))
+            .catch(() => lshToast('คัดลอกอัตโนมัติไม่ได้ในเครื่องนี้', 'warn'));
         }
       };
 
@@ -169,7 +201,7 @@
           lshAlert('กรุณาพิมพ์หรือเลือกชื่อเพลงก่อนค้นหาครับ');
           return;
         }
-        let searchQuery = `${keyword} คอร์ด`;
+        let searchQuery = searchPrefs.suffix === undefined ? keyword + ' คอร์ด' : (keyword + ' ' + searchPrefs.suffix).trim();
         let googleUrl = `https://www.google.com/search?q=${encodeURIComponent(searchQuery)}`;
         window.open(googleUrl, '_blank');
       };

@@ -4,12 +4,12 @@
 <link rel="stylesheet" href="style.css">
 
 <div class="settings-page">
-  <!-- เมนูย่อย 4 แท็บ -->
+  <!-- เมนูย่อย 4 แท็บ (สำรองข้อมูลอยู่ในโปรไฟล์) -->
   <div class="settings-tabs">
-    <button class="settings-tab-btn active" onclick="switchSettingsTab('profile')"><svg class="ic" aria-hidden="true"><use href="#i-user"/></svg> ยูสเซอร์โปรไฟล์</button>
-    <button class="settings-tab-btn" onclick="switchSettingsTab('talkback')"><svg class="ic" aria-hidden="true"><use href="#i-mic"/></svg> ท็อคแบคด่วน</button>
-    <button class="settings-tab-btn" onclick="switchSettingsTab('backup')"><svg class="ic" aria-hidden="true"><use href="#i-save"/></svg> สำรองข้อมูล</button>
-    <button class="settings-tab-btn" onclick="switchSettingsTab('advanced')"><svg class="ic" aria-hidden="true"><use href="#i-gear"/></svg> ตั้งค่าขั้นสูง</button>
+    <button class="settings-tab-btn active" onclick="switchSettingsTab('profile')">โปรไฟล์</button>
+    <button class="settings-tab-btn" onclick="switchSettingsTab('talkback')">คำสั่งด่วน</button>
+    <button class="settings-tab-btn" onclick="switchSettingsTab('search')">ค้นหา</button>
+    <button class="settings-tab-btn" onclick="switchSettingsTab('advanced')">ขั้นสูง</button>
   </div>
 
   <!-- ================= TAB 1: USER PROFILE ================= -->
@@ -42,19 +42,6 @@
         <svg class="ic" aria-hidden="true"><use href="#i-key"/></svg> เปลี่ยนรหัส PIN
       </button>
     </div>
-  </div>
-
-  <!-- ================= TAB 2: TALKBACK QUICK COMMANDS ================= -->
-  <div id="tab-talkback" class="settings-content hidden">
-    <div class="settings-card">
-      <h3>คำสั่งด่วนท็อคแบค (6 ปุ่มรายบุคคล)</h3>
-      <p style="font-size:12px;color:#aaa;margin-bottom:10px">แตะที่ปุ่มเพื่อแก้ไขหรือเพิ่มคำสั่งด่วน (เว้นว่างทั้งหมดเพื่อลบคำสั่ง)</p>
-      <div id="talkbackButtonsGrid" class="tb-grid"></div>
-    </div>
-  </div>
-
-  <!-- ================= TAB 3: BACKUP AND RESTORE ================= -->
-  <div id="tab-backup" class="settings-content hidden">
     <div class="settings-card" style="text-align:center;padding:25px">
       <h3 style="text-align:left">สำรองและกู้คืนข้อมูลห้อง</h3>
       <p style="font-size:13px;color:#aaa;margin-bottom:20px">สำรองเฉพาะข้อมูลเซ็ตลิสต์และคลังเพลงประจำห้องปัจจุบัน</p>
@@ -67,6 +54,49 @@
         <svg class="ic" aria-hidden="true"><use href="#i-download"/></svg> Import JSON (กู้คืนข้อมูล)
       </button>
       <input type="file" id="importFileObj" accept=".json" class="hidden" onchange="importJsonData(event)">
+    </div>
+  </div>
+
+  <!-- ================= TAB 2: TALKBACK QUICK COMMANDS ================= -->
+  <div id="tab-talkback" class="settings-content hidden">
+    <div class="settings-card">
+      <h3>คำสั่งด่วนท็อคแบค (6 ปุ่มรายบุคคล)</h3>
+      <p style="font-size:12px;color:#aaa;margin-bottom:10px">แตะที่ปุ่มเพื่อแก้ไขหรือเพิ่มคำสั่งด่วน (เว้นว่างทั้งหมดเพื่อลบคำสั่ง)</p>
+      <div id="talkbackButtonsGrid" class="tb-grid"></div>
+    </div>
+  </div>
+
+  <!-- ================= TAB: SEARCH PREFS ================= -->
+  <div id="tab-search" class="settings-content hidden">
+    <div class="settings-card">
+      <h3>ตัวอย่างคำที่จะค้นหา</h3>
+      <div id="spPreview" style="margin-top:10px;padding:12px 14px;border-radius:12px;background:var(--surface-2);border:1px solid var(--line-strong);font-weight:700;font-size:15px;word-break:break-word"></div>
+    </div>
+    <div class="settings-card">
+      <h3>การค้นหา</h3>
+      <div style="display:flex;align-items:center;gap:12px;margin-top:10px">
+        <div style="flex:1"><div style="font-weight:700;font-size:15px">รวมชื่อศิลปินในคำค้น</div><div style="font-size:12px;color:#aaa;margin-top:2px">ปิดแล้วจะค้นเฉพาะชื่อเพลง</div></div>
+        <label class="switch"><input type="checkbox" id="spIncludeArtist"><span class="slider"></span></label>
+      </div>
+      <div style="font-size:12px;color:#aaa;margin:16px 0 8px">คำที่ต่อท้าย</div>
+      <div id="spSuffixChips" style="display:flex;flex-wrap:wrap;gap:8px"></div>
+      <input type="text" id="spCustomSuffix" class="hidden" placeholder="พิมพ์คำต่อท้ายของคุณ" style="margin-top:10px;width:100%;box-sizing:border-box;padding:10px 12px;font-size:14px;background:#181920;color:#fff;border:1px solid #333;border-radius:8px">
+    </div>
+    <div class="settings-card">
+      <h3>เมื่อแตะการ์ดเพลงในหน้าค้นหา</h3>
+      <p style="font-size:12px;color:#aaa;margin:8px 0 0">ใส่ชื่อลงช่องค้นหาเหมือนเดิม และคัดลอกลงคลิปบอร์ดด้วย (เอาไปวางในแอปอื่น เช่น SongbookPro)</p>
+      <div style="display:flex;align-items:center;gap:12px;margin-top:14px">
+        <div style="flex:1;font-weight:700;font-size:15px">คัดลอกลงคลิปบอร์ด</div>
+        <label class="switch"><input type="checkbox" id="spCopy"><span class="slider"></span></label>
+      </div>
+      <div id="spCopyModeBox" style="display:flex;gap:4px;margin-top:14px;padding:4px;border-radius:12px;background:var(--surface-2);border:1px solid var(--line)">
+        <button type="button" id="spModeTitle" style="flex:1;min-height:40px;border-radius:9px;font-weight:700;font-size:13px">ชื่อเพลงอย่างเดียว</button>
+        <button type="button" id="spModeBoth" style="flex:1;min-height:40px;border-radius:9px;font-weight:700;font-size:13px">ชื่อเพลง + ศิลปิน</button>
+      </div>
+    </div>
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:0 2px 8px">
+      <div style="font-size:12px;color:#aaa">ตั้งค่านี้ใช้เฉพาะบัญชีของคุณ</div>
+      <button type="button" id="spReset" style="min-height:40px;padding:0 14px;border-radius:10px;border:1px solid var(--line-strong);color:var(--text-2);font-weight:600;font-size:13px">คืนค่าเริ่มต้น</button>
     </div>
   </div>
 
@@ -84,8 +114,12 @@
 
     <!-- เนื้อหาภายใน Advanced Settings (แสดงผลหลังผ่าน Admin Gate) -->
     <div id="adminDashboardBox" class="hidden">
+      <div style="display:flex;gap:4px;padding:4px;margin-bottom:12px;border-radius:12px;background:var(--surface);border:1px solid var(--line)">
+        <button type="button" id="admSubUsers" onclick="switchAdminSub('users')" style="flex:1;min-height:40px;border-radius:9px;font-weight:700;font-size:14px">สมาชิก</button>
+        <button type="button" id="admSubBands" onclick="switchAdminSub('bands')" style="flex:1;min-height:40px;border-radius:9px;font-weight:700;font-size:14px">วงและ Telegram</button>
+      </div>
       <!-- 1. User Management -->
-      <div class="settings-card">
+      <div class="settings-card" id="admGroupUsers">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;border-bottom:1px solid #333;padding-bottom:6px">
           <h3 style="margin:0;border:none;padding:0"><svg class="ic" aria-hidden="true"><use href="#i-users"/></svg> จัดการสมาชิก</h3>
           <button onclick="openAddUserModal()" style="background:#00f2d1;border:none;color:#000;font-weight:bold;padding:4px 10px;border-radius:4px;font-size:12px;cursor:pointer">+ เพิ่มสมาชิก</button>
@@ -94,7 +128,7 @@
       </div>
 
       <!-- 2. Room Name Settings -->
-      <div class="settings-card">
+      <div class="settings-card admGroupBands hidden">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;border-bottom:1px solid #333;padding-bottom:6px">
           <h3 style="margin:0;border:none;padding:0"><svg class="ic" aria-hidden="true"><use href="#i-store"/></svg> จัดการชื่อวง / ห้อง</h3>
           <button onclick="openAddRoomModal()" style="background:#00f2d1;border:none;color:#000;font-weight:bold;padding:4px 10px;border-radius:4px;font-size:12px;cursor:pointer">+ เพิ่มวง</button>
@@ -103,14 +137,14 @@
       </div>
 
       <!-- 2.1 โลโก้วง (แสดงแทนชื่อวงตอนเลือกวงก่อนล็อกอิน) -->
-      <div class="settings-card">
+      <div class="settings-card admGroupBands hidden">
         <h3><svg class="ic" aria-hidden="true"><use href="#i-image"/></svg> โลโก้วงและลำดับปุ่มวง</h3>
         <p style="font-size:12px;color:#aaa;margin:0 0 10px">กดค้างที่แถวแล้วลากเพื่อสลับลำดับปุ่มวงในหน้าเลือกวง (วงที่ยังไม่ได้จัดลำดับจะอยู่ท้ายสุด) โลโก้จะแสดงแทนชื่อวงเฉพาะหน้าเลือกวง ระบบย่อรูปให้อัตโนมัติ
         <div id="adminLogoContainer" class="u-col-10"></div>
       </div>
 
       <!-- 3. Telegram Bot Settings -->
-      <div class="settings-card">
+      <div class="settings-card admGroupBands hidden">
         <h3><svg class="ic" aria-hidden="true"><use href="#i-bot"/></svg> ตั้งค่าแชตบอท Telegram</h3>
         <div id="adminTelegramContainer" style="display:flex;flex-direction:column;gap:12px"></div>
         <button id="btnSaveTelegram" class="btn-save-settings" style="margin-top:15px"><svg class="ic" aria-hidden="true"><use href="#i-save"/></svg> บันทึกตั้งค่า Telegram ทั้งหมด</button>
@@ -247,6 +281,83 @@
     let currentTalkbackIndex = null;
     let genericConfirmCallback = null;
 
+    // --- SEARCH PREFS (users/{u}/searchPrefs) ---
+    (function() {
+      const DEF = { suffix: 'คอร์ด', includeArtist: true, copy: true, copyMode: 'title' };
+      const PRESETS = ['คอร์ด', 'โน้ตกลอง', 'แทป', 'คอร์ดเบส'];
+      let prefs = Object.assign({}, DEF);
+      let customMode = false, loaded = false;
+      const $ = id => document.getElementById(id);
+      const ref = () => db.ref('users/' + currentUser + '/searchPrefs');
+      function activeBtn(b, on) {
+        b.style.background = on ? 'var(--live-soft)' : 'transparent';
+        b.style.borderColor = on ? 'var(--live)' : 'var(--line-strong)';
+        b.style.color = on ? 'var(--live)' : 'var(--text-2)';
+        b.setAttribute('aria-pressed', on ? 'true' : 'false');
+      }
+      function render() {
+        const isPreset = PRESETS.includes(prefs.suffix);
+        const chips = PRESETS.map(w => ({ label: w, val: w, on: !customMode && prefs.suffix === w }));
+        chips.push({ label: 'กำหนดเอง…', val: '__custom', on: customMode || (!isPreset && prefs.suffix !== '') });
+        chips.push({ label: 'ไม่ต่อท้าย', val: '', on: !customMode && prefs.suffix === '' });
+        const box = $('spSuffixChips'); box.innerHTML = '';
+        chips.forEach(c => {
+          const b = document.createElement('button'); b.type = 'button'; b.textContent = c.label;
+          b.style.cssText = 'min-height:40px;padding:0 16px;border-radius:20px;border:1px solid;font-weight:600;font-size:14px';
+          activeBtn(b, c.on);
+          b.onclick = () => {
+            if (c.val === '__custom') { customMode = true; $('spCustomSuffix').classList.remove('hidden'); $('spCustomSuffix').focus(); render(); return; }
+            customMode = false; prefs.suffix = c.val; save();
+          };
+          box.appendChild(b);
+        });
+        const showCustom = customMode || (!isPreset && prefs.suffix !== '');
+        $('spCustomSuffix').classList.toggle('hidden', !showCustom);
+        if (showCustom && document.activeElement !== $('spCustomSuffix')) $('spCustomSuffix').value = isPreset ? '' : prefs.suffix;
+        $('spIncludeArtist').checked = !!prefs.includeArtist;
+        $('spCopy').checked = !!prefs.copy;
+        activeBtn($('spModeTitle'), prefs.copyMode !== 'both');
+        activeBtn($('spModeBoth'), prefs.copyMode === 'both');
+        $('spCopyModeBox').style.opacity = prefs.copy ? '1' : '.4';
+        $('spCopyModeBox').style.pointerEvents = prefs.copy ? 'auto' : 'none';
+        $('spPreview').textContent = ['เธอยังคงสวยงาม', prefs.includeArtist ? 'Bodyslam' : '', prefs.suffix].filter(Boolean).join(' ');
+      }
+      function save() {
+        render();
+        if (!currentUser) return;
+        ref().set(prefs).then(() => lshToast('บันทึกการตั้งค่าค้นหาแล้ว', 'ok')).catch(e => lshAlert('บันทึกไม่สำเร็จ: ' + e.message));
+      }
+      window.loadSearchPrefsTab = function() {
+        if (!currentUser) return;
+        ref().once('value').then(snap => {
+          prefs = Object.assign({}, DEF, snap.val() || {});
+          customMode = false; loaded = true; render();
+        }).catch(() => { render(); });
+      };
+      $('spIncludeArtist').onchange = e => { prefs.includeArtist = e.target.checked; save(); };
+      $('spCopy').onchange = e => { prefs.copy = e.target.checked; save(); };
+      $('spModeTitle').onclick = () => { prefs.copyMode = 'title'; save(); };
+      $('spModeBoth').onclick = () => { prefs.copyMode = 'both'; save(); };
+      $('spCustomSuffix').onchange = e => { prefs.suffix = e.target.value.trim(); if (!prefs.suffix) customMode = true; save(); };
+      $('spCustomSuffix').oninput = e => { prefs.suffix = e.target.value.trim(); $('spPreview').textContent = ['เธอยังคงสวยงาม', prefs.includeArtist ? 'Bodyslam' : '', prefs.suffix].filter(Boolean).join(' '); };
+      $('spReset').onclick = () => { prefs = Object.assign({}, DEF); customMode = false; save(); };
+      render();
+    })();
+
+    // --- Admin sub tabs: สมาชิก | วงและ Telegram ---
+    window.switchAdminSub = function(which) {
+      const users = which !== 'bands';
+      document.getElementById('admGroupUsers').classList.toggle('hidden', !users);
+      document.querySelectorAll('.admGroupBands').forEach(el => el.classList.toggle('hidden', users));
+      [['admSubUsers', users], ['admSubBands', !users]].forEach(([id, on]) => {
+        const b = document.getElementById(id);
+        b.style.background = on ? 'var(--surface-3)' : 'transparent';
+        b.style.color = on ? 'var(--text)' : 'var(--text-2)';
+        b.setAttribute('aria-pressed', on ? 'true' : 'false');
+      });
+    };
+    window.switchAdminSub('users');
+
     // --- Switch Tabs ---
     window.switchSettingsTab = function(tabName) {
       document.querySelectorAll('.settings-tab-btn').forEach(btn => btn.classList.remove('active'));
@@ -257,6 +368,7 @@
 
       if (tabName === 'profile') loadUserProfile();
       if (tabName === 'talkback') loadTalkbackCommands();
+      if (tabName === 'search') window.loadSearchPrefsTab();
       if (tabName === 'advanced') {
         // ล้างสถานะ PIN Admin ทุกครั้งที่กดเข้ามาใหม่ตามสเปก
         document.getElementById('adminPinInput').value = '';
@@ -465,16 +577,22 @@
     };
 
     function loadAdminDashboard() {
+      // ปลดตัวฟังเก่าก่อนทุกครั้ง (หน้านี้ถูกโหลดซ้ำทุกครั้งที่เข้า ถ้าไม่ปลดจะซ้อนกันหลายตัว)
+      (window.__admOff || []).forEach(f => { try { f(); } catch (e) {} });
+      window.__admOff = [];
       loadAdminUsers();
-      loadAdminRooms();
-      loadAdminLogos();
+      loadAdminRooms();   // การ์ดโลโก้ (loadAdminLogos) ถูกเรียกจากตัวฟังรายชื่อวงนี้ เพื่อให้วงใหม่โผล่เอง
       loadAdminTelegram();
     }
+
+    // ตรวจชื่อวง: Firebase ไม่อนุญาต . # $ [ ] / ในชื่อ path
+    function badRoomName(n) { return /[.#$\[\]\/]/.test(n); }
 
     // 4.1 จัดการสมาชิก
  // 4.1 จัดการสมาชิก (แก้ได้เฉพาะ Username และ PIN เท่านั้นตามสเปก)
     function loadAdminUsers() {
-      db.ref('users').on('value', (snapshot) => {
+      const __ref = db.ref('users');
+      const __cb = __ref.on('value', (snapshot) => {
         const users = snapshot.val() || {};
         const container = document.getElementById('adminUserListContainer');
         let html = '';
@@ -497,8 +615,9 @@
             </div>
           `;
         });
-        container.innerHTML = html;
+        container.innerHTML = html || '<div class="u-empty">ยังไม่มีสมาชิก</div>';
       });
+      window.__admOff.push(() => __ref.off('value', __cb));
     }
 
     window.saveAdminUser = async function(oldName) {
@@ -512,6 +631,9 @@
 
       try {
         if (newName !== oldName) {
+          if (newName === 'admin' || !/^[a-z0-9_]+$/.test(newName)) { lshAlert('Username ใช้ได้เฉพาะ a-z, 0-9 และ _ (และห้ามใช้ admin)'); return; }
+          const dup = await db.ref(`users/${newName}`).once('value');
+          if (dup.exists()) { lshAlert('มี Username นี้อยู่แล้ว'); return; }
           // ถ้ามีการเปลี่ยน Username ให้ย้ายข้อมูล Node เก่าไป Node ใหม่
           const snap = await db.ref(`users/${oldName}`).once('value');
           if (snap.exists()) {
@@ -531,7 +653,8 @@
     };
 // 4.2 จัดการชื่อวง / ห้อง (ปรับปรุงให้รองรับการลบและอัปเดตอย่างสมบูรณ์)
     function loadAdminRooms() {
-      db.ref('rooms').on('value', (snapshot) => {
+      const __ref = db.ref('rooms');
+      const __cb = __ref.on('value', (snapshot) => {
         const rooms = snapshot.val() || {};
         const container = document.getElementById('adminRoomListContainer');
         let html = '';
@@ -550,7 +673,9 @@
           `;
         });
         container.innerHTML = html;
+        loadAdminLogos();
       });
+      window.__admOff.push(() => __ref.off('value', __cb));
     }
 
     // 4.2 โลโก้วง + ลำดับปุ่มวง: เก็บที่ roomConfig/{วง}/logo (base64) และ roomConfig/{วง}/sortOrder (ตัวเลข) — ไม่แตะ BotToken/ChatID
@@ -641,17 +766,18 @@
     };
 
     // ฟังก์ชันลบวงที่รองรับชื่อที่มีเครื่องหมายพิเศษ
-    window.deleteRoom = async function(rName) {
-      if (!confirm(`ต้องการลบวง ${rName} หรือไม่?`)) return;
-      try {
-        await Promise.all([
-          db.ref('rooms/' + rName).remove(),
-          db.ref('roomConfig/' + rName).remove()
-        ]);
-        lshAlert(`ลบวง ${rName} เรียบร้อย!`);
-      } catch (e) {
-        lshAlert('เกิดข้อผิดพลาดในการลบวง: ' + e.message);
-      }
+    window.deleteRoom = function(rName) {
+      showGenericConfirm('ลบวง', `ต้องการลบวง ${rName} หรือไม่? (ข้อมูลคิวและโลโก้ของวงนี้จะหายทั้งหมด)`, async () => {
+        try {
+          await Promise.all([
+            db.ref('rooms/' + rName).remove(),
+            db.ref('roomConfig/' + rName).remove()
+          ]);
+          lshAlert(`ลบวง ${rName} เรียบร้อย!`);
+        } catch (e) {
+          lshAlert('เกิดข้อผิดพลาดในการลบวง: ' + e.message);
+        }
+      });
     };
     window.openAddRoomModal = () => document.getElementById('addRoomModal').classList.remove('hidden');
     window.closeAddRoomModal = () => document.getElementById('addRoomModal').classList.add('hidden');
@@ -662,11 +788,45 @@
         lshAlert('กรุณากรอกชื่อวง');
         return;
       }
+      if (badRoomName(rName)) { lshAlert('ชื่อวงห้ามมีอักขระ . # $ [ ] /'); return; }
 
-      await db.ref(`rooms/${rName}`).set({ created: Date.now() });
-      await db.ref(`roomConfig/${rName}`).set({ created: Date.now() });
-      closeAddRoomModal();
-      lshAlert('เพิ่มวงใหม่สำเร็จ!');
+      try {
+        const dup = await db.ref(`rooms/${rName}`).once('value');
+        if (dup.exists()) { lshAlert('มีวงชื่อนี้อยู่แล้ว'); return; }
+        await db.ref(`rooms/${rName}`).set({ created: Date.now() });
+        await db.ref(`roomConfig/${rName}`).set({ created: Date.now() });
+        document.getElementById('newRoomNameInput').value = '';
+        closeAddRoomModal();
+        lshAlert('เพิ่มวงใหม่สำเร็จ!');
+      } catch (e) {
+        lshAlert('เพิ่มวงไม่สำเร็จ: ' + e.message);
+      }
+    };
+
+    // เพิ่มสมาชิกใหม่ (ฟังก์ชันที่ปุ่มและป๊อปอัพเรียกใช้อยู่ แต่เดิมยังไม่ได้เขียนไว้)
+    window.openAddUserModal = () => document.getElementById('addUserModal').classList.remove('hidden');
+    window.closeAddUserModal = () => document.getElementById('addUserModal').classList.add('hidden');
+    document.getElementById('btnExecuteAddUser').onclick = async function() {
+      const uName = document.getElementById('newUsernameInput').value.trim().toLowerCase();
+      const nickname = document.getElementById('newNicknameInput').value.trim();
+      // หน้านี้มี id="newPinInput" ซ้ำ 2 ที่ (ป๊อปอัพเปลี่ยน PIN กับป๊อปอัพนี้) จึงอ้างช่องของป๊อปอัพนี้โดยเฉพาะ
+      const pinEl = document.querySelector('#addUserModal #newPinInput');
+      const pin = pinEl ? pinEl.value.trim() : '';
+      if (!uName || !/^[a-z0-9_]+$/.test(uName)) { lshAlert('Username ใช้ได้เฉพาะ a-z, 0-9 และ _'); return; }
+      if (uName === 'admin') { lshAlert('ห้ามใช้ Username นี้'); return; }
+      if (!/^[0-9]{4}$/.test(pin)) { lshAlert('PIN ต้องเป็นตัวเลข 4 หลัก'); return; }
+      try {
+        const dup = await db.ref(`users/${uName}`).once('value');
+        if (dup.exists()) { lshAlert('มี Username นี้อยู่แล้ว'); return; }
+        await db.ref(`users/${uName}`).set({ pin, nickname: nickname || uName });
+        document.getElementById('newUsernameInput').value = '';
+        document.getElementById('newNicknameInput').value = '';
+        if (pinEl) pinEl.value = '';
+        closeAddUserModal();
+        lshAlert('เพิ่มสมาชิกสำเร็จ!');
+      } catch (e) {
+        lshAlert('เพิ่มสมาชิกไม่สำเร็จ: ' + e.message);
+      }
     };
 // ฟังก์ชันบันทึกการเปลี่ยนชื่อวง (พร้อมป๊อปอัพยืนยัน)
     window.saveAdminRoom = async function(oldRoomName) {
@@ -684,6 +844,9 @@
         lshAlert('ชื่อวงยังคงเดิม ไม่มีการเปลี่ยนแปลง');
         return;
       }
+      if (badRoomName(newRoomName)) { lshAlert('ชื่อวงห้ามมีอักขระ . # $ [ ] /'); return; }
+      const dupRoom = await db.ref('rooms/' + newRoomName).once('value');
+      if (dupRoom.exists()) { lshAlert('มีวงชื่อนี้อยู่แล้ว'); return; }
 
       // แสดงป๊อปอัพยืนยันการเปลี่ยนแปลง
       showGenericConfirm('ยืนยันเปลี่ยนชื่อวง', `คุณต้องการเปลี่ยนชื่อวงจาก "${oldRoomName}" เป็น "${newRoomName}" ใช่หรือไม่?`, async () => {
@@ -710,7 +873,8 @@
     }
     // 4.3 Telegram Bot Settings
     function loadAdminTelegram() {
-      db.ref('rooms').on('value', async (snapshot) => {
+      const __ref = db.ref('rooms');
+      const __cb = __ref.on('value', async (snapshot) => {
         const rooms = snapshot.val() || {};
         const container = document.getElementById('adminTelegramContainer');
         let html = '';
@@ -729,6 +893,7 @@
         }
         container.innerHTML = html;
       });
+      window.__admOff.push(() => __ref.off('value', __cb));
     }
     
     document.getElementById('btnSaveTelegram').onclick = async function() {

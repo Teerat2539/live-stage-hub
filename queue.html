@@ -1365,6 +1365,160 @@ window.executeInsertAfterPlaying = function() {
         lshWatch(topNextText, 'next');
       }
 
+      // ===== ปัดการ์ดไปขวา → ปุ่ม ข้าม / ลบ (ต้องแตะปุ่มอีกครั้ง แล้วผ่านป๊อปอัพยืนยันเดิม) =====
+      (function initQueueSwipe() {
+        const box = document.getElementById('queueContainer');
+        if (!box || box.__swipeInit) return;
+        box.__swipeInit = true;
+        const W = 148;
+        let card = null, sx = 0, sy = 0, dx = 0, mode = '', open = null;
+        function closeOpen(animate) {
+          if (!open) return;
+          open.card.style.transition = animate === false ? 'none' : '';
+          open.card.style.transform = '';
+          const bar = open.bar; setTimeout(() => bar.remove(), animate === false ? 0 : 180);
+          open = null;
+        }
+        function makeBar(c) {
+          const bar = document.createElement('div');
+          bar.className = 'swipe-actions';
+          bar.style.cssText = `top:${c.offsetTop}px;left:${c.offsetLeft}px;height:${c.offsetHeight}px;width:${W}px`;
+          const id = c.dataset.qid;
+          bar.innerHTML = '<button type="button" class="swipe-btn swipe-skip">' + lshIcon('next') + '<span>ข้าม</span></button>' +
+                          '<button type="button" class="swipe-btn swipe-del">' + lshIcon('trash') + '<span>ลบ</span></button>';
+          bar.querySelector('.swipe-skip').onclick = (e) => { e.stopPropagation(); closeOpen(); window.selectedSongId = id; window.confirmSkipSong(); };
+          bar.querySelector('.swipe-del').onclick = (e) => { e.stopPropagation(); closeOpen(); window.selectedSongId = id; window.confirmDeleteSong(); };
+          box.appendChild(bar);
+          return bar;
+        }
+        box.addEventListener('touchstart', (e) => {
+          const t = e.touches[0];
+          const c = e.target.closest && e.target.closest('.song-card[data-movable="1"]');
+          if (open && (!c || c !== open.card) && !e.target.closest('.swipe-actions')) closeOpen();
+          card = c || null; sx = t.clientX; sy = t.clientY; dx = 0; mode = '';
+        }, { passive: true });
+        box.addEventListener('touchmove', (e) => {
+          if (!card || window.__lshDragging) return;
+          const t = e.touches[0], mx = t.clientX - sx, my = t.clientY - sy;
+          if (!mode) {
+            if (Math.abs(mx) < 10 && Math.abs(my) < 10) return;
+            if (Math.abs(mx) > Math.abs(my) * 1.5 && (mx > 0 || (open && open.card === card))) {
+              mode = 'swipe';
+              if (!open || open.card !== card) { closeOpen(false); open = { card, bar: makeBar(card) }; open.base = 0; }
+              else open.base = W;
+              card.style.transition = 'none';
+            } else { mode = 'scroll'; card = null; return; }
+          }
+          if (mode === 'swipe') {
+            if (e.cancelable) e.preventDefault();
+            dx = Math.max(0, Math.min(W, (open ? open.base : 0) + mx));
+            card.style.transform = `translateX(${dx}px)`;
+          }
+        }, { passive: false });
+        function endSwipe() {
+          if (mode === 'swipe' && card && open) {
+            window.__lshDragAt = Date.now(); // กันคลิกที่ตามมา (ไม่ให้เปิดเมนูการ์ด)
+            card.style.transition = '';
+            if (dx > W * 0.45) { card.style.transform = `translateX(${W}px)`; }
+            else { closeOpen(); }
+          }
+          card = null; mode = '';
+        }
+        box.addEventListener('touchend', endSwipe);
+        box.addEventListener('touchcancel', endSwipe);
+      })();
+
+      // ===== กดค้างเพลงในแผงแทรก (แนะนำ/ค้นหา/รีเควส) แล้วลากไปวางตำแหน่งที่ต้องการในคิว =====
+      (function initInsertDrag() {
+        const modal = document.getElementById('insertModal');
+        const queueBox = document.getElementById('queueContainer');
+        if (!modal || !queueBox || modal.__dragInit) return;
+        modal.__dragInit = true;
+        let timer = null, sx = 0, sy = 0, row = null, args = null, ghost = null, line = null, drop = null, dragging = false, raf = 0, lastY = 0;
+        function grab(el) {
+          const code = el.getAttribute('onclick') || '';
+          if (code.indexOf('selectInsertSong(') !== 0) return null;
+          let got = null;
+          try { new Function('selectInsertSong', code)(function () { got = Array.prototype.slice.call(arguments); }); } catch (x) {}
+          return got;
+        }
+        function activeList() { return window.queueData.filter(i => i.status !== 'removed'); }
+        function resolveDrop(x, y) {
+          const el = document.elementFromPoint(x, y);
+          const c = el && el.closest && el.closest('#queueContainer .song-card, #queueContainer .removed-card');
+          if (!c || !c.dataset.qid) return null;
+          const list = activeList();
+          const i = list.findIndex(s => s.id === c.dataset.qid);
+          if (i < 0) return null;
+          const r = c.getBoundingClientRect();
+          const after = y > r.top + r.height / 2;
+          const target = after ? list[i] : list[i - 1];
+          if (!target || target.status === 'played' || target.type === 'dummy_end') return null;
+          return { targetId: target.id, y: after ? r.bottom : r.top, left: r.left, width: r.width };
+        }
+        function autoScroll() {
+          if (!dragging) return;
+          const r = queueBox.getBoundingClientRect();
+          if (lastY < r.top + 70) queueBox.scrollTop -= 10;
+          else if (lastY > r.bottom - 70) queueBox.scrollTop += 10;
+          raf = requestAnimationFrame(autoScroll);
+        }
+        function begin() {
+          dragging = true;
+          modal.classList.add('ins-dragging');
+          ghost = document.createElement('div');
+          ghost.className = 'ins-ghost';
+          ghost.textContent = args[0].title + (args[0].artist ? ' - ' + args[0].artist : '');
+          document.body.appendChild(ghost);
+          line = document.createElement('div'); line.className = 'ins-dropline'; line.style.display = 'none';
+          document.body.appendChild(line);
+          if (navigator.vibrate) { try { navigator.vibrate(15); } catch (x) {} }
+          move(sx, sy);
+          raf = requestAnimationFrame(autoScroll);
+        }
+        function move(x, y) {
+          lastY = y;
+          ghost.style.transform = `translate(${x - 20}px, ${y - 28}px)`;
+          drop = resolveDrop(x, y);
+          if (drop) { line.style.display = 'block'; line.style.top = (drop.y - 2) + 'px'; line.style.left = drop.left + 'px'; line.style.width = drop.width + 'px'; }
+          else line.style.display = 'none';
+        }
+        function cleanup() {
+          clearTimeout(timer); cancelAnimationFrame(raf);
+          if (ghost) ghost.remove(); if (line) line.remove();
+          ghost = line = null; modal.classList.remove('ins-dragging'); dragging = false; row = null;
+        }
+        modal.addEventListener('touchstart', (e) => {
+          const r = e.target.closest && e.target.closest('[onclick^="selectInsertSong("]');
+          if (!r) return;
+          const t = e.touches[0]; sx = t.clientX; sy = t.clientY;
+          args = grab(r); if (!args) return; row = r;
+          timer = setTimeout(begin, 350);
+        }, { passive: true });
+        modal.addEventListener('touchmove', (e) => {
+          const t = e.touches[0];
+          if (!dragging) { if (Math.abs(t.clientX - sx) > 8 || Math.abs(t.clientY - sy) > 8) { clearTimeout(timer); row = null; } return; }
+          if (e.cancelable) e.preventDefault();
+          move(t.clientX, t.clientY);
+        }, { passive: false });
+        function finish(commit) {
+          clearTimeout(timer);
+          if (!dragging) { row = null; return; }
+          const d = drop, a = args;
+          window.__lshDragAt = Date.now();
+          cleanup();
+          if (commit && d && a) {
+            window.selectInsertSong(a[0], a[1], a[2] || null);
+            document.getElementById('insertOptionsModal').classList.add('hidden');
+            window.executeInsertAfterTarget(d.targetId);
+            if (window.lshToast) lshToast('แทรกเพลง “' + a[0].title + '” แล้ว', 'ok');
+          }
+        }
+        modal.addEventListener('touchend', () => finish(true));
+        modal.addEventListener('touchcancel', () => finish(false));
+        modal.addEventListener('contextmenu', (e) => { if (row) e.preventDefault(); });
+      })();
+
       // สั่งเริ่มวาดหน้าคิวเพลงทันทีที่โมดูลถูกเรียกทำงาน
       window.initQueuePage();
     };

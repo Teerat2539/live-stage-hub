@@ -58,7 +58,10 @@
   <div id="tbSoundPanel" class="slide-modal-overlay hidden" onclick="closeTbSoundPanel(event)">
     <div class="popup-dialog" onclick="event.stopPropagation()">
       <div class="modal-head"><div class="modal-title"><svg class="ic" aria-hidden="true"><use href="#i-volume"/></svg> เสียงท็อคแบค</div></div>
-      <button type="button" id="tbSoundToggle" class="popup-btn popup-btn-live" onclick="toggleTbSound()">เปิดเสียง</button>
+      <div class="snd-row">
+        <div class="snd-row-text"><b>เสียงท็อคแบค</b><span id="tbSoundState">ปิดอยู่</span></div>
+        <button type="button" id="tbSoundToggle" class="snd-switch" role="switch" aria-checked="false" aria-label="เปิด/ปิดเสียงท็อคแบค" onclick="toggleTbSound()"><span></span></button>
+      </div>
       <label class="tb-slide"><span>ความดัง (Master) <b id="tbVolVal">100%</b></span><input type="range" id="tbVolRange" min="0" max="100" step="5" value="100"></label>
       <label class="tb-slide"><span>ความเร็วในการอ่าน <b id="tbRateVal">1.0x</b></span><input type="range" id="tbRateRange" min="0.6" max="1.6" step="0.1" value="1"></label>
       <div id="tbSoundNote" class="tb-sound-note"></div>
@@ -377,7 +380,7 @@
         if (btn) btn.innerHTML = `<svg class="ic" aria-hidden="true"><use href="#i-${tbSnd.on ? 'volume' : 'volume-off'}"/></svg>`;
         if (btn) btn.classList.toggle('on', tbSnd.on);
         const tg = document.getElementById('tbSoundToggle');
-        if (tg) tg.textContent = tbSnd.on ? 'ปิดเสียง' : 'เปิดเสียง';
+        if (tg) { tg.setAttribute('aria-checked', tbSnd.on ? 'true' : 'false'); const st = document.getElementById('tbSoundState'); if (st) st.textContent = tbSnd.on ? 'เปิดอยู่' : 'ปิดอยู่'; }
         const vr = document.getElementById('tbVolRange'), rr = document.getElementById('tbRateRange');
         if (vr) { vr.value = Math.round(tbSnd.vol * 100); document.getElementById('tbVolVal').textContent = vr.value + '%'; }
         if (rr) { rr.value = tbSnd.rate; document.getElementById('tbRateVal').textContent = Number(tbSnd.rate).toFixed(1) + 'x'; }
