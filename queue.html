@@ -1337,16 +1337,15 @@ window.executeInsertAfterPlaying = function() {
         lshWatch(topNextText, 'next');
       }
 
-      // ===== ปัดการ์ดไปขวา → ปุ่ม ข้าม / ลบ (ปัดแล้วค้างเปิดจนกว่าจะเลือกหรือปิดเอง) =====
-      // สถานะ "เปิดอยู่" เก็บเป็น openId (ไม่ผูกกับ element) แล้วคอยวาดซ้ำให้ตรงเสมอ
-      // ถึงคิวจะถูกวาดใหม่ หรือ touchend ตกหล่น ก็ไม่หลุด ปิดได้เฉพาะ: แตะการ์ดนั้น / แตะที่อื่น / ปัดกลับซ้าย / กดปุ่ม
-      (function initQueueSwipe() {
+      // ===== แตะการ์ด → การ์ดเลื่อนไปขวา เผยปุ่ม ข้าม / ลบ =====
+      // เปิดได้ทีละใบ: แตะเพลงอื่น = ใบเดิมกลับที่เดิมก่อนแล้วใบใหม่เปิด, แตะการ์ดที่เปิดอยู่ = ปิดกลับ ไม่มีอะไรเกิดขึ้น
+      // สถานะเปิดอยู่เก็บเป็น openId แล้ววาดซ้ำให้ตรงเสมอ (คิวถูกวาดใหม่จากการซิงก์ก็ไม่หลุด)
+      (function initQueueTapReveal() {
         const box = document.getElementById('queueContainer');
         if (!box || box.__swipeInit) return;
         box.__swipeInit = true;
         const W = 148;
         let openId = null, card = null, bar = null;
-        let tracking = null, mode = '', dx = 0, lastMove = 0, endedAt = 0;
         const cardOf = (id) => box.querySelector('.song-card[data-qid="' + id + '"][data-movable="1"]');
         function removeBar() { if (bar) { bar.remove(); bar = null; } }
         function makeBar(c) {
@@ -1357,73 +1356,34 @@ window.executeInsertAfterPlaying = function() {
           const id = c.dataset.qid;
           bar.innerHTML = '<button type="button" class="swipe-btn swipe-skip">' + lshIcon('next') + '<span>ข้าม</span></button>' +
                           '<button type="button" class="swipe-btn swipe-del">' + lshIcon('trash') + '<span>ลบ</span></button>';
-          bar.querySelector('.swipe-skip').onclick = (e) => { e.stopPropagation(); closeSwipe(); window.selectedSongId = id; window.confirmSkipSong(); };
-          bar.querySelector('.swipe-del').onclick = (e) => { e.stopPropagation(); closeSwipe(); window.selectedSongId = id; window.confirmDeleteSong(); };
+          bar.querySelector('.swipe-skip').onclick = (e) => { e.stopPropagation(); closeCard(); window.selectedSongId = id; window.confirmSkipSong(); };
+          bar.querySelector('.swipe-del').onclick = (e) => { e.stopPropagation(); closeCard(); window.selectedSongId = id; window.confirmDeleteSong(); };
           box.appendChild(bar);
         }
-        // วาดสถานะ "เปิดอยู่" ให้ตรงกับ openId (เรียกซ้ำได้ ไม่เป็นไร)
         function applyOpen() {
-          if (!openId || mode === 'swipe') return;
+          if (!openId) return;
           const c = cardOf(openId);
           if (!c) { openId = null; card = null; removeBar(); return; }
           if (c !== card || !bar || !bar.isConnected) { card = c; makeBar(c); c.style.transition = 'none'; }
           if (c.style.transform !== `translateX(${W}px)`) c.style.transform = `translateX(${W}px)`;
         }
-        function closeSwipe() {
+        function closeCard() {
           const c = card; openId = null; card = null;
           if (c && c.isConnected) { c.style.transition = ''; c.style.transform = ''; }
           const b = bar; bar = null; if (b) setTimeout(() => b.remove(), 180);
         }
-        function finish() {
-          if (mode !== 'swipe') { tracking = null; mode = ''; return; }
-          endedAt = Date.now(); window.__lshDragAt = endedAt; // กันคลิกที่ตามมา
-          mode = ''; tracking = null;
-          if (card) card.style.transition = '';
-          if (dx > 24) { openId = card ? card.dataset.qid : null; applyOpen(); }
-          else closeSwipe();
-        }
-        box.addEventListener('touchstart', (e) => {
-          const t = e.touches[0];
-          const c = e.target.closest && e.target.closest('.song-card[data-movable="1"]');
-          if (openId && !(c && c.dataset.qid === openId) && !e.target.closest('.swipe-actions')) closeSwipe();
-          tracking = c || null; sx0 = t.clientX; sy0 = t.clientY; dx = 0; mode = '';
-        }, { passive: true });
-        let sx0 = 0, sy0 = 0;
-        box.addEventListener('touchmove', (e) => {
-          if (!tracking || window.__lshDragging) return;
-          const t = e.touches[0], mx = t.clientX - sx0, my = t.clientY - sy0;
-          if (!mode) {
-            const isOpen = openId && tracking.dataset.qid === openId;
-            if (Math.abs(mx) < 10 && Math.abs(my) < 10) return;
-            if (Math.abs(mx) > Math.abs(my) * 1.5 && (mx > 0 || isOpen)) {
-              mode = 'swipe';
-              if (!isOpen) { card = tracking; makeBar(card); openId = null; dx = 0; sx0 = t.clientX - 10; }
-              else { sx0 = t.clientX - (mx > 0 ? 10 : -10); }
-              card.style.transition = 'none';
-            } else { mode = 'scroll'; tracking = null; return; }
-          }
-          if (mode === 'swipe') {
-            if (e.cancelable) e.preventDefault();
-            const base = openId ? W : 0;
-            dx = Math.max(0, Math.min(W, base + (t.clientX - sx0)));
-            lastMove = Date.now();
-            card.style.transform = `translateX(${dx}px)`;
-          }
-        }, { passive: false });
-        box.addEventListener('touchend', finish);
-        box.addEventListener('touchcancel', finish);
-        // แตะการ์ดที่เปิดค้างอยู่ = ปิด (ไม่นับคลิกที่เกิดจากการปัดเมื่อครู่)
         box.addEventListener('click', (e) => {
-          if (Date.now() - endedAt < 600) return;
-          if (openId && e.target.closest('.song-card') === card && !e.target.closest('.swipe-actions')) closeSwipe();
+          if (e.target.closest('.swipe-actions') || e.target.closest('button')) return;
+          const c = e.target.closest('.song-card[data-movable="1"]');
+          if (!c) { if (openId) closeCard(); return; }
+          if (c.dataset.qid === openId) { closeCard(); return; }  // แตะการ์ดที่เปิดอยู่ = ปิดกลับ
+          closeCard();                                            // ใบเดิมกลับที่เดิมก่อน
+          card = c; openId = c.dataset.qid; makeBar(c);
+          c.style.transition = ''; void c.offsetWidth;
+          c.style.transform = `translateX(${W}px)`;
         });
-        // ถ้าคิวถูกวาดใหม่ หรืออะไรรีเซ็ตตำแหน่งการ์ด → วาดสถานะเปิดกลับให้ตรง
         new MutationObserver(() => applyOpen()).observe(box, { childList: true });
-        const wd = setInterval(() => {
-          if (!box.isConnected) { clearInterval(wd); return; }
-          if (mode === 'swipe' && Date.now() - lastMove > 500) finish(); // touchend ตกหล่น
-          else applyOpen();
-        }, 250);
+        const wd = setInterval(() => { if (!box.isConnected) clearInterval(wd); else applyOpen(); }, 250);
       })();
 
       // ===== กดค้างเพลงในแผงแทรก (แนะนำ/ค้นหา/รีเควส) แล้วลากไปวางตำแหน่งที่ต้องการในคิว =====
