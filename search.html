@@ -121,6 +121,7 @@
         if (tnb) tnb.className = 'top-box' + (nextSongObj && nextSongObj.set ? ' set-color-' + nextSongObj.set.replace('Set ', '') : '');
         lshWatch(topNextText, 'next');
 
+        let prevNormalSet = null; // เส้นคั่นเซ็ต: คำนวณตอนวาดจากเพลงที่แสดงอยู่ ไม่บันทึกลงข้อมูล
         queueData.forEach((song) => {
           if (song.status === 'played' || song.status === 'playing' || song.status === 'removed') return; // ตามบอร์ดดีไซน์: แสดงเฉพาะเพลงถัดไปและที่เหลือ | เพลงที่ลบออกจากคิวแล้ว ไม่แสดงในหน้าค้นหา
           if (song.type === 'dummy_start' || song.type === 'dummy_end') {
@@ -140,6 +141,10 @@
           let setVal = song.set || 'Set 1';
           let setNum = setVal.replace('Set ', '');
           let setColorClass = `set-color-${setNum}`;
+          if (song.type !== 'inserted-custom' && song.type !== 'inserted-request' && /^Set \d+$/.test(setVal)) {
+            if (prevNormalSet !== null && prevNormalSet !== setVal) html += `<div class="set-divider sd-${setNum}"><span>${setVal.toUpperCase()}</span></div>`;
+            prevNormalSet = setVal;
+          }
           let customClass = '';
           if (song.type === 'inserted-request') customClass = 'inserted-request';
           if (song.type === 'inserted-custom') customClass = 'inserted-custom';

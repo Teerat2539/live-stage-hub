@@ -1984,3 +1984,16 @@ nav button:active:not(.active) { background: var(--surface-2); }
 .adm2-pill { min-height: 44px; padding: 0 14px; border-radius: 10px; border: 1px solid var(--line-strong); background: transparent; color: var(--text); font-size: 13px; font-weight: 600; display: inline-flex; align-items: center; justify-content: center; cursor: pointer; }
 .adm2-pill.del { color: #FF8A8E; border-color: rgba(255,90,95,.5); }
 .adm2-card[data-sort="1"] .adm2-row { cursor: pointer; }
+
+/* ===== สีเซ็ต 6–10 (ต่างจากสีรีเควส #FF5FD2, สีเพลงแทรก #F8FAFC, สีแดงเตือน และสีมินต์หลัก) ===== */
+:root { --set-6:#C6E83A; --set-7:#FF7A59; --set-8:#FFE14D; --set-9:#1FB5A0; --set-10:#9AA7BD; }
+.color-set-6 { color: var(--set-6) !important; } .seg-set-6 { background: var(--set-6); }
+.set-color-6 { --set: var(--set-6); border-left: 5px solid var(--set-6) !important; } .song-card.set-color-6 { --set: var(--set-6); } .sd-6 { --sd: var(--set-6); }
+.color-set-7 { color: var(--set-7) !important; } .seg-set-7 { background: var(--set-7); }
+.set-color-7 { --set: var(--set-7); border-left: 5px solid var(--set-7) !important; } .song-card.set-color-7 { --set: var(--set-7); } .sd-7 { --sd: var(--set-7); }
+.color-set-8 { color: var(--set-8) !important; } .seg-set-8 { background: var(--set-8); }
+.set-color-8 { --set: var(--set-8); border-left: 5px solid var(--set-8) !important; } .song-card.set-color-8 { --set: var(--set-8); } .sd-8 { --sd: var(--set-8); }
+.color-set-9 { color: var(--set-9) !important; } .seg-set-9 { background: var(--set-9); }
+.set-color-9 { --set: var(--set-9); border-left: 5px solid var(--set-9) !important; } .song-card.set-color-9 { --set: var(--set-9); } .sd-9 { --sd: var(--set-9); }
+.color-set-10 { color: var(--set-10) !important; } .seg-set-10 { background: var(--set-10); }
+.set-color-10 { --set: var(--set-10); border-left: 5px solid var(--set-10) !important; } .song-card.set-color-10 { --set: var(--set-10); } .sd-10 { --sd: var(--set-10); }

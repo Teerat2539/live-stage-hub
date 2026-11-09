@@ -495,7 +495,7 @@
           if (song.type === 'dummy_start' || song.type === 'dummy_end' || song.status === 'removed') return;
           if (/^Set \d+$/.test(song.set || 'Set 1')) {
             let cur = song.set || 'Set 1';
-            if (prevNormalSet !== null && prevNormalSet !== cur) html += `<div class="set-divider sd-${cur.replace('Set ', '')}"></div>`;
+            if (prevNormalSet !== null && prevNormalSet !== cur) html += `<div class="set-divider sd-${cur.replace('Set ', '')}"><span>${cur.toUpperCase()}</span></div>`;
             prevNormalSet = cur;
           }
           let itemClass = '', badge = '', setColorClass = getSetColorClass(song.set);
