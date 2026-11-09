@@ -1971,3 +1971,16 @@ nav button:active:not(.active) { background: var(--surface-2); }
 *:has(> .search-main-content) { display: flex; flex-direction: column; flex: 1 1 auto; min-height: 0; height: 100%; }
 .search-main-content { flex: 1 1 auto; min-height: 0; overflow-y: auto; padding-bottom: 12px !important; -webkit-overflow-scrolling: touch; }
 .search-input-section { position: static !important; flex: 0 0 auto; width: auto; bottom: auto; box-shadow: none !important; backdrop-filter: none; background: var(--bg) !important; }
+
+/* ===== แท็บ "วง" ของแอดมิน: การ์ดรายวง (ใช้สไตล์เดียวกับรายชื่อสมาชิก) ===== */
+.adm2-bavatar { overflow: hidden; font-weight: 700; font-size: 17px; color: var(--text-2); }
+.adm2-bavatar img { width: 100%; height: 100%; object-fit: contain; }
+.adm2-code { font-size: 16px; font-weight: 800; letter-spacing: .18em; font-variant-numeric: tabular-nums; color: var(--live); margin-right: 4px; }
+.adm2-code.off { color: var(--text-3); letter-spacing: 0; font-size: 13px; font-weight: 600; }
+.adm2-code.big { font-size: 20px; }
+.adm2-logo { display: flex; align-items: center; gap: 10px; }
+.adm2-logo-prev { width: 52px; height: 52px; border-radius: 12px; background: var(--bg); border: 1px solid var(--line-strong); display: flex; align-items: center; justify-content: center; overflow: hidden; color: var(--text-3); flex: none; }
+.adm2-logo-prev img { max-width: 100%; max-height: 100%; object-fit: contain; }
+.adm2-pill { min-height: 44px; padding: 0 14px; border-radius: 10px; border: 1px solid var(--line-strong); background: transparent; color: var(--text); font-size: 13px; font-weight: 600; display: inline-flex; align-items: center; justify-content: center; cursor: pointer; }
+.adm2-pill.del { color: #FF8A8E; border-color: rgba(255,90,95,.5); }
+.adm2-card[data-sort="1"] .adm2-row { cursor: pointer; }
