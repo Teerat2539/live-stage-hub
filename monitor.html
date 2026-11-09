@@ -180,6 +180,27 @@
         return 'var(--set-' + (String(x.set || 'Set 1').replace(/\D/g, '') || '1') + ', var(--set-1))';
       }
 
+      // แนวนอน: ชื่อเพลง/ศิลปินบรรทัดเดียว ถ้าแสดงไม่หมดให้วิ่งจากขวามาซ้าย (แสดงหมดแล้วอยู่นิ่ง) — แนวตั้งคงเดิม (ขึ้นบรรทัดใหม่)
+      const MQ_LAND = '(orientation: landscape) and (max-height: 640px)';
+      function fitMarquee(el) {
+        if (!el) return;
+        const text = el.dataset.full !== undefined ? el.dataset.full : el.textContent;
+        el.textContent = text;
+        el.classList.remove('mq-host');
+        if (!window.matchMedia(MQ_LAND).matches || !text) return;
+        el.classList.add('mq-host');
+        if (el.scrollWidth > el.clientWidth + 1) {
+          const sp = document.createElement('span');
+          sp.className = 'mq';
+          sp.textContent = text;
+          el.textContent = '';
+          el.appendChild(sp);
+          el.style.setProperty('--mq-dur', Math.max(6, (el.clientWidth + sp.scrollWidth) / 110) + 's');
+        }
+      }
+      function refitNextMarquee() { fitMarquee(document.getElementById('mNextTitle')); fitMarquee(document.getElementById('mNextDetail')); }
+      if (!window.__mqBound) { window.__mqBound = true; window.addEventListener('resize', () => { if (document.getElementById('mNextTitle')) refitNextMarquee(); }); }
+
       function processQueueData(queueData) {
         window.lshReady && window.lshReady();
         currentQueue = queueData;
@@ -238,6 +259,11 @@
           if (nextSetEl) nextSetEl.textContent = '';
           if (tilesEl) tilesEl.style.display = 'none';
           if (noteRow) noteRow.style.visibility = 'hidden';
+        }
+        {
+          const nt = document.getElementById('mNextTitle'), nd = document.getElementById('mNextDetail');
+          nt.dataset.full = nt.textContent; nd.dataset.full = nd.textContent;
+          refitNextMarquee();
         }
 
         const mStandbyTitle = document.getElementById('mStandbyTitle');
@@ -517,7 +543,7 @@
             badge = '<span style="font-size:10px;color:#00f2d1;font-weight:bold">[กำลังเล่น]</span>';
           } else if (song.status === 'next') {
             itemClass = 'next';
-            badge = '<span style="font-size:10px;color:#f59e0b;font-weight:bold">[เพลงถัดไป]</span>';
+            badge = '<span style="font-size:10px;color:var(--nx);font-weight:bold">[เพลงถัดไป]</span>';
           }
           html += `
             <div class="modal-song-item ${itemClass}" style="--nx:${nxColor(song)}">

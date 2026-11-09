@@ -2032,3 +2032,14 @@ nav button:active:not(.active) { background: var(--surface-2); }
 .monitor-container .mon-badge { background: color-mix(in srgb, var(--nx, #5B8CFF) 18%, transparent); }
 .queue-main-content .song-card.next-song .q-tag { background: color-mix(in srgb, var(--set, #5B8CFF) 18%, transparent); color: var(--set, var(--next)); }
 .search-main-content .song-card.next-song .q-tag { background: none; color: var(--set, var(--info-text, #8DB0FF)); }
+
+/* ===== มอนิเตอร์แนวนอน: ชื่อเพลงถัดไปตัวใหญ่ (อ่านจากไกล) + KEY/BPM ลงล่าง + ตัววิ่งเมื่อยาวเกิน ===== */
+@media (orientation: landscape) and (max-height: 640px) {
+  body.lsh-page-monitor .song-box-next .box-title-next { font-size: clamp(44px, 20vh, 120px) !important; font-weight: 800; line-height: 1.15; margin-top: auto; padding: .08em 0; }
+  body.lsh-page-monitor .song-box-next .box-detail-next { font-size: clamp(20px, 8vh, 48px) !important; line-height: 1.25; margin: 0 0 auto; padding: .1em 0; }
+  body.lsh-page-monitor .song-box-next .mon-tiles { margin-top: 12px; }
+  body.lsh-page-monitor .song-box-next .mon-note { margin-top: 10px; }
+  .mq-host { white-space: nowrap !important; overflow: hidden !important; overflow-wrap: normal !important; text-overflow: clip; }
+  .mq-host .mq { display: inline-block; padding-left: 100%; white-space: nowrap; animation: mqRun var(--mq-dur, 10s) linear infinite; }
+}
+@keyframes mqRun { to { transform: translateX(-100%); } }
