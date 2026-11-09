@@ -114,17 +114,21 @@
 
     <!-- เนื้อหาภายใน Advanced Settings (แสดงผลหลังผ่าน Admin Gate) -->
     <div id="adminDashboardBox" class="hidden">
+      <div id="admTopBar" class="adm2-top">
+        <div><div class="adm2-title">ผู้ดูแลระบบ</div><div class="adm2-sub">admin · ตั้งค่าเท่านั้น</div></div>
+        <button type="button" onclick="openLogoutConfirm()" class="adm2-logout">ออกจากระบบ</button>
+      </div>
       <div style="display:flex;gap:4px;padding:4px;margin-bottom:12px;border-radius:12px;background:var(--surface);border:1px solid var(--line)">
         <button type="button" id="admSubUsers" onclick="switchAdminSub('users')" style="flex:1;min-height:40px;border-radius:9px;font-weight:700;font-size:14px">สมาชิก</button>
-        <button type="button" id="admSubBands" onclick="switchAdminSub('bands')" style="flex:1;min-height:40px;border-radius:9px;font-weight:700;font-size:14px">วงและ Telegram</button>
+        <button type="button" id="admSubBands" onclick="switchAdminSub('bands')" style="flex:1;min-height:40px;border-radius:9px;font-weight:700;font-size:14px">วง</button>
       </div>
       <!-- 1. User Management -->
-      <div class="settings-card" id="admGroupUsers">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;border-bottom:1px solid #333;padding-bottom:6px">
-          <h3 style="margin:0;border:none;padding:0"><svg class="ic" aria-hidden="true"><use href="#i-users"/></svg> จัดการสมาชิก</h3>
-          <button onclick="openAddUserModal()" style="background:#00f2d1;border:none;color:#000;font-weight:bold;padding:4px 10px;border-radius:4px;font-size:12px;cursor:pointer">+ เพิ่มสมาชิก</button>
+      <div id="admGroupUsers">
+        <div class="adm2-head">
+          <div class="adm2-count">สมาชิก <span id="admUserCount"></span></div>
+          <button onclick="openAddUserModal()" class="adm2-add">+ เพิ่มสมาชิก</button>
         </div>
-        <div id="adminUserListContainer" class="u-col-10"></div>
+        <div id="adminUserListContainer" class="adm2-list"></div>
       </div>
 
       <!-- 2. Room Name Settings -->
@@ -282,7 +286,7 @@
       const isAdv = /'advanced'/.test(btn.getAttribute('onclick') || '');
       btn.classList.toggle('hidden', isAdmin ? !isAdv : isAdv);
     });
-    document.querySelector('.settings-tabs').classList.toggle('admin-only', isAdmin);
+    document.querySelector('.settings-tabs').classList.toggle('hidden', isAdmin);
 
     if (!isAdmin) loadUserProfile();
     
@@ -611,73 +615,122 @@
 
     // 4.1 จัดการสมาชิก
  // 4.1 จัดการสมาชิก (แก้ได้เฉพาะ Username และ PIN เท่านั้นตามสเปก)
-    function loadAdminUsers() {
-      let _users = {}, _rooms = {}, _cfg = {};
-      const render = () => {
-        const container = document.getElementById('adminUserListContainer');
-        if (!container) return;
-        const bandNames = Object.keys(_rooms).sort((a, b) => String(a).localeCompare(String(b), 'th'));
-        let html = '';
-        const esc = v => String(v == null ? '' : v).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
+    const ADM_ROLES = ['นักร้อง', 'มือกีตาร์', 'มือกีตาร์ริธึม', 'มือเบส', 'มือกลอง', 'มือคีย์บอร์ด', 'อื่นๆ'];
+    const admDraft = {};      // ร่างวง/โรลของสมาชิกแต่ละคน { user: { band: role } } — ไม่หายเมื่อฐานข้อมูลอัปเดตระหว่างแก้
+    let admOpen = null;       // สมาชิกที่กางการ์ดอยู่ (กางได้ทีละคน)
+    let admAddOpen = null;    // สมาชิกที่เปิดรายการ "+ เพิ่มเข้าวง"
+    let admState = { users: {}, rooms: {}, cfg: {} };
+    const admEsc = v => String(v == null ? '' : v).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/'/g, '&#39;');
+    const admBandsOf = (u) => {
+      const out = {};
+      Object.keys(admState.rooms).forEach(b => {
+        const m = admState.cfg[b] && admState.cfg[b].members && admState.cfg[b].members[u];
+        if (m) out[b] = m.role || '';
+      });
+      return out;
+    };
+    const ICON_CHEV = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>';
+    const ICON_X = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>';
 
-        Object.keys(_users).forEach(uName => {
-          if (uName === 'admin') return; 
-          const u = _users[uName] || {};
-          const bandRows = bandNames.map(b => {
-            const m = (_cfg[b] && _cfg[b].members && _cfg[b].members[uName]) || null;
-            const on = !!m;
-            return `
-              <div class="adm-band-row" data-band="${esc(b)}" style="display:flex;gap:8px;align-items:center">
-                <button type="button" class="adm-band-toggle" aria-pressed="${on}" onclick="admToggleBand(this)" style="min-height:40px;padding:0 12px;border-radius:20px;border:1px solid ${on ? '#00f2d1' : '#333'};background:${on ? 'rgba(0,242,209,.14)' : 'transparent'};color:${on ? '#00f2d1' : '#aaa'};font-size:13px;font-weight:700">${esc(b)}</button>
-                <input type="text" class="adm-band-role" value="${esc(m && m.role || '')}" placeholder="บทบาทในวงนี้" ${on ? '' : 'disabled'} style="flex:1;min-width:0;padding:6px;font-size:12px">
-              </div>`;
-          }).join('') || '<div class="u-empty">ยังไม่มีวง</div>';
-          html += `
-            <div class="adm-user" data-u="${esc(uName)}" style="background:#12131a;padding:10px;border-radius:8px;border:1px solid #333;display:flex;flex-direction:column;gap:8px">
-              <div class="u-between">
-                <input type="text" id="adm_uname_${uName}" value="${esc(uName)}" placeholder="Username" style="padding:6px;font-size:12px;width:120px;background:#181920;color:#00f2d1;font-weight:bold;border:1px solid #333;border-radius:4px">
-              </div>
-              <div style="display:flex;gap:6px;align-items:center">
-                <input type="password" inputmode="numeric" pattern="[0-9]*" autocomplete="off" id="adm_pin_${uName}" value="${esc(u.pin || '')}" maxlength="4" placeholder="PIN 4 หลัก" style="flex:1;padding:6px;font-size:12px">
-                <input type="text" id="adm_emoji_${uName}" value="${esc(u.emoji || '')}" placeholder="Emoji" style="width:64px;padding:6px;font-size:14px;text-align:center">
-              </div>
-              <div style="display:flex;gap:6px">
-                <input type="text" id="adm_nick_${uName}" value="${esc(u.nickname || '')}" placeholder="ชื่อเล่น" style="flex:1;min-width:0;padding:6px;font-size:12px">
-                <input type="text" id="adm_role_${uName}" value="${esc(u.role || '')}" placeholder="Role หลัก" style="flex:1;min-width:0;padding:6px;font-size:12px">
-              </div>
-              <div class="u-meta" style="margin-top:2px">วงที่อยู่ (กดชื่อวงเพื่อเพิ่ม/ถอด)</div>
-              <div style="display:flex;flex-direction:column;gap:6px">${bandRows}</div>
-              <div style="display:flex;gap:10px;margin-top:4px">
-                <button onclick="saveAdminUser('${uName}')" style="flex:1;min-height:44px;background:#00f2d1;border:none;color:#000;font-weight:bold;border-radius:8px;font-size:14px;cursor:pointer"><svg class="ic" aria-hidden="true"><use href="#i-save"/></svg> บันทึก</button>
-                <button onclick="showGenericConfirm('ลบสมาชิก', 'ต้องการลบยูสเซอร์ ${uName} หรือไม่? ระบบจะเด้งเขาออกจากทุกวงทันที', () => deleteUser('${uName}'))" style="min-height:44px;padding:0 16px;background:transparent;border:1px solid rgba(255,90,95,.6);color:#ff8a8e;border-radius:8px;font-size:14px;cursor:pointer"><svg class="ic" aria-hidden="true"><use href="#i-trash"/></svg> ลบ</button>
+    function admRender() {
+      const container = document.getElementById('adminUserListContainer');
+      if (!container) return;
+      // ไม่วาดทับขณะกำลังพิมพ์ในช่องของการ์ด
+      const ae = document.activeElement;
+      if (ae && container.contains(ae) && /^(INPUT|TEXTAREA|SELECT)$/.test(ae.tagName)) return;
+      const names = Object.keys(admState.users).filter(u => u !== 'admin');
+      const cnt = document.getElementById('admUserCount');
+      if (cnt) cnt.textContent = names.length + ' คน';
+      const allBands = Object.keys(admState.rooms).sort((a, b) => String(a).localeCompare(String(b), 'th'));
+
+      container.innerHTML = names.map(uName => {
+        const u = admState.users[uName] || {};
+        const isOpen = admOpen === uName;
+        const draft = admDraft[uName] || admBandsOf(uName);
+        const nBands = Object.keys(draft).length;
+        const head = `
+          <div class="adm2-row" data-act="toggle" tabindex="0" role="button" aria-expanded="${isOpen}">
+            <div class="adm2-avatar">${admEsc(u.emoji || '👤')}</div>
+            <div class="adm2-who"><div class="adm2-nick">${admEsc(u.nickname || uName)}</div><div class="adm2-un">${admEsc(uName)}${isOpen ? '' : ' · ' + nBands + ' วง'}</div></div>
+            <span class="adm2-chev${isOpen ? ' up' : ''}">${ICON_CHEV}</span>
+          </div>`;
+        if (!isOpen) return `<div class="adm2-card" data-u="${admEsc(uName)}">${head}</div>`;
+
+        const bandRows = Object.keys(draft).map(b => {
+          const role = draft[b];
+          const opts = ADM_ROLES.slice();
+          if (role && opts.indexOf(role) < 0) opts.unshift(role);
+          return `
+            <div class="adm2-band" data-band="${admEsc(b)}">
+              <div class="adm2-band-name">${admEsc(b)}</div>
+              <select class="adm2-role" aria-label="โรลในวง ${admEsc(b)}">
+                <option value=""${role ? '' : ' selected'}>เลือกโรล</option>
+                ${opts.map(o => `<option value="${admEsc(o)}"${o === role ? ' selected' : ''}>${admEsc(o)}</option>`).join('')}
+              </select>
+              <button type="button" class="adm2-x" data-act="rmband" aria-label="ถอดออกจากวง">${ICON_X}</button>
+            </div>`;
+        }).join('');
+        const free = allBands.filter(b => !(b in draft));
+        const addList = admAddOpen === uName
+          ? `<div class="adm2-addlist">${free.map(b => `<button type="button" class="adm2-chip" data-act="addband" data-band="${admEsc(b)}">${admEsc(b)}</button>`).join('') || '<span class="adm2-un">อยู่ครบทุกวงแล้ว</span>'}</div>`
+          : '';
+        return `
+          <div class="adm2-card open" data-u="${admEsc(uName)}">
+            ${head}
+            <div class="adm2-grid">
+              <label class="adm2-f" style="flex:1.2"><span>Username</span><input type="text" id="adm_uname_${admEsc(uName)}" value="${admEsc(uName)}" autocomplete="off"></label>
+              <label class="adm2-f"><span>PIN</span><input type="text" inputmode="numeric" pattern="[0-9]*" maxlength="4" id="adm_pin_${admEsc(uName)}" value="${admEsc(u.pin || '')}" autocomplete="off" style="letter-spacing:.2em"></label>
+            </div>
+            <div class="adm2-grid">
+              <label class="adm2-f" style="flex:1.2"><span>ชื่อเล่น</span><input type="text" id="adm_nick_${admEsc(uName)}" value="${admEsc(u.nickname || '')}"></label>
+              <label class="adm2-f"><span>อีโมจิ</span><input type="text" id="adm_emoji_${admEsc(uName)}" value="${admEsc(u.emoji || '')}"></label>
+            </div>
+            <div>
+              <div class="adm2-label">วงและโรลในวงนั้น</div>
+              <div class="adm2-bands">${bandRows}
+                <button type="button" class="adm2-dash" data-act="addopen">+ เพิ่มเข้าวง</button>${addList}
               </div>
             </div>
-          `;
-        });
-        // ไม่รีเรนเดอร์ทับขณะแอดมินกำลังพิมพ์ในช่องของการ์ดนี้
-        const ae = document.activeElement;
-        if (ae && container.contains(ae) && /^(INPUT|TEXTAREA)$/.test(ae.tagName)) return;
-        container.innerHTML = html || '<div class="u-empty">ยังไม่มีสมาชิก</div>';
+            <button type="button" class="adm2-save" data-act="save">บันทึก</button>
+            <div class="adm2-sep"></div>
+            <button type="button" class="adm2-del" data-act="del">ลบสมาชิก</button>
+          </div>`;
+      }).join('') || '<div class="u-empty">ยังไม่มีสมาชิก</div>';
+    }
+
+    // จัดการการกดทั้งหมดในรายชื่อสมาชิกที่ตัวคอนเทนเนอร์ (ผูกครั้งเดียว)
+    function admBindList() {
+      const container = document.getElementById('adminUserListContainer');
+      if (!container || container.__admBound) return;
+      container.__admBound = true;
+      const act = (e) => {
+        const t = e.target.closest('[data-act]');
+        if (!t) return;
+        const card = t.closest('.adm2-card');
+        const u = card && card.dataset.u;
+        if (!u) return;
+        const a = t.dataset.act;
+        if (a === 'toggle') { admOpen = (admOpen === u) ? null : u; admAddOpen = null; admRender(); return; }
+        // เก็บค่าโรลที่เลือกไว้ในร่างก่อนวาดใหม่
+        const draft = admDraft[u] || (admDraft[u] = admBandsOf(u));
+        card.querySelectorAll('.adm2-band').forEach(r => { const sel = r.querySelector('select'); if (sel) draft[r.dataset.band] = sel.value; });
+        if (a === 'rmband') { delete draft[t.closest('.adm2-band').dataset.band]; admRender(); }
+        else if (a === 'addopen') { admAddOpen = (admAddOpen === u) ? null : u; admRender(); }
+        else if (a === 'addband') { draft[t.dataset.band] = ''; admAddOpen = null; admRender(); }
+        else if (a === 'save') window.saveAdminUser(u);
+        else if (a === 'del') showGenericConfirm('ลบสมาชิก', 'ต้องการลบยูสเซอร์ ' + u + ' หรือไม่? ระบบจะเด้งเขาออกจากทุกวงทันที', () => deleteUser(u));
       };
-      const refs = [['users', v => { _users = v || {}; }], ['rooms', v => { _rooms = v || {}; }], ['roomConfig', v => { _cfg = v || {}; }]];
-      refs.forEach(([path, set]) => {
+      container.addEventListener('click', act);
+    }
+
+    function loadAdminUsers() {
+      admBindList();
+      [['users', 'users'], ['rooms', 'rooms'], ['roomConfig', 'cfg']].forEach(([path, key]) => {
         const __ref = db.ref(path);
-        const __cb = __ref.on('value', (snapshot) => { set(snapshot.val()); render(); });
+        const __cb = __ref.on('value', (snapshot) => { admState[key] = snapshot.val() || {}; admRender(); });
         window.__admOff.push(() => __ref.off('value', __cb));
       });
     }
-
-    // กดชื่อวงเพื่อเพิ่ม/ถอดสมาชิกคนนี้ออกจากวง (ยังไม่บันทึกจนกว่าจะกด "บันทึก")
-    window.admToggleBand = function(btn) {
-      const on = btn.getAttribute('aria-pressed') !== 'true';
-      btn.setAttribute('aria-pressed', on);
-      btn.style.borderColor = on ? '#00f2d1' : '#333';
-      btn.style.background = on ? 'rgba(0,242,209,.14)' : 'transparent';
-      btn.style.color = on ? '#00f2d1' : '#aaa';
-      const inp = btn.closest('.adm-band-row').querySelector('.adm-band-role');
-      inp.disabled = !on;
-      if (on) inp.focus();
-    };
 
     // ลบสมาชิก: ลบบัญชี + ถอดออกจากทุกวง (แอปของเขาจะเด้งออกเองในพาร์ทถัดไป)
     window.deleteUser = async function(uName) {
@@ -720,16 +773,16 @@
         if (newName !== oldName) upd[`users/${oldName}`] = null;
         upd[`users/${newName}`] = userData;
 
-        // วงของสมาชิก: ติ๊กวงไหนอยู่ในวงนั้นพร้อมบทบาท / ไม่ติ๊ก = ถอดออก
-        const card = document.querySelector(`.adm-user[data-u="${oldName}"]`);
-        if (card) {
-          card.querySelectorAll('.adm-band-row').forEach(row => {
-            const band = row.dataset.band;
-            const on = row.querySelector('.adm-band-toggle').getAttribute('aria-pressed') === 'true';
-            if (newName !== oldName) upd[`roomConfig/${band}/members/${oldName}`] = null;
-            upd[`roomConfig/${band}/members/${newName}`] = on ? { role: row.querySelector('.adm-band-role').value.trim() } : null;
-          });
-        }
+        // วงของสมาชิก: ตามรายการวงในการ์ด (ถอดวงไหนออก = ลบจากวงนั้น)
+        const card = document.querySelector(`.adm2-card[data-u="${oldName}"]`);
+        const chosen = Object.assign({}, admDraft[oldName] || admBandsOf(oldName));
+        if (card) card.querySelectorAll('.adm2-band').forEach(r => { chosen[r.dataset.band] = r.querySelector('select').value; });
+        Object.keys(admState.rooms).forEach(band => {
+          if (newName !== oldName) upd[`roomConfig/${band}/members/${oldName}`] = null;
+          upd[`roomConfig/${band}/members/${newName}`] = (band in chosen) ? { role: chosen[band] } : null;
+        });
+        delete admDraft[oldName];
+        if (admOpen === oldName) admOpen = newName;
         await db.ref().update(upd);
         lshAlert('บันทึกข้อมูลสมาชิกสำเร็จ!');
       } catch (e) {
