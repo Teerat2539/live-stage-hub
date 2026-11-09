@@ -1951,3 +1951,18 @@ nav button:active:not(.active) { background: var(--surface-2); }
   body:is(.lsh-page-monitor,.lsh-page-talkback) > nav button.active { flex: 1 1 0; }
   body:is(.lsh-page-monitor,.lsh-page-talkback) > nav button .nav-ico .ic, body:is(.lsh-page-monitor,.lsh-page-talkback) > nav button svg { width: 26px; height: 26px; }
 }
+
+/* ===== แก้: แจ้งเตือนแถบบน/มอนิเตอร์ (กระพริบ + ขยายด้านข้าง 3 วินาที) กลับมาทำงาน ===== */
+@keyframes attnGlow {
+  0%, 100% { outline-color: transparent; filter: none; }
+  50% { outline-color: var(--attn-c, var(--next)); filter: drop-shadow(0 0 16px var(--attn-c, var(--next))) brightness(1.7); }
+}
+[data-attn="talk"] > .top-box:first-child, [data-attn="next"] > .top-box:last-child,
+.monitor-container .monitor-top-section.flashing, .monitor-container .flash-cue-pink-active {
+  outline: 3px solid transparent; outline-offset: 2px;
+  animation: attnGlow .5s ease-in-out 6 !important;
+}
+.monitor-container .monitor-top-section.flashing { --attn-c: var(--tb, #FF5A5F); }
+.queue-top-bar .top-box, .search-top-bar .top-box, .tb-top-bar .top-box { transition: flex-grow .35s var(--ease); }
+[data-attn="talk"] > .top-box:first-child { flex: 2.4 1 0 !important; }
+[data-attn="next"] > .top-box:last-child { flex: 2.4 1 0 !important; }
