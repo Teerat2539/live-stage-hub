@@ -1966,3 +1966,8 @@ nav button:active:not(.active) { background: var(--surface-2); }
 .queue-top-bar .top-box, .search-top-bar .top-box, .tb-top-bar .top-box { transition: flex-grow .35s var(--ease); }
 [data-attn="talk"] > .top-box:first-child { flex: 2.4 1 0 !important; }
 [data-attn="next"] > .top-box:last-child { flex: 2.4 1 0 !important; }
+
+/* ===== แก้: หน้าค้นหา — ช่องค้นหาไม่ลอยทับแถบเมนู (วางต่อท้ายในคอลัมน์ ไม่ใช้ fixed) ===== */
+*:has(> .search-main-content) { display: flex; flex-direction: column; flex: 1 1 auto; min-height: 0; height: 100%; }
+.search-main-content { flex: 1 1 auto; min-height: 0; overflow-y: auto; padding-bottom: 12px !important; -webkit-overflow-scrolling: touch; }
+.search-input-section { position: static !important; flex: 0 0 auto; width: auto; bottom: auto; box-shadow: none !important; backdrop-filter: none; background: var(--bg) !important; }

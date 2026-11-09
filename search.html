@@ -41,7 +41,7 @@
       let currentQueueList = [];
 
       // ค่าตั้งค่าการค้นหารายบุคคล: users/{ชื่อผู้ใช้}/searchPrefs (ตั้งในหน้าตั้งค่า)
-      let searchPrefs = { suffix: 'คอร์ด', includeArtist: true, copy: true, copyMode: 'title' };
+      let searchPrefs = { suffix: 'คอร์ด', includeArtist: true, copy: true, copyMode: 'title', copySuffix: false };
       try {
         const __u = (JSON.parse(localStorage.getItem('lsh_session') || '{}')).username;
         if (__u) db.ref('users/' + __u + '/searchPrefs').once('value').then(sn => {
@@ -188,7 +188,8 @@
           inputEl.value = (searchPrefs.includeArtist === false || !artist) ? title : `${title} ${artist}`;
         }
         if (searchPrefs.copy !== false) {
-          const text = (searchPrefs.copyMode === 'both' && artist) ? `${title} ${artist}` : title;
+          let text = (searchPrefs.copyMode === 'both' && artist) ? `${title} ${artist}` : title;
+          if (searchPrefs.copySuffix === true && searchPrefs.suffix) text = `${text} ${searchPrefs.suffix}`;
           copyToClipboard(text)
             .then(() => lshToast('คัดลอก “' + text + '” แล้ว', 'ok'))
             .catch(() => lshToast('คัดลอกอัตโนมัติไม่ได้ในเครื่องนี้', 'warn'));

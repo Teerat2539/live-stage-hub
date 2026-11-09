@@ -93,6 +93,10 @@
         <button type="button" id="spModeTitle" style="flex:1;min-height:40px;border-radius:9px;font-weight:700;font-size:13px">ชื่อเพลงอย่างเดียว</button>
         <button type="button" id="spModeBoth" style="flex:1;min-height:40px;border-radius:9px;font-weight:700;font-size:13px">ชื่อเพลง + ศิลปิน</button>
       </div>
+      <div id="spCopySuffixBox" style="display:flex;align-items:center;gap:12px;margin-top:14px">
+        <div style="flex:1"><div style="font-weight:700;font-size:15px">คัดลอกคำต่อท้ายไปด้วย</div><div style="font-size:12px;color:#aaa;margin-top:2px">เช่น เธอยังคงสวยงาม Bodyslam คอร์ด (ใช้คำต่อท้ายที่ตั้งไว้ด้านบน)</div></div>
+        <label class="switch"><input type="checkbox" id="spCopySuffix"><span class="slider"></span></label>
+      </div>
     </div>
     <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:0 2px 8px">
       <div style="font-size:12px;color:#aaa">ตั้งค่านี้ใช้เฉพาะบัญชีของคุณ</div>
@@ -299,8 +303,8 @@
 
     // --- SEARCH PREFS (users/{u}/searchPrefs) ---
     (function() {
-      const DEF = { suffix: 'คอร์ด', includeArtist: true, copy: true, copyMode: 'title' };
-      const PRESETS = ['คอร์ด', 'โน้ตกลอง', 'แทป', 'คอร์ดเบส'];
+      const DEF = { suffix: 'คอร์ด', includeArtist: true, copy: true, copyMode: 'title', copySuffix: false };
+      const PRESETS = ['คอร์ด', 'โน้ตกลอง', 'แทป'];
       let prefs = Object.assign({}, DEF);
       let customMode = false, loaded = false;
       const $ = id => document.getElementById(id);
@@ -336,6 +340,9 @@
         activeBtn($('spModeBoth'), prefs.copyMode === 'both');
         $('spCopyModeBox').style.opacity = prefs.copy ? '1' : '.4';
         $('spCopyModeBox').style.pointerEvents = prefs.copy ? 'auto' : 'none';
+        $('spCopySuffix').checked = !!prefs.copySuffix;
+        $('spCopySuffixBox').style.opacity = prefs.copy ? '1' : '.4';
+        $('spCopySuffixBox').style.pointerEvents = prefs.copy ? 'auto' : 'none';
         $('spPreview').textContent = ['เธอยังคงสวยงาม', prefs.includeArtist ? 'Bodyslam' : '', prefs.suffix].filter(Boolean).join(' ');
       }
       function save() {
@@ -352,6 +359,7 @@
       };
       $('spIncludeArtist').onchange = e => { prefs.includeArtist = e.target.checked; save(); };
       $('spCopy').onchange = e => { prefs.copy = e.target.checked; save(); };
+      $('spCopySuffix').onchange = e => { prefs.copySuffix = e.target.checked; save(); };
       $('spModeTitle').onclick = () => { prefs.copyMode = 'title'; save(); };
       $('spModeBoth').onclick = () => { prefs.copyMode = 'both'; save(); };
       $('spCustomSuffix').onchange = e => { prefs.suffix = e.target.value.trim(); if (!prefs.suffix) customMode = true; save(); };
