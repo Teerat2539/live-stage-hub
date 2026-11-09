@@ -26,6 +26,11 @@
   <!-- แถบชื่อร้าน (ชื่อลิสต์ที่เลือก) + เวลาโชว์ -->
   <div id="queueShowBar" class="queue-show-bar hidden">
     <span id="queueVenueName" class="qsb-venue">-</span>
+    <div class="qsb-auto">
+      <button type="button" id="qaPause" class="qsb-pp" onclick="lshAutoPauseToggle()" aria-label="พอสการเลื่อนอัตโนมัติ" disabled><svg class="ic" aria-hidden="true"><use href="#i-pause"/></svg></button>
+      <span class="qsb-auto-lbl">เลื่อนอัตโนมัติ</span>
+      <button type="button" id="qaSwitch" class="snd-switch" role="switch" aria-checked="false" aria-label="เลื่อนเพลงอัตโนมัติ" onclick="lshAutoToggle()"><span></span></button>
+    </div>
     <button type="button" id="queueTimerChip" class="qsb-chip" onclick="openShowTimerModal()"><svg class="ic" aria-hidden="true"><use href="#i-clock"/></svg><span id="queueTimerText">1:30</span></button>
   </div>
 
@@ -254,7 +259,29 @@
         chip.classList.toggle('off', !st.enabled);
         chip.classList.toggle('over', !!(st.enabled && t.info().over));
         document.getElementById('queueTimerText').textContent = st.enabled ? (t.info().over ? t.info().text : 'เหลือ ' + t.info().text) : 'ปิด';
+        if (window.lshAutoAdv) updateAutoUi(window.lshAutoAdv.info());
       }
+      // 📌 เลื่อนเพลงอัตโนมัติ: ปุ่มพอส/เพลย์ + สวิตช์ + เวลาที่เหลือในแถว "กำลังเล่น" (ตัวทำงานอยู่ที่ index.html: window.lshAutoAdv)
+      function updateAutoUi(i) {
+        const sw = document.getElementById('qaSwitch'), pp = document.getElementById('qaPause');
+        if (sw) sw.setAttribute('aria-checked', i.enabled ? 'true' : 'false');
+        if (pp) {
+          pp.disabled = !i.enabled;
+          pp.classList.toggle('is-paused', !!i.paused);
+          pp.setAttribute('aria-label', i.paused ? 'เล่นต่อ (นับเพลงปัจจุบันใหม่)' : 'พอสการเลื่อนอัตโนมัติ');
+          const u = pp.querySelector('use'); if (u) u.setAttribute('href', i.paused ? '#i-play' : '#i-pause');
+        }
+        const lbl = document.querySelector('.song-card .q-play-lbl');
+        if (lbl) {
+          let t = 'กำลังเล่น';
+          if (i.enabled && i.paused) t = 'กำลังเล่น · พัก';
+          else if (i.enabled && i.counting) t = 'กำลังเล่น · เหลือ ' + Math.floor(i.remainSec / 60) + ':' + String(i.remainSec % 60).padStart(2, '0');
+          if (lbl.textContent !== t) lbl.textContent = t;
+        }
+      }
+      window.lshAutoToggle = function() { const a = window.lshAutoAdv; if (a) a.setEnabled(!a.info().enabled); };
+      window.lshAutoPauseToggle = function() { const a = window.lshAutoAdv, i = a && a.info(); if (!i || !i.enabled) return; if (i.paused) a.resume(); else a.pause(); };
+      if (window.lshAutoAdv && !window.__qAutoBound) { window.__qAutoBound = true; window.lshAutoAdv.onChange((st, i) => { try { updateAutoUi(i); } catch (e) {} }); }
       if (window.lshShowTimer && !window.__qShowBarBound) { window.__qShowBarBound = true; window.lshShowTimer.onChange(() => { try { updateShowBar(); refreshShowTimerModal(); } catch (e) {} }); }
 
       function refreshShowTimerModal() {
@@ -594,7 +621,7 @@
 
         let actionsHtml = '';
         if (stateClass === 'playing') {
-          actionsHtml = `<div class="q-playing"><i></i>กำลังเล่น</div>`;
+          actionsHtml = `<div class="q-playing"><i></i><span class="q-play-lbl">กำลังเล่น</span></div>`;
         } else if (stateClass !== 'played') {
           let movableSongs = window.queueData.filter(i => 
             i.status !== 'removed' && 

@@ -1997,3 +1997,19 @@ nav button:active:not(.active) { background: var(--surface-2); }
 .set-color-9 { --set: var(--set-9); border-left: 5px solid var(--set-9) !important; } .song-card.set-color-9 { --set: var(--set-9); } .sd-9 { --sd: var(--set-9); }
 .color-set-10 { color: var(--set-10) !important; } .seg-set-10 { background: var(--set-10); }
 .set-color-10 { --set: var(--set-10); border-left: 5px solid var(--set-10) !important; } .song-card.set-color-10 { --set: var(--set-10); } .sd-10 { --sd: var(--set-10); }
+
+/* ===== เลื่อนเพลงอัตโนมัติ (หน้าจัดคิว) ===== */
+.queue-show-bar .qsb-venue { flex: 1 1 auto; }
+.qsb-auto { flex: none; display: inline-flex; align-items: center; gap: 8px; }
+.qsb-auto-lbl { font-size: 11px; font-weight: 700; color: var(--text-3); white-space: nowrap; }
+.qsb-pp { flex: none; width: 34px; height: 34px; display: inline-flex; align-items: center; justify-content: center; border-radius: 50%; background: var(--surface-2); border: 1px solid var(--line-strong); color: var(--text); padding: 0; }
+.qsb-pp .ic { width: 15px; height: 15px; }
+.qsb-pp:disabled { opacity: .35; }
+.qsb-pp.is-paused { color: var(--live); border-color: var(--live); }
+.qsb-auto .snd-switch { width: 44px; height: 26px; border-radius: 13px; }
+.qsb-auto .snd-switch span { top: 2px; left: 2px; width: 20px; height: 20px; }
+.qsb-auto .snd-switch[aria-checked="true"] span { transform: translateX(18px); }
+@media (max-width: 400px) { .qsb-auto-lbl { display: none; } }
+.dur-wrap { display: flex; align-items: center; gap: 8px; }
+.dur-wrap input { flex: 1; min-width: 0; text-align: center; }
+.dur-wrap span { color: var(--text-3); font-weight: 800; }

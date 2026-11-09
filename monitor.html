@@ -176,6 +176,7 @@
       function processQueueData(queueData) {
         window.lshReady && window.lshReady();
         currentQueue = queueData;
+        if (!document.getElementById('mPlayingTitle')) return; // ออกจากหน้ามอนิเตอร์แล้ว (ตัวฟังยังค้างอยู่) — ไม่ต้องวาด
 
         let playing = queueData.find(i => i.status === 'playing');
         let next = queueData.find(i => i.status === 'next');
