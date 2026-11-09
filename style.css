@@ -2026,3 +2026,9 @@ nav button:active:not(.active) { background: var(--surface-2); }
 .search-main-content .song-card.next-song, .search-main-content .song-card.next-song[class*="set-color-"] { border-color: var(--set, var(--info)) !important; }
 .monitor-container .song-box-next, .monitor-container .song-box-next[class*="flash"] { border-color: var(--nx, var(--set-1)) !important; }
 .modal-song-item.next { border-color: var(--nx, var(--next)); }
+
+/* ป้าย "ถัดไป" + ชื่อเซ็ต ตามสีเซ็ตของเพลงถัดไป */
+.monitor-container .mon-next-head { color: var(--nx, #8DB0FF); }
+.monitor-container .mon-badge { background: color-mix(in srgb, var(--nx, #5B8CFF) 18%, transparent); }
+.queue-main-content .song-card.next-song .q-tag { background: color-mix(in srgb, var(--set, #5B8CFF) 18%, transparent); color: var(--set, var(--next)); }
+.search-main-content .song-card.next-song .q-tag { background: none; color: var(--set, var(--info-text, #8DB0FF)); }
