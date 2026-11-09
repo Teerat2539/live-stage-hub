@@ -173,6 +173,13 @@
         });
       }
 
+      // สีกรอบเพลงถัดไป = สีเซ็ตของเพลงนั้น (รีเควส/แทรกใช้สีของตัวเอง)
+      function nxColor(x) {
+        if (x.type === 'inserted-request') return 'var(--request)';
+        if (x.type === 'inserted-custom') return 'var(--custom)';
+        return 'var(--set-' + (String(x.set || 'Set 1').replace(/\D/g, '') || '1') + ', var(--set-1))';
+      }
+
       function processQueueData(queueData) {
         window.lshReady && window.lshReady();
         currentQueue = queueData;
@@ -205,6 +212,8 @@
           mPlayingTitle.innerText = '-';
         }
 
+        const nextBox = document.getElementById('nextSongCardBox');
+        if (nextBox) nextBox.style.setProperty('--nx', !next || isSpecial(next) ? 'var(--line-strong)' : nxColor(next));
         const mNextTitle = document.getElementById('mNextTitle');
         const nextSetEl = document.getElementById('mNextSet');
         const tilesEl = document.getElementById('mNextTiles');
@@ -511,7 +520,7 @@
             badge = '<span style="font-size:10px;color:#f59e0b;font-weight:bold">[เพลงถัดไป]</span>';
           }
           html += `
-            <div class="modal-song-item ${itemClass}">
+            <div class="modal-song-item ${itemClass}" style="--nx:${nxColor(song)}">
               <div>
                 <div class="u-meta">${/^Set \d+$/.test(song.set || 'Set 1') ? '' : song.set + ' | '}คีย์: ${song.key || '-'}</div>
                 <div style="font-size:14px;font-weight:bold" class="${setColorClass}">${song.title} - ${song.artist}</div>
@@ -522,6 +531,10 @@
         });
         container.innerHTML = html;
         document.getElementById('fullQueueModal').classList.remove('hidden');
+        // เปิดมาให้เลื่อนไปที่เพลงถัดไปก่อน (ไม่มี = เพลงที่กำลังเล่น) — อยากดูย้อนให้ปัดขึ้นเอง
+        const focusEl = container.querySelector('.modal-song-item.next') || container.querySelector('.modal-song-item.playing');
+        container.scrollTop = 0;
+        if (focusEl) requestAnimationFrame(() => { container.scrollTop = focusEl.getBoundingClientRect().top - container.getBoundingClientRect().top + container.scrollTop - 4; });
       };
 
       window.closeFullQueueModal = function(e) {

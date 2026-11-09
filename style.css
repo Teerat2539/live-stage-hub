@@ -2013,3 +2013,16 @@ nav button:active:not(.active) { background: var(--surface-2); }
 .dur-wrap { display: flex; align-items: center; gap: 8px; }
 .dur-wrap input { flex: 1; min-width: 0; text-align: center; }
 .dur-wrap span { color: var(--text-3); font-weight: 800; }
+
+/* ===== แถบความคืบหน้าเพลงที่กำลังเล่น + กรอบเพลงถัดไปตามสีเซ็ต (v6) ===== */
+.song-card:has(.q-prog) { flex-wrap: wrap; }
+.q-prog { display: none; flex: 0 0 100%; padding: 0 0 0 32px; margin-top: -2px; }
+.q-prog.on { display: block; }
+.q-prog-bar { height: 4px; border-radius: 4px; background: var(--line-strong); overflow: hidden; }
+.q-prog-bar i { display: block; height: 100%; width: 0; border-radius: 4px; background: var(--set, var(--live)); transition: width 1s linear; }
+.q-prog-t { display: flex; justify-content: space-between; margin-top: 4px; font-size: 12px; font-weight: 600; color: var(--text-3); font-variant-numeric: tabular-nums; }
+/* กรอบเพลงถัดไป = สีเซ็ต (หน้าจัดคิว / ค้นหาคอร์ด / มอนิเตอร์ / รายการคิวทั้งหมด) */
+.queue-main-content .song-card.next-song, .queue-main-content .song-card.next-song[class*="set-color-"],
+.search-main-content .song-card.next-song, .search-main-content .song-card.next-song[class*="set-color-"] { border-color: var(--set, var(--info)) !important; }
+.monitor-container .song-box-next, .monitor-container .song-box-next[class*="flash"] { border-color: var(--nx, var(--set-1)) !important; }
+.modal-song-item.next { border-color: var(--nx, var(--next)); }

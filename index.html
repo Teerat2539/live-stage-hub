@@ -536,7 +536,7 @@
     window.lshAutoAdv = (function () {
       const DEFAULT_SEC = 240;            // ไม่มีเพลงไหนมีเวลาเลย = 4 นาที
             let room = null, aRef = null, qRef = null, aCb = null, qCb = null, oRef = null, oCb = null, tick = null, visCb = null;
-      let st = { enabled: false, paused: false, songId: null, endsAt: null };
+      let st = { enabled: false, paused: false, songId: null, dur: null, endsAt: null };
       let aLoaded = false, qLoaded = false, songs = [], offset = 0;
       let durById = {}, durByTitle = {}, durAvg = DEFAULT_SEC, durAt = 0, sRef = null, sCb = null;
       let starting = null, advancing = false;
@@ -568,7 +568,10 @@
       function info() {
         const p = playing();
         const counting = !!(st.enabled && !st.paused && p && isReal(p) && st.songId === p.id && st.endsAt);
-        return { enabled: !!st.enabled, paused: !!st.paused, counting, remainSec: counting ? Math.max(0, Math.ceil((st.endsAt - now()) / 1000)) : null, songId: p ? p.id : null };
+        const total = counting ? (Number(st.dur) > 0 ? Number(st.dur) : durationOf(p)) : null;
+        const remain = counting ? Math.max(0, (st.endsAt - now()) / 1000) : null;
+        const elapsed = counting ? Math.min(total, Math.max(0, total - remain)) : null;
+        return { enabled: !!st.enabled, paused: !!st.paused, counting, remainSec: counting ? Math.ceil(remain) : null, totalSec: total, elapsedSec: elapsed, songId: p ? p.id : null };
       }
       function startFor(p) {
         if (starting === p.id || !aRef) return;
@@ -576,10 +579,10 @@
         const sec = durationOf(p);
         aRef.transaction(v => {
           if (!v || !v.enabled || v.paused || v.songId === p.id) return; // ยกเลิก: ไม่ต้องเขียน
-          v.songId = p.id; v.endsAt = now() + sec * 1000; return v;
+          v.songId = p.id; v.dur = sec; v.endsAt = now() + sec * 1000; return v;
         }).catch(() => {}).then(() => { starting = null; });
       }
-      function clearCount() { if (aRef && (st.songId || st.endsAt)) aRef.update({ songId: null, endsAt: null }).catch(() => {}); }
+      function clearCount() { if (aRef && (st.songId || st.endsAt)) aRef.update({ songId: null, dur: null, endsAt: null }).catch(() => {}); }
       function advance(id) {
         if (advancing || !qRef) return;
         if (window.firebaseSyncTimer) return; // เครื่องนี้มีการแก้คิวที่รอซิงค์อยู่ (หน้าจัดคิว) — รอให้เขียนเสร็จก่อนค่อยเลื่อน
@@ -625,7 +628,7 @@
         room = r;
         aRef = db.ref('rooms/' + r + '/autoAdvance');
         qRef = db.ref('rooms/' + r + '/queue');
-        aCb = (snap) => { st = Object.assign({ enabled: false, paused: false, songId: null, endsAt: null }, snap.val() || {}); aLoaded = true; step(); };
+        aCb = (snap) => { st = Object.assign({ enabled: false, paused: false, songId: null, dur: null, endsAt: null }, snap.val() || {}); aLoaded = true; step(); };
         qCb = (snap) => {
           const q = snap.val();
           let arr = q && q.songs ? q.songs : [];
@@ -649,22 +652,22 @@
         clearInterval(tick);
         room = aRef = qRef = aCb = qCb = oRef = oCb = tick = visCb = null;
         aLoaded = qLoaded = false; songs = []; starting = null; advancing = false;
-        st = { enabled: false, paused: false, songId: null, endsAt: null };
+        st = { enabled: false, paused: false, songId: null, dur: null, endsAt: null };
         notify();
       }
       // สวิตช์เปิด/ปิด: เปิด = เพลงที่กำลังเล่นเริ่มนับจากความยาวเต็ม / ปิด = หยุดนับ
       function setEnabled(on) {
         if (!aRef) return Promise.resolve();
-        if (!on) return aRef.update({ enabled: false, paused: false, songId: null, endsAt: null });
+        if (!on) return aRef.update({ enabled: false, paused: false, songId: null, dur: null, endsAt: null });
         const p = playing();
-        return aRef.update(p && isReal(p) && durAt ? { enabled: true, paused: false, songId: p.id, endsAt: now() + durationOf(p) * 1000 } : { enabled: true, paused: false, songId: null, endsAt: null });
+        return aRef.update(p && isReal(p) && durAt ? { enabled: true, paused: false, songId: p.id, dur: durationOf(p), endsAt: now() + durationOf(p) * 1000 } : { enabled: true, paused: false, songId: null, dur: null, endsAt: null });
       }
-      function pause() { return aRef && st.enabled ? aRef.update({ paused: true, songId: null, endsAt: null }) : Promise.resolve(); }
+      function pause() { return aRef && st.enabled ? aRef.update({ paused: true, songId: null, dur: null, endsAt: null }) : Promise.resolve(); }
       // เพลย์ = นับเพลงปัจจุบันใหม่จากความยาวเต็ม (ไม่ต่อจากที่ค้างไว้)
       function resume() {
         if (!aRef || !st.enabled) return Promise.resolve();
         const p = playing();
-        return aRef.update(p && isReal(p) && durAt ? { paused: false, songId: p.id, endsAt: now() + durationOf(p) * 1000 } : { paused: false, songId: null, endsAt: null });
+        return aRef.update(p && isReal(p) && durAt ? { paused: false, songId: p.id, dur: durationOf(p), endsAt: now() + durationOf(p) * 1000 } : { paused: false, songId: null, dur: null, endsAt: null });
       }
       return {
         bind, unbind, info, durationOf, setEnabled, pause, resume,

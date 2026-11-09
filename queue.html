@@ -271,12 +271,16 @@
           pp.setAttribute('aria-label', i.paused ? 'เล่นต่อ (นับเพลงปัจจุบันใหม่)' : 'พอสการเลื่อนอัตโนมัติ');
           const u = pp.querySelector('use'); if (u) u.setAttribute('href', i.paused ? '#i-play' : '#i-pause');
         }
-        const lbl = document.querySelector('.song-card .q-play-lbl');
-        if (lbl) {
-          let t = 'กำลังเล่น';
-          if (i.enabled && i.paused) t = 'กำลังเล่น · พัก';
-          else if (i.enabled && i.counting) t = 'กำลังเล่น · เหลือ ' + Math.floor(i.remainSec / 60) + ':' + String(i.remainSec % 60).padStart(2, '0');
-          if (lbl.textContent !== t) lbl.textContent = t;
+        // แถบความคืบหน้าของเพลงที่กำลังเล่น (ดูอย่างเดียว) — ซ่อนเมื่อไม่ได้นับ (ปิดสวิตช์/พอส/ยังไม่เริ่มโชว์)
+        const pg = document.querySelector('.song-card .q-prog');
+        if (pg) {
+          const fmt = (x) => Math.floor(x / 60) + ':' + String(Math.floor(x % 60)).padStart(2, '0');
+          pg.classList.toggle('on', !!i.counting);
+          if (i.counting) {
+            pg.querySelector('.q-prog-bar i').style.width = Math.min(100, i.elapsedSec / i.totalSec * 100).toFixed(1) + '%';
+            pg.querySelector('.qe').textContent = fmt(i.elapsedSec);
+            pg.querySelector('.qd').textContent = fmt(i.totalSec);
+          }
         }
       }
       window.lshAutoToggle = function() { const a = window.lshAutoAdv; if (a) a.setEnabled(!a.info().enabled); };
@@ -588,6 +592,7 @@
 
         container.innerHTML = html;
         initQueueSortable(container);
+        if (window.lshAutoAdv) updateAutoUi(window.lshAutoAdv.info());
         updateTopBarNext(nextItem);
         updateControlButtons();
         if (window.lshShowTimer) window.lshShowTimer.maybeStart(window.queueData); // เพลงจริงเพลงแรกเริ่มเล่น → เริ่มจับเวลา
@@ -668,6 +673,7 @@
             </div>
             ${side}
             ${actionsHtml}
+            ${stateClass === 'playing' ? '<div class="q-prog"><div class="q-prog-bar"><i></i></div><div class="q-prog-t"><span class="qe">0:00</span><span class="qd">0:00</span></div></div>' : ''}
           </div>
         `;
       }
