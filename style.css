@@ -1928,12 +1928,26 @@ nav button:active:not(.active) { background: var(--surface-2); }
   body.lsh-page-talkback .quick-grid[data-n="4"] { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
   body.lsh-page-talkback .btn-quick { height: auto !important; min-height: 0 !important; font-size: clamp(16px, 5vh, 26px) !important; font-weight: 700; border-radius: 16px !important; position: relative; overflow: hidden; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; line-height: 1.2; transition: transform .18s var(--ease), box-shadow .18s; }
   body.lsh-page-talkback .btn-quick .q-hint { display: none; font-size: 13px; font-weight: 600; opacity: .9; }
-  body.lsh-page-talkback .btn-quick.armed { transform: scale(1.06); z-index: 2; box-shadow: 0 0 0 3px var(--live), 0 10px 28px rgba(0,0,0,.55); }
-  body.lsh-page-talkback .btn-quick.armed .q-hint { display: block; color: var(--live); }
-  body.lsh-page-talkback .btn-quick.armed::after { content: ''; position: absolute; left: 0; bottom: 0; height: 5px; width: 100%; background: var(--live); transform-origin: left; animation: qArm 3s linear forwards; }
+  body.lsh-page-talkback .btn-quick.armed { transform: scale(1.06); z-index: 2; box-shadow: 0 0 0 3px var(--qc, var(--live)), 0 10px 28px rgba(0,0,0,.55); }
+  body.lsh-page-talkback .btn-quick.armed .q-hint { display: block; color: inherit; }
+  body.lsh-page-talkback .btn-quick.armed::after { content: ''; position: absolute; left: 0; bottom: 0; height: 5px; width: 100%; background: var(--qc, var(--live)); transform-origin: left; animation: qArm 3s linear forwards; }
   body.lsh-page-talkback .btn-quick.sent { background: var(--live) !important; color: var(--live-ink) !important; border-color: var(--live) !important; }
   body.lsh-page-talkback .btn-quick.sent .q-hint { display: block; color: var(--live-ink); }
   #tbLandMsg { display: none; }
   body.lsh-page-talkback #tbLandMsg.on { display: block; position: fixed; left: 80px; right: 16px; bottom: 14px; z-index: 50; padding: 10px 14px; border-radius: 12px; background: var(--surface-3); border: 1px solid var(--danger); color: #FF8A8E; font-weight: 600; text-align: center; }
 }
 @keyframes qArm { from { transform: scaleX(1); } to { transform: scaleX(0); } }
+
+/* ซ่อนข้อความ 'แตะอีกครั้งเพื่อส่ง' นอกแนวนอน */
+.btn-quick .q-hint { display: none; }
+
+/* แถบข้างแนวนอน: เหลือ 2 ปุ่ม (มอนิเตอร์ / ท็อคแบค) สูงเต็มแถบ ปุ่มที่ไม่ได้อยู่ = 3/4, ปุ่มที่อยู่ = 1/4 */
+@media (orientation: landscape) and (max-height: 640px) {
+  body:is(.lsh-page-monitor,.lsh-page-talkback) .header-left,
+  body:is(.lsh-page-monitor,.lsh-page-talkback) #showTimerDisplay,
+  body:is(.lsh-page-monitor,.lsh-page-talkback) .hdr-acct { display: none !important; }
+  body:is(.lsh-page-monitor,.lsh-page-talkback) > nav { padding: 10px 8px; gap: 8px; align-items: stretch; min-height: 0; }
+  body:is(.lsh-page-monitor,.lsh-page-talkback) > nav button { width: 100%; height: auto; min-height: 0; max-height: none; margin: 0; flex: 3 1 0; border-radius: 14px; }
+  body:is(.lsh-page-monitor,.lsh-page-talkback) > nav button.active { flex: 1 1 0; }
+  body:is(.lsh-page-monitor,.lsh-page-talkback) > nav button .nav-ico .ic, body:is(.lsh-page-monitor,.lsh-page-talkback) > nav button svg { width: 26px; height: 26px; }
+}
