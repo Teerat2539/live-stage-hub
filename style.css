@@ -1573,3 +1573,41 @@ body.lsh-admin-mode .drawer-menu > button:not([onclick*="ตั้งค่า"]
 .adm2-save { width:100%; height:52px; border:0; border-radius:14px; background:var(--live); color:var(--live-ink); font-size:16px; font-weight:700; }
 .adm2-sep { height:1px; background:var(--line); margin-top:4px; }
 .adm2-del { width:100%; height:52px; border-radius:14px; border:1.5px solid rgba(255,90,95,.6); background:transparent; color:#FF8A8E; font-size:15px; font-weight:600; margin-top:8px; }
+
+/* ===== พาร์ท C: ชิปวง / แผงวงของฉัน / จอยวง ===== */
+.show-timer { cursor: pointer; }
+.band-chip { display:inline-flex; align-items:center; gap:8px; max-width:100%; height:36px; padding:0 14px; border-radius:18px; background:var(--surface); border:1px solid var(--line-strong); font-size:14px; font-weight:700; color:var(--text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.band-chip i { width:8px; height:8px; border-radius:50%; background:var(--info); flex-shrink:0; }
+.show-timer.idle .st-sub { color: var(--text-3); font-size: 10px; }
+.band-sheet { width:100%; max-width:480px; border-radius:24px 24px 0 0 !important; padding:12px 16px calc(24px + env(safe-area-inset-bottom,0px)) !important; text-align:left; background:var(--surface-2); }
+.band-grab { width:40px; height:4px; border-radius:2px; background:var(--line-strong); margin:0 auto 14px; }
+.band-list { display:flex; flex-direction:column; gap:10px; }
+.band-row { width:100%; display:flex; align-items:center; gap:14px; min-height:68px; padding:0 14px; border-radius:14px; background:var(--surface); border:1px solid var(--line); color:var(--text); }
+.band-row.on { border:1.5px solid var(--live); }
+.band-ic { width:44px; height:44px; border-radius:12px; background:var(--info); color:#fff; display:flex; align-items:center; justify-content:center; font-weight:800; font-size:18px; flex-shrink:0; }
+.band-name { font-size:16px; font-weight:700; }
+.band-role { font-size:12px; color:var(--text-3); }
+.band-join { width:100%; min-height:52px; margin-top:14px; border-radius:14px; border:1px dashed var(--line-strong); background:transparent; color:var(--text); font-size:15px; font-weight:600; }
+.band-code { display:flex; align-items:center; gap:12px; margin-top:16px; padding:16px; border-radius:16px; background:var(--surface); border:1px solid var(--line); }
+.band-pin { font-size:32px; font-weight:800; letter-spacing:.25em; color:var(--live); font-variant-numeric:tabular-nums; }
+.band-copy { min-height:44px; padding:0 14px; border-radius:12px; border:1px solid var(--line-strong); background:transparent; color:var(--text); font-weight:600; }
+.login-or { display:flex; align-items:center; gap:10px; margin:16px 0 12px; color:var(--text-3); font-size:12px; }
+.login-or span { flex:1; height:1px; background:var(--line); }
+.btn-join-outline { width:100%; min-height:52px; border-radius:12px; border:1.5px solid var(--line-strong); background:transparent; color:var(--text); font-size:16px; font-weight:700; }
+.join-back { position:absolute; top:8px; left:8px; width:44px; height:44px; background:transparent; border:0; color:var(--text-2); }
+#joinBandModal .box { position:relative; padding-top:44px; }
+.join-lbl { font-size:12px; color:var(--text-3); margin-bottom:6px; display:block; }
+.join-code { display:flex; gap:10px; }
+.join-code input { flex:1; min-width:0; height:60px; text-align:center; font-size:26px; font-weight:800; border-radius:12px; border:1px solid var(--line-strong); background:var(--surface); color:var(--text); }
+.join-info { margin:16px 0; padding:12px 14px; border-radius:12px; background:var(--surface); border:1px solid var(--line); font-size:13px; color:var(--text-2); line-height:1.6; }
+#joinBandModal .btn-primary { width:100%; min-height:52px; background:var(--live); color:var(--live-ink); font-weight:800; font-size:16px; border-radius:12px; }
+
+/* ผู้เยี่ยมชมที่ไม่ใช่สมาชิก: เห็นเฉพาะ Monitor / Search / TalkBack */
+body.lsh-guest #nav-queue { display: none !important; }
+body.lsh-guest .drawer-menu > button:not([onclick*="openLogoutConfirm"]):not(#menuInstallApp) { display: none !important; }
+/* สมาชิกที่ไปช่วยงานวงอื่น: แก้คิวได้ แต่แก้/ลบเซ็ตลิสต์-เพลง และเคลียร์คิวไม่ได้ */
+body.lsh-visiting #btnOpenCreatePlaylist, body.lsh-visiting #btnDetailEdit, body.lsh-visiting #btnDetailDelete,
+body.lsh-visiting #btnPlayLiveSet, body.lsh-visiting #btnOpenAddSong, body.lsh-visiting #btnEmptyStateAdd,
+body.lsh-visiting #btnEditSong, body.lsh-visiting #btnDeleteSong,
+body.lsh-visiting .drawer-menu > button[onclick*="openClearQueueConfirm"],
+body.lsh-visiting .settings-card:has(#btnExportJson) { display: none !important; }

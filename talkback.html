@@ -106,8 +106,8 @@
     try {
       const sessionStr = localStorage.getItem('lsh_session');
       currentUser = sessionStr ? JSON.parse(sessionStr) : { nickname: 'OatSim', role: 'member', emoji: '😎', username: 'oat' };
-      let rawRoom = localStorage.getItem('lsh_selected_room') || (currentUser && currentUser.room) || '';
-      selectedRoom = rawRoom.trim().toUpperCase();
+      let rawRoom = (currentUser && currentUser.room) || localStorage.getItem('lsh_selected_room') || '';
+      selectedRoom = rawRoom.trim();
     } catch(e) {
       currentUser = { nickname: 'สมาชิก', role: 'guest', emoji: '🎵', username: 'guest' };
       selectedRoom = '';

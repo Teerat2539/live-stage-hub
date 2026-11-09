@@ -459,14 +459,21 @@
       function render() {
         const el = document.getElementById('showTimerDisplay');
         if (el) {
-          if (!room || !st.enabled) { el.classList.add('hidden'); }
+          if (!room) { el.classList.add('hidden'); }
+          else if (!st.enabled) { el.classList.remove('hidden', 'over'); el.classList.add('idle'); el.innerHTML = window.lshBandChipHtml ? window.lshBandChipHtml() : ''; }
           else {
             const i = info();
             el.classList.remove('hidden');
-            el.classList.toggle('over', i.over);
-            el.classList.toggle('idle', i.idle);
-            el.innerHTML = '<span class="st-time">' + i.text + '</span><span class="st-sub">' +
-              (i.over ? 'เกินเวลา' : 'เหลืออีก ~' + i.songs + ' เพลง') + '</span>';
+            // ยังไม่เริ่มจับเวลา (หรือปิดตัวจับเวลา) = แสดงชิปชื่อวง / เริ่มจับเวลาแล้ว = นาฬิกาเหมือนเดิม — แตะได้ทั้งสองแบบ
+            if (i.idle) {
+              el.classList.remove('over'); el.classList.add('idle');
+              el.innerHTML = window.lshBandChipHtml ? window.lshBandChipHtml() : '';
+            } else {
+              el.classList.toggle('over', i.over);
+              el.classList.remove('idle');
+              el.innerHTML = '<span class="st-time">' + i.text + '</span><span class="st-sub">' +
+                (i.over ? 'เกินเวลา' : 'เหลืออีก ~' + i.songs + ' เพลง') + '</span>';
+            }
           }
         }
         listeners.forEach(fn => { try { fn(st, info()); } catch (e) {} });
@@ -606,6 +613,8 @@
       <input type="text" id="usernameInput" placeholder="Username" style="width:100%;padding:8px;margin:5px 0"><br>
       <input type="password" id="pinInput" inputmode="numeric" pattern="[0-9]*" maxlength="6" placeholder="PIN" autocomplete="off" style="width:100%;padding:8px;margin:5px 0;font-size:16px" onkeydown="if(event.key==='Enter')submitMemberLogin()"><br><br>
       <button onclick="submitMemberLogin()" class="btn-primary">เข้าสู่ระบบ</button>
+      <div class="login-or"><span></span>ไม่ได้เป็นสมาชิกวง?<span></span></div>
+      <button type="button" onclick="openJoinBand()" class="btn-join-outline">จอยวง</button>
     </div>
   </div>
 
@@ -616,6 +625,34 @@
       <input type="text" id="guestNameInput" placeholder="ใส่ชื่อเล่นของคุณ" style="width:100%;padding:8px;margin:10px 0"><br><br>
       <button onclick="submitGuestLogin()" class="btn-primary">ยืนยัน</button>
       <button onclick="cancelToRoomSelect()" class="btn-ghost">ยกเลิก</button>
+    </div>
+  </div>
+
+
+  <!-- POPUP แผง "วงของฉัน" (แตะที่ชิปชื่อวง/นาฬิกากลางหัวจอ) -->
+  <div id="bandPanelModal" class="overlay hidden" onclick="closeBandPanel()" style="align-items:flex-end">
+    <div class="box band-sheet" id="bandPanelBox" onclick="event.stopPropagation()"></div>
+  </div>
+
+  <!-- POPUP จอยวง (กรอกชื่อเล่น + รหัสห้อง 4 หลัก) -->
+  <div id="joinBandModal" class="overlay hidden">
+    <div class="box" onclick="event.stopPropagation()" style="text-align:left">
+      <button type="button" class="join-back" onclick="closeJoinBand()" aria-label="กลับ"><svg class="ic ic-solo" aria-hidden="true"><use href="#i-close"/></svg></button>
+      <h3 style="margin:4px 0 6px">จอยวง</h3>
+      <p id="joinSubText" class="modal-desc" style="margin:0 0 14px;text-align:left">สำหรับคนที่ไม่ได้เป็นสมาชิก ขอรหัสเข้าห้อง 4 หลักจากสมาชิกวงนั้น</p>
+      <div id="joinNickBox">
+        <label class="join-lbl" for="joinNickInput">ชื่อเล่น</label>
+        <input type="text" id="joinNickInput" maxlength="20" autocomplete="off" style="width:100%">
+      </div>
+      <div class="join-lbl" style="margin-top:14px">รหัสเข้าห้อง</div>
+      <div class="join-code" id="joinCodeRow">
+        <input type="text" inputmode="numeric" pattern="[0-9]*" maxlength="1" autocomplete="off" aria-label="รหัสหลักที่ 1">
+        <input type="text" inputmode="numeric" pattern="[0-9]*" maxlength="1" autocomplete="off" aria-label="รหัสหลักที่ 2">
+        <input type="text" inputmode="numeric" pattern="[0-9]*" maxlength="1" autocomplete="off" aria-label="รหัสหลักที่ 3">
+        <input type="text" inputmode="numeric" pattern="[0-9]*" maxlength="1" autocomplete="off" aria-label="รหัสหลักที่ 4">
+      </div>
+      <div class="join-info" id="joinInfoText">เข้าใช้ได้ 6 ชั่วโมง แล้วออกจากระบบอัตโนมัติ<br>ใช้ได้เฉพาะ มอนิเตอร์ · ค้นหาคอร์ด · ท็อคแบค</div>
+      <button type="button" class="btn-primary" id="joinSubmitBtn" onclick="submitJoinBand()">เข้าร่วมวง</button>
     </div>
   </div>
 
@@ -661,7 +698,7 @@
       <button onclick="toggleDrawer(true)" style="background:none;border:none;color:#fff;font-size:20px;cursor:pointer"><svg class="ic ic-solo" aria-hidden="true"><use href="#i-menu"/></svg></button>
       <span id="pingBadge" class="ping-badge ping-green">-- ms</span>
     </div>
-    <div id="showTimerDisplay" class="show-timer hidden" aria-live="off"></div>
+    <div id="showTimerDisplay" class="show-timer hidden" aria-live="off" role="button" tabindex="0" onclick="openBandPanel()"></div>
     <div class="header-right">
       <span id="clockDisplay" style="font-size:13px;font-weight:bold;font-family:monospace">00:00:00</span>
       <span id="userEmojiDisplay" style="font-size:18px">👤</span>
@@ -823,6 +860,10 @@
       toggleDrawer(false);
       const sessionStr = localStorage.getItem('lsh_session');
       const session = sessionStr ? JSON.parse(sessionStr) : {};
+      if (lshIsGuest(session) && title !== 'ตั้งค่า') {
+        lshAlert('ผู้เยี่ยมชมใช้ได้เฉพาะ มอนิเตอร์ · ค้นหาคอร์ด · ท็อคแบค');
+        return;
+      }
       if (session.userType === 'admin' && title !== 'ตั้งค่า') {
         lshAlert('บัญชีผู้ดูแลระบบใช้ได้เฉพาะหน้าตั้งค่าขั้นสูงเท่านั้น');
         return;
@@ -948,6 +989,283 @@
       closeLogoutModal();
       logout();
     }
+
+
+    // =====================================================================
+    // พาร์ท C: ชิปวง + แผง "วงของฉัน" + จอยวง + เด้งออกเมื่อถูกถอด
+    // roomConfig/{วง}/invite = {pin, expiresAt}  (รหัส 4 หลัก หมุนทุก 24 ชม. แบบ lazy)
+    // session ของสมาชิก: bands[] = วงที่อยู่, visit = {home, until} เมื่อจอยวงอื่น (6 ชม.)
+    // =====================================================================
+    const LSH_VISIT_MS = 6 * 60 * 60 * 1000;
+    const LSH_INVITE_MS = 24 * 60 * 60 * 1000;
+    const lshGetSession = () => { try { return JSON.parse(localStorage.getItem('lsh_session') || 'null'); } catch (e) { return null; } };
+    const lshPutSession = (s) => localStorage.setItem('lsh_session', JSON.stringify(s));
+    const lshEsc = v => String(v == null ? '' : v).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/'/g, '&#39;');
+    const lshIsGuest = (s) => !!s && s.userType === 'guest';
+    const lshIsVisiting = (s) => !!s && s.userType === 'member' && !!s.visit && s.visit.until > Date.now();
+
+    // ธงสิทธิ์บน <body> ให้ CSS ซ่อนปุ่มที่ไม่ควรเห็น
+    function lshApplyAccessClasses(s) {
+      document.body.classList.toggle('lsh-guest', lshIsGuest(s));
+      document.body.classList.toggle('lsh-visiting', lshIsVisiting(s));
+    }
+
+    // เนื้อชิปกลางหัวจอ: ชื่อวง (ตอนยังไม่จับเวลา) / ป้าย "ผู้เยี่ยมชม" พร้อมเวลาที่เหลือ
+    window.lshBandChipHtml = function () {
+      const s = lshGetSession();
+      if (!s || !s.room) return '';
+      let label = lshEsc(s.room), cls = '';
+      const left = lshIsGuest(s) ? (s.loginTimestamp + LSH_VISIT_MS - Date.now()) : (lshIsVisiting(s) ? s.visit.until - Date.now() : 0);
+      if (lshIsGuest(s) || lshIsVisiting(s)) {
+        const m = Math.max(0, Math.ceil(left / 60000));
+        label = 'ผู้เยี่ยมชม · ' + label;
+        cls = '<span class="st-sub">เหลือ ' + Math.floor(m / 60) + ':' + String(m % 60).padStart(2, '0') + ' ชม.</span>';
+      }
+      return '<span class="band-chip"><i></i>' + label + '</span>' + cls;
+    };
+
+    function lshCloneRoom(name) { localStorage.setItem('lsh_selected_room', name); }
+
+    // ----- รหัสจอยวง (invite) -----
+    function lshNewPin() { return String(Math.floor(Math.random() * 10000)).padStart(4, '0'); }
+    async function lshInviteFor(room, forceNew) {
+      const ref = db.ref('roomConfig/' + room + '/invite');
+      let inv = null;
+      try { inv = (await ref.once('value')).val(); } catch (e) {}
+      if (forceNew || !inv || !inv.pin || !(inv.expiresAt > Date.now())) {
+        inv = { pin: lshNewPin(), expiresAt: Date.now() + LSH_INVITE_MS };
+        await ref.set(inv);
+      }
+      return inv;
+    }
+    window.lshRegenInvite = (room) => lshInviteFor(room, true);
+
+    // ----- วงที่สมาชิกคนนี้อยู่ (สแกนจาก roomConfig/{วง}/members/{username}) -----
+    async function lshMyBands(username) {
+      const rs = await db.ref('rooms').once('value');
+      const out = [];
+      await Promise.all(Object.keys(rs.val() || {}).map(async (r) => {
+        try {
+          const m = await db.ref('roomConfig/' + r + '/members/' + username).once('value');
+          if (m.exists()) out.push({ name: r, role: (m.val() && m.val().role) || '' });
+        } catch (e) {}
+      }));
+      return out.sort((a, b) => String(a.name).localeCompare(String(b.name), 'th'));
+    }
+
+    // ----- แผง "วงของฉัน" -----
+    let lshPanelTimer = null;
+    async function openBandPanel() {
+      const s = lshGetSession();
+      if (!s || s.userType === 'admin') return;
+      const modal = document.getElementById('bandPanelModal');
+      const box = document.getElementById('bandPanelBox');
+      modal.classList.remove('hidden');
+      box.innerHTML = '<div class="u-empty">กำลังโหลด...</div>';
+      clearInterval(lshPanelTimer);
+
+      if (lshIsGuest(s)) {
+        box.innerHTML = `<div class="band-grab"></div><h3 style="margin:0 0 10px">ห้องปัจจุบัน</h3>
+          <div class="band-row on"><div class="band-ic">${lshEsc(String(s.room).charAt(0).toUpperCase())}</div><div style="flex:1"><div class="band-name">${lshEsc(s.room)}</div><div class="band-role">ผู้เยี่ยมชม · <span id="bpLeft"></span></div></div></div>
+          <button type="button" class="band-join" onclick="closeBandPanel();openLogoutConfirm()">ออกจากห้อง</button>`;
+        const upd = () => { const e = document.getElementById('bpLeft'); if (e) { const m = Math.max(0, Math.ceil((s.loginTimestamp + LSH_VISIT_MS - Date.now()) / 60000)); e.textContent = 'เหลือ ' + Math.floor(m / 60) + ':' + String(m % 60).padStart(2, '0') + ' ชม.'; } };
+        upd(); lshPanelTimer = setInterval(upd, 30000);
+        return;
+      }
+
+      let bands = [];
+      try { bands = await lshMyBands(s.username); } catch (e) {}
+      // อัปเดตรายชื่อวงใน session (กรณีแอดมินเพิ่มวงให้ระหว่างใช้งาน)
+      if (bands.length) { const cur = lshGetSession(); if (cur) { cur.bands = bands.map(b => b.name); lshPutSession(cur); } }
+      const cur = lshGetSession() || s;
+      const home = cur.visit ? cur.visit.home : cur.room;
+      const visiting = lshIsVisiting(cur);
+      const isMemberOfCurrent = bands.some(b => b.name === cur.room);
+
+      let inv = null;
+      if (isMemberOfCurrent) { try { inv = await lshInviteFor(cur.room, false); } catch (e) {} }
+
+      const rows = bands.map(b => {
+        const on = b.name === cur.room;
+        return `<button type="button" class="band-row${on ? ' on' : ''}" data-band="${lshEsc(b.name)}"><div class="band-ic">${lshEsc(String(b.name).charAt(0).toUpperCase())}</div><div style="flex:1;text-align:left"><div class="band-name">${lshEsc(b.name)}</div><div class="band-role">${lshEsc(b.role || '-')}${on && !visiting ? ' · วงปัจจุบัน' : ''}</div></div>${on ? '<svg class="ic ic-solo" aria-hidden="true"><use href="#i-check"/></svg>' : ''}</button>`;
+      }).join('');
+
+      const visitRow = visiting ? `<div class="band-row on" style="margin-top:8px"><div class="band-ic">${lshEsc(String(cur.room).charAt(0).toUpperCase())}</div><div style="flex:1;text-align:left"><div class="band-name">${lshEsc(cur.room)}</div><div class="band-role">ผู้เยี่ยมชม · <span id="bpLeft"></span></div></div></div>
+        <button type="button" class="band-join" id="bpBack" data-band="${lshEsc(home)}">กลับวง ${lshEsc(home)}</button>` : '';
+      const codeCard = inv ? `<div class="band-code"><div style="flex:1"><div class="band-role">รหัสจอยวง ${lshEsc(cur.room)}</div><div class="band-pin" id="bpPin">${lshEsc(inv.pin)}</div><div class="band-role" id="bpLeftCode"></div></div><button type="button" class="band-copy" id="bpCopy">คัดลอก</button></div>` : '';
+
+      box.innerHTML = `<div class="band-grab"></div><h3 style="margin:0 0 12px">วงของฉัน</h3>
+        <div class="band-list">${rows || '<div class="u-empty">ยังไม่ได้ถูกจัดเข้าวง</div>'}</div>
+        ${visitRow}
+        <div class="band-role" style="margin-top:8px">แตะวงอื่นเพื่อสลับได้ทันที ไม่ต้องกรอกรหัส</div>
+        <button type="button" class="band-join" id="bpJoin">+ จอยห้องวงอื่น (ไปช่วยงาน 6 ชม.)</button>
+        <div class="band-role" style="margin-top:6px;line-height:1.5">กรอกรหัส 4 หลักของวงนั้น ใช้งานได้เต็มสิทธิ์ตามบทบาทของคุณ หมดเวลาแล้วกลับวงเดิมอัตโนมัติ</div>
+        ${codeCard}`;
+
+      box.querySelectorAll('.band-row[data-band]').forEach(b => { b.onclick = () => switchBand(b.dataset.band); });
+      const back = document.getElementById('bpBack'); if (back) back.onclick = () => switchBand(back.dataset.band);
+      document.getElementById('bpJoin').onclick = () => { closeBandPanel(); openJoinBand(true); };
+      const tick = () => {
+        const c2 = lshGetSession(); if (!c2) return;
+        const l1 = document.getElementById('bpLeft');
+        if (l1 && c2.visit) { const m = Math.max(0, Math.ceil((c2.visit.until - Date.now()) / 60000)); l1.textContent = 'เหลือ ' + Math.floor(m / 60) + ':' + String(m % 60).padStart(2, '0') + ' ชม.'; }
+        const l2 = document.getElementById('bpLeftCode');
+        if (l2 && inv) { const m = Math.max(0, Math.ceil((inv.expiresAt - Date.now()) / 60000)); l2.textContent = 'เปลี่ยนรหัสใหม่ในอีก ' + Math.floor(m / 60) + ' ชม. ' + (m % 60) + ' นาที'; }
+      };
+      tick(); lshPanelTimer = setInterval(tick, 30000);
+      const cp = document.getElementById('bpCopy');
+      if (cp && inv) cp.onclick = async () => {
+        try { await navigator.clipboard.writeText(inv.pin); cp.textContent = 'คัดลอกแล้ว'; } catch (e) { cp.textContent = inv.pin; }
+        setTimeout(() => { cp.textContent = 'คัดลอก'; }, 1500);
+      };
+    }
+    function closeBandPanel() { clearInterval(lshPanelTimer); document.getElementById('bandPanelModal').classList.add('hidden'); }
+
+    // สลับวง (สมาชิก: วงที่ตัวเองอยู่ ไม่ต้องกรอกรหัส) — ยืนยันสิทธิ์จากฐานข้อมูลก่อนเสมอ
+    async function switchBand(name) {
+      const s = lshGetSession();
+      if (!s || s.userType !== 'member') return;
+      if (name === s.room && !s.visit) { closeBandPanel(); return; }
+      try {
+        const m = await db.ref('roomConfig/' + name + '/members/' + s.username).once('value');
+        if (!m.exists()) { lshAlert('คุณไม่ได้อยู่ในวงนี้'); return; }
+        s.room = name;
+        s.role = (m.val() && m.val().role) || s.role;
+        delete s.visit;
+        lshPutSession(s); lshCloneRoom(name);
+        closeBandPanel();
+        if (window.lshShowTimer) { window.lshShowTimer.unbind(); }
+        applySession();
+      } catch (e) { lshAlert('สลับวงไม่สำเร็จ: ' + e.message); }
+    }
+
+    // ----- จอยวง -----
+    let joinAsMember = false;
+    function openJoinBand(asMember) {
+      joinAsMember = !!asMember;
+      const s = lshGetSession();
+      document.getElementById('memberLoginModal').classList.add('hidden');
+      document.getElementById('joinNickBox').classList.toggle('hidden', joinAsMember);
+      document.getElementById('joinSubText').textContent = joinAsMember
+        ? 'กรอกรหัสห้อง 4 หลักของวงที่ไปช่วยงาน ขอรหัสจากสมาชิกวงนั้น'
+        : 'สำหรับคนที่ไม่ได้เป็นสมาชิก ขอรหัสเข้าห้อง 4 หลักจากสมาชิกวงนั้น';
+      document.getElementById('joinInfoText').innerHTML = joinAsMember
+        ? 'เข้าใช้ได้ 6 ชั่วโมง แล้วกลับวงเดิมอัตโนมัติ<br>ใช้งานได้ตามบทบาทของคุณ แก้คิวได้ แต่แก้/ลบเซ็ตลิสต์และเพลงของวงนั้นไม่ได้'
+        : 'เข้าใช้ได้ 6 ชั่วโมง แล้วออกจากระบบอัตโนมัติ<br>ใช้ได้เฉพาะ มอนิเตอร์ · ค้นหาคอร์ด · ท็อคแบค';
+      document.querySelectorAll('#joinCodeRow input').forEach(i => { i.value = ''; });
+      document.getElementById('joinNickInput').value = '';
+      document.getElementById('joinBandModal').classList.remove('hidden');
+      setTimeout(() => { const f = joinAsMember ? document.querySelector('#joinCodeRow input') : document.getElementById('joinNickInput'); if (f) f.focus(); }, 50);
+    }
+    function closeJoinBand() {
+      document.getElementById('joinBandModal').classList.add('hidden');
+      if (!lshGetSession()) showRoomModal();
+    }
+    (function () {
+      const row = document.getElementById('joinCodeRow');
+      if (!row) return;
+      const ins = Array.from(row.querySelectorAll('input'));
+      ins.forEach((el, i) => {
+        el.addEventListener('input', () => {
+          el.value = el.value.replace(/\D/g, '').slice(-1);
+          if (el.value && ins[i + 1]) ins[i + 1].focus();
+        });
+        el.addEventListener('keydown', (e) => {
+          if (e.key === 'Backspace' && !el.value && ins[i - 1]) ins[i - 1].focus();
+          if (e.key === 'Enter') submitJoinBand();
+        });
+        el.addEventListener('paste', (e) => {
+          const t = ((e.clipboardData || window.clipboardData).getData('text') || '').replace(/\D/g, '').slice(0, 4);
+          if (!t) return;
+          e.preventDefault();
+          ins.forEach((x, k) => { x.value = t[k] || ''; });
+          (ins[Math.min(t.length, 3)]).focus();
+        });
+      });
+    })();
+
+    async function submitJoinBand() {
+      const code = Array.from(document.querySelectorAll('#joinCodeRow input')).map(i => i.value).join('');
+      const nick = document.getElementById('joinNickInput').value.trim();
+      if (!joinAsMember && !nick) { lshAlert('กรุณากรอกชื่อเล่น'); return; }
+      if (!/^[0-9]{4}$/.test(code)) { lshAlert('กรุณากรอกรหัสห้อง 4 หลัก'); return; }
+      let lk = {};
+      try { lk = JSON.parse(localStorage.getItem('lsh_join_lock') || '{}'); } catch (e) {}
+      if (lk.until && Date.now() < lk.until) { lshAlert('กรอกผิดหลายครั้ง กรุณารออีก ' + Math.ceil((lk.until - Date.now()) / 60000) + ' นาที'); return; }
+      try {
+        const rs = await db.ref('rooms').once('value');
+        let hit = null;
+        await Promise.all(Object.keys(rs.val() || {}).map(async (r) => {
+          try {
+            const inv = (await db.ref('roomConfig/' + r + '/invite').once('value')).val();
+            if (inv && String(inv.pin) === code && inv.expiresAt > Date.now() && !hit) hit = r;
+          } catch (e) {}
+        }));
+        if (!hit) {
+          lk.n = (lk.n || 0) + 1;
+          if (lk.n >= 5) lk = { n: 0, until: Date.now() + 10 * 60000 };
+          localStorage.setItem('lsh_join_lock', JSON.stringify(lk));
+          lshAlert('รหัสไม่ถูกต้องหรือหมดอายุแล้ว ลองขอรหัสใหม่จากสมาชิกวงนั้น');
+          return;
+        }
+        localStorage.removeItem('lsh_join_lock');
+        const s = lshGetSession();
+        if (s && s.userType === 'member') {
+          if ((s.bands || []).indexOf(hit) >= 0) { await switchBand(hit); document.getElementById('joinBandModal').classList.add('hidden'); return; }
+          if (!s.visit) s.visit = { home: s.room };
+          s.visit.until = Date.now() + LSH_VISIT_MS;
+          s.room = hit;
+          lshPutSession(s); lshCloneRoom(hit);
+        } else {
+          saveSession(hit, nick, 'Guest', 'guest', '', '🎸');
+          lshCloneRoom(hit);
+        }
+        document.getElementById('joinBandModal').classList.add('hidden');
+        if (window.lshShowTimer) window.lshShowTimer.unbind();
+        closeAllModals();
+        applySession();
+      } catch (e) { lshAlert('จอยวงไม่สำเร็จ: ' + e.message); }
+    }
+
+    // ----- เด้งออกทันทีเมื่อถูกลบ/ถอดออกจากวง -----
+    let lshWatchOff = [];
+    function lshUnwatchMembership() { lshWatchOff.forEach(f => { try { f(); } catch (e) {} }); lshWatchOff = []; }
+    function lshWatchMembership() {
+      lshUnwatchMembership();
+      const s = lshGetSession();
+      if (!s || s.userType !== 'member' || typeof db === 'undefined') return;
+      const u = s.username;
+      const uref = db.ref('users/' + u);
+      const ucb = uref.on('value', (snap) => { if (!snap.exists()) { lshKick('บัญชีของคุณถูกลบออกจากระบบแล้ว'); } });
+      lshWatchOff.push(() => uref.off('value', ucb));
+      (s.bands || []).forEach((b) => {
+        const r = db.ref('roomConfig/' + b + '/members/' + u);
+        const cb = r.on('value', (snap) => {
+          if (snap.exists()) return;
+          const cur = lshGetSession();
+          if (!cur || cur.userType !== 'member') return;
+          cur.bands = (cur.bands || []).filter(x => x !== b);
+          const home = cur.visit ? cur.visit.home : cur.room;
+          if (!cur.bands.length) { lshPutSession(cur); lshKick('คุณถูกถอดออกจากวงแล้ว'); return; }
+          if (home === b) {
+            // วงหลักที่ใช้อยู่ถูกถอด: ไปวงอื่นที่ยังอยู่
+            lshDropToBand(cur, cur.bands[0]);
+          } else { lshPutSession(cur); }
+        });
+        lshWatchOff.push(() => r.off('value', cb));
+      });
+    }
+    async function lshDropToBand(cur, name) {
+      try {
+        const m = await db.ref('roomConfig/' + name + '/members/' + cur.username).once('value');
+        cur.room = name; cur.role = (m.val() && m.val().role) || cur.role; delete cur.visit;
+        lshPutSession(cur); lshCloneRoom(name);
+        if (window.lshShowTimer) window.lshShowTimer.unbind();
+        applySession();
+        if (window.lshToast) lshToast('คุณถูกถอดออกจากวงเดิม ย้ายมาวง ' + name, 'ok');
+      } catch (e) { lshKick('คุณถูกถอดออกจากวงแล้ว'); }
+    }
+    function lshKick(reason) { lshUnwatchMembership(); triggerExpire(reason); }
 
     function selectRoom(roomName, isMainBand) {
       selectedRoom = roomName;
@@ -1106,6 +1424,16 @@
           triggerExpire('ระบบอัปเดตแล้ว กรุณาล็อกอินใหม่ด้วย Username และ PIN');
           return false;
         }
+        if (session.visit && session.visit.until <= now.getTime()) {
+          // ครบ 6 ชม. ที่ไปช่วยงาน: กลับวงเดิมอัตโนมัติ (ไม่ล็อกเอาต์)
+          const home = session.visit.home;
+          delete session.visit; session.room = home;
+          lshPutSession(session); lshCloneRoom(home);
+          if (window.lshShowTimer) window.lshShowTimer.unbind();
+          applySession();
+          if (window.lshToast) lshToast('หมดเวลาช่วยงาน กลับวง ' + home, 'ok');
+          return true;
+        }
         const left = session.expiresAt - now.getTime();
         if (left <= 0) {
           triggerExpire('ครบกำหนด 7 วัน (ออกจากระบบตอนเที่ยง) กรุณาล็อกอินใหม่');
@@ -1135,7 +1463,8 @@
 
     function triggerExpire(reason) {
       localStorage.removeItem('lsh_session');
-      document.body.classList.remove('lsh-admin-mode');
+      document.body.classList.remove('lsh-admin-mode', 'lsh-guest', 'lsh-visiting');
+      lshUnwatchMembership();
       document.getElementById('expiredReasonText').innerText = reason;
       closeAllModals();
       document.getElementById('sessionExpiredModal').classList.remove('hidden');
@@ -1152,6 +1481,8 @@
 
       const isAdminMode = session.userType === 'admin';
       document.body.classList.toggle('lsh-admin-mode', isAdminMode);
+      lshApplyAccessClasses(session);
+      if (!isAdminMode && session.userType === 'member') lshWatchMembership(); else lshUnwatchMembership();
       const userDisplayText = isAdminMode ? 'ผู้ดูแลระบบ : ตั้งค่าขั้นสูง' : `${session.nickname} ${session.role} : ${session.room}`;
       document.getElementById('displayUserInfo').innerText = userDisplayText;
       if (isAdminMode) {
@@ -1164,7 +1495,8 @@
       document.getElementById('userEmojiDisplay').innerText = session.emoji || '👤';
       if (window.lshShowTimer) window.lshShowTimer.bind(session.room);
 
-      const lastPage = localStorage.getItem('lsh_last_page') || 'monitor';
+      let lastPage = localStorage.getItem('lsh_last_page') || 'monitor';
+      if (lshIsGuest(session) && ['queue', 'songs', 'setlists', 'settings'].includes(lastPage)) { lastPage = 'monitor'; localStorage.setItem('lsh_last_page', 'monitor'); }
       const isNavPage = ['monitor', 'search', 'talkback', 'queue'].includes(lastPage);
   
       if (isNavPage) {
@@ -1203,7 +1535,8 @@
 
     function logout() {
       localStorage.removeItem('lsh_session');
-      document.body.classList.remove('lsh-admin-mode');
+      document.body.classList.remove('lsh-admin-mode', 'lsh-guest', 'lsh-visiting');
+      lshUnwatchMembership();
       localStorage.setItem('lsh_last_page', 'monitor');
       document.getElementById('displayUserInfo').innerText = 'ยังไม่ได้เลือกห้อง';
       if (window.lshShowTimer) window.lshShowTimer.unbind();
@@ -1230,6 +1563,13 @@
 
       const session = JSON.parse(sessionStr);
       if (session.userType === 'admin' && pageName !== 'settings') pageName = 'settings';
+      if (lshIsGuest(session) && ['queue', 'songs', 'setlists', 'settings'].includes(pageName)) {
+        lshAlert('ผู้เยี่ยมชมใช้ได้เฉพาะ มอนิเตอร์ · ค้นหาคอร์ด · ท็อคแบค');
+        pageName = 'monitor';
+        document.querySelectorAll('nav button').forEach(btn => btn.classList.remove('active'));
+        const nb = document.getElementById('nav-monitor'); if (nb) nb.classList.add('active');
+        localStorage.setItem('lsh_last_page', 'monitor');
+      }
       if (pageName === 'settings' && (session.userType === 'guest' || !session.username)) {
         lshAlert('เฉพาะสมาชิกเท่านั้นจึงจะสามารถเข้าใช้งานหน้าตั้งค่าได้ครับ!');
         setActiveNav('monitor');

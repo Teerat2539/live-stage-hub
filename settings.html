@@ -138,6 +138,10 @@
           <button onclick="openAddRoomModal()" style="background:#00f2d1;border:none;color:#000;font-weight:bold;padding:4px 10px;border-radius:4px;font-size:12px;cursor:pointer">+ เพิ่มวง</button>
         </div>
         <div id="adminRoomListContainer" class="u-col-10"></div>
+        <div style="margin-top:14px;border-top:1px solid #333;padding-top:12px">
+          <div class="u-meta" style="margin-bottom:8px">รหัสจอยวง (4 หลัก เปลี่ยนเองทุก 24 ชม.)</div>
+          <div id="adminInviteContainer" class="u-col-10"></div>
+        </div>
       </div>
 
       <!-- 2.1 โลโก้วง (แสดงแทนชื่อวงตอนเลือกวงก่อนล็อกอิน) -->
@@ -812,8 +816,31 @@
         });
         container.innerHTML = html;
         loadAdminLogos();
+        loadAdminInvites(Object.keys(rooms));
       });
       window.__admOff.push(() => __ref.off('value', __cb));
+    }
+
+    // รหัสจอยวงของแต่ละวง + ปุ่มสร้างรหัสใหม่ (roomConfig/{วง}/invite)
+    async function loadAdminInvites(names) {
+      const box = document.getElementById('adminInviteContainer');
+      if (!box) return;
+      const esc = v => String(v == null ? '' : v).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
+      const rows = await Promise.all(names.map(async r => {
+        let inv = null;
+        try { inv = (await db.ref(`roomConfig/${r}/invite`).once('value')).val(); } catch (e) {}
+        const ok = inv && inv.pin && inv.expiresAt > Date.now();
+        return `<div style="display:flex;align-items:center;gap:10px;min-height:48px;padding:0 4px 0 12px;border-radius:12px;background:#12131a;border:1px solid #333">
+          <div style="flex:1;min-width:0;font-size:14px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(r)}</div>
+          <div style="font-size:18px;font-weight:800;letter-spacing:.2em;font-variant-numeric:tabular-nums;color:${ok ? '#2ee6c5' : '#8a909c'}">${ok ? esc(inv.pin) : 'หมดอายุ'}</div>
+          <button type="button" data-room="${esc(r)}" class="adm-regen" style="min-height:44px;padding:0 12px;border-radius:10px;border:1px solid #333845;background:transparent;color:#f2f3f5;font-size:13px;font-weight:600">สร้างใหม่</button>
+        </div>`;
+      }));
+      box.innerHTML = rows.join('') || '<div class="u-empty">ยังไม่มีวง</div>';
+      box.querySelectorAll('.adm-regen').forEach(b => { b.onclick = async () => {
+        try { await window.lshRegenInvite(b.dataset.room); loadAdminInvites(names); lshToast('สร้างรหัสใหม่ให้ ' + b.dataset.room + ' แล้ว', 'ok'); }
+        catch (e) { lshAlert('สร้างรหัสไม่สำเร็จ: ' + e.message); }
+      }; });
     }
 
     // 4.2 โลโก้วง + ลำดับปุ่มวง: เก็บที่ roomConfig/{วง}/logo (base64) และ roomConfig/{วง}/sortOrder (ตัวเลข) — ไม่แตะ BotToken/ChatID
