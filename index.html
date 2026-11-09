@@ -599,14 +599,13 @@
   </div>
 
   <!-- POPUP ล็อกอินสมาชิก -->
-  <div id="memberLoginModal" class="overlay hidden" onclick="cancelToRoomSelect()">
+  <div id="memberLoginModal" class="overlay hidden">
     <div class="box" onclick="event.stopPropagation()">
-      <h3>เข้าสู่ระบบสมาชิก</h3>
-      <p style="font-size:12px;color:#aaa;margin:5px 0">วง: <b id="loginRoomLabel"></b></p>
+      <h3>เข้าสู่ระบบ</h3>
+      <p style="font-size:12px;color:#aaa;margin:5px 0">ล็อกอินครั้งเดียวอยู่ได้จนถึงเที่ยงวันของวันที่ 7 <b id="loginRoomLabel" hidden></b></p>
       <input type="text" id="usernameInput" placeholder="Username" style="width:100%;padding:8px;margin:5px 0"><br>
-      <input type="password" id="pinInput" inputmode="numeric" pattern="[0-9]*" maxlength="4" placeholder="PIN 4 หลัก" style="width:100%;padding:8px;margin:5px 0;font-size:16px"><br><br>
-      <button onclick="submitMemberLogin()" class="btn-primary">ยืนยัน</button>
-      <button onclick="cancelToRoomSelect()" class="btn-ghost">ยกเลิก</button>
+      <input type="password" id="pinInput" inputmode="numeric" pattern="[0-9]*" maxlength="6" placeholder="PIN" autocomplete="off" style="width:100%;padding:8px;margin:5px 0;font-size:16px" onkeydown="if(event.key==='Enter')submitMemberLogin()"><br><br>
+      <button onclick="submitMemberLogin()" class="btn-primary">เข้าสู่ระบบ</button>
     </div>
   </div>
 
@@ -824,6 +823,10 @@
       toggleDrawer(false);
       const sessionStr = localStorage.getItem('lsh_session');
       const session = sessionStr ? JSON.parse(sessionStr) : {};
+      if (session.userType === 'admin' && title !== 'ตั้งค่า') {
+        lshAlert('บัญชีผู้ดูแลระบบใช้ได้เฉพาะหน้าตั้งค่าขั้นสูงเท่านั้น');
+        return;
+      }
       
       if (title === 'ตั้งค่า') {
         if (session.userType === 'guest' || !session.username) {
@@ -969,6 +972,7 @@
       document.getElementById('guestFormModal').classList.remove('hidden');
     }
 
+    // ล็อกอินด้วย Username + PIN: แอดมิน -> เข้าเฉพาะตั้งค่าขั้นสูง / สมาชิก -> เข้าวงที่แอดมินจัดให้
     async function submitMemberLogin() {
       const uName = document.getElementById('usernameInput').value.trim().toLowerCase();
       const pin = document.getElementById('pinInput').value.trim();
@@ -977,31 +981,75 @@
         lshAlert('กรุณากรอก Username และ PIN ให้ครบถ้วน');
         return;
       }
+      // กันเดา PIN: ผิดครบ 5 ครั้งล็อก 10 นาที (นับในเครื่องนี้)
+      let lk = {};
+      try { lk = JSON.parse(localStorage.getItem('lsh_login_lock') || '{}'); } catch (e) {}
+      if (lk.until && Date.now() < lk.until) {
+        lshAlert('กรอกผิดหลายครั้ง กรุณารออีก ' + Math.ceil((lk.until - Date.now()) / 60000) + ' นาที');
+        return;
+      }
+      const fail = () => {
+        lk.n = (lk.n || 0) + 1;
+        if (lk.n >= 5) { lk = { n: 0, until: Date.now() + 10 * 60000 }; }
+        localStorage.setItem('lsh_login_lock', JSON.stringify(lk));
+      };
 
       try {
         const snapshot = await db.ref('users/' + uName).once('value');
-        if (snapshot.exists()) {
-          const userData = snapshot.val();
-          if (String(userData.pin) === String(pin)) {
-            saveSession(
-              selectedRoom, 
-              userData.nickname || uName, 
-              userData.role || 'Member', 
-              'member', 
-              uName,
-              userData.emoji || '👤'
-            );
-            closeAllModals();
-            applySession();
-          } else {
-            lshAlert('รหัส PIN ไม่ถูกต้อง!');
-          }
-        } else {
-          lshAlert('ไม่พบ Username นี้ในระบบ!');
+        if (!snapshot.exists()) { fail(); lshAlert('Username หรือ PIN ไม่ถูกต้อง'); return; }
+        const userData = snapshot.val();
+        if (String(userData.pin) !== String(pin)) { fail(); lshAlert('Username หรือ PIN ไม่ถูกต้อง'); return; }
+        localStorage.removeItem('lsh_login_lock');
+
+        const expiresAt = lshSessionExpiry(new Date());
+        if (uName === 'admin') {
+          saveSession('', 'ผู้ดูแลระบบ', 'Admin', 'admin', 'admin', '🛠️', { expiresAt: expiresAt, bands: [] });
+          localStorage.setItem('lsh_last_page', 'settings');
+          closeAllModals();
+          applySession();
+          return;
         }
+
+        // หาวงที่สมาชิกคนนี้อยู่ (roomConfig/{วง}/members/{username})
+        const roomsSnap = await db.ref('rooms').once('value');
+        const names = Object.keys(roomsSnap.val() || {});
+        const bands = [];
+        await Promise.all(names.map(async (r) => {
+          try {
+            const m = await db.ref('roomConfig/' + r + '/members/' + uName).once('value');
+            if (m.exists()) bands.push({ name: r, role: (m.val() && m.val().role) || '' });
+          } catch (e) {}
+        }));
+        bands.sort((a, b) => String(a.name).localeCompare(String(b.name), 'th'));
+        if (!bands.length) {
+          lshAlert('บัญชีนี้ยังไม่ได้ถูกจัดเข้าวง กรุณาติดต่อแอดมิน');
+          return;
+        }
+        const last = localStorage.getItem('lsh_selected_room');
+        const pick = bands.find(b => b.name === last) || bands[0];
+        saveSession(
+          pick.name,
+          userData.nickname || uName,
+          pick.role || userData.role || 'Member',
+          'member',
+          uName,
+          userData.emoji || '👤',
+          { expiresAt: expiresAt, bands: bands.map(b => b.name) }
+        );
+        localStorage.setItem('lsh_selected_room', pick.name);
+        closeAllModals();
+        applySession();
       } catch (error) {
         lshAlert('เกิดข้อผิดพลาดในการเชื่อมต่อ: ' + error.message);
       }
+    }
+
+    // หมดอายุเวลา 12:00 น. ของวันที่ 7 (นับวันที่ล็อกอินเป็นวันที่ 1)
+    function lshSessionExpiry(from) {
+      const d = new Date(from.getTime());
+      d.setDate(d.getDate() + 6);
+      d.setHours(12, 0, 0, 0);
+      return d.getTime();
     }
 
     function submitGuestLogin() {
@@ -1015,7 +1063,7 @@
       applySession();
     }
 
-    function saveSession(room, nickname, role, userType, username, emoji) {
+    function saveSession(room, nickname, role, userType, username, emoji, extra) {
       const now = new Date();
       const sessionData = {
         room: room,
@@ -1027,6 +1075,7 @@
         loginTimestamp: now.getTime(),
         loginDateStr: now.toDateString()
       };
+      if (extra) Object.assign(sessionData, extra);
       localStorage.setItem('lsh_session', JSON.stringify(sessionData));
     }
 
@@ -1048,35 +1097,45 @@
 
       const session = JSON.parse(sessionStr);
       const now = new Date();
-      const loginTime = session.loginTimestamp;
-      const sixHoursInMs = 6 * 60 * 60 * 1000;
-      const timeDiff = now.getTime() - loginTime;
+      const cd = document.getElementById('sessionCountdown');
+      const pad = n => String(n).padStart(2, '0');
 
+      // สมาชิก/แอดมิน: ออกจากระบบตอน 12:00 น. ของวันที่ 7 (ไม่สนว่าเหลืออีกกี่ชั่วโมง)
+      if (session.userType === 'member' || session.userType === 'admin') {
+        if (!session.expiresAt) {
+          triggerExpire('ระบบอัปเดตแล้ว กรุณาล็อกอินใหม่ด้วย Username และ PIN');
+          return false;
+        }
+        const left = session.expiresAt - now.getTime();
+        if (left <= 0) {
+          triggerExpire('ครบกำหนด 7 วัน (ออกจากระบบตอนเที่ยง) กรุณาล็อกอินใหม่');
+          return false;
+        }
+        const days = Math.floor(left / 86400000);
+        const rest = left % 86400000;
+        if (cd) cd.innerText = (days ? days + ' วัน ' : '') +
+          `${pad(Math.floor(rest / 3600000))}:${pad(Math.floor((rest % 3600000) / 60000))}:${pad(Math.floor((rest % 60000) / 1000))}`;
+        return true;
+      }
+
+      // ผู้เยี่ยมชม (ใช้ในพาร์ทถัดไป): 6 ชั่วโมง
+      const sixHoursInMs = 6 * 60 * 60 * 1000;
+      const timeDiff = now.getTime() - session.loginTimestamp;
       const remainingMs = Math.max(0, sixHoursInMs - timeDiff);
       const hours = Math.floor(remainingMs / (1000 * 60 * 60));
       const mins = Math.floor((remainingMs % (1000 * 60 * 60)) / (1000 * 60));
       const secs = Math.floor((remainingMs % (1000 * 60)) / 1000);
-      
-      document.getElementById('sessionCountdown').innerText = 
-        `${String(hours).padStart(2,'0')}:${String(mins).padStart(2,'0')}:${String(secs).padStart(2,'0')}`;
-
+      if (cd) cd.innerText = `${pad(hours)}:${pad(mins)}:${pad(secs)}`;
       if (timeDiff >= sixHoursInMs) {
         triggerExpire('ครบกำหนดเวลาใช้งาน 6 ชั่วโมง กรุณาล็อกอินใหม่');
         return false;
       }
-
-      if (session.userType === 'guest') {
-        if (now.toDateString() !== session.loginDateStr && now.getHours() >= 6) {
-          triggerExpire('ระบบทำการรีเซ็ตผู้ใช้งานทั่วไปประจำวัน (06:00 น.)');
-          return false;
-        }
-      }
-
       return true;
     }
 
     function triggerExpire(reason) {
       localStorage.removeItem('lsh_session');
+      document.body.classList.remove('lsh-admin-mode');
       document.getElementById('expiredReasonText').innerText = reason;
       closeAllModals();
       document.getElementById('sessionExpiredModal').classList.remove('hidden');
@@ -1091,8 +1150,17 @@
       const session = JSON.parse(localStorage.getItem('lsh_session'));
       if (!session) return;
 
-      const userDisplayText = `${session.nickname} ${session.role} : ${session.room}`;
+      const isAdminMode = session.userType === 'admin';
+      document.body.classList.toggle('lsh-admin-mode', isAdminMode);
+      const userDisplayText = isAdminMode ? 'ผู้ดูแลระบบ : ตั้งค่าขั้นสูง' : `${session.nickname} ${session.role} : ${session.room}`;
       document.getElementById('displayUserInfo').innerText = userDisplayText;
+      if (isAdminMode) {
+        document.getElementById('userEmojiDisplay').innerText = session.emoji || '🛠️';
+        document.querySelectorAll('nav button').forEach(btn => btn.classList.remove('active'));
+        localStorage.setItem('lsh_last_page', 'settings');
+        loadPage('settings');
+        return;
+      }
       document.getElementById('userEmojiDisplay').innerText = session.emoji || '👤';
       if (window.lshShowTimer) window.lshShowTimer.bind(session.room);
 
@@ -1125,70 +1193,17 @@
       document.getElementById('guestNameInput').value = '';
     }
 
+    // เดิมแสดงปุ่มเลือกวง ตอนนี้แสดงหน้าล็อกอิน (username + PIN) แล้วระบบพาเข้าวงของสมาชิกเอง
     async function showRoomModal() {
       if (window.lshReady) window.lshReady();
       closeAllModals();
-      const modal = document.getElementById('roomModal');
-      const box = document.getElementById('roomModalBox');
-      
-      if (!modal) return;
-      modal.classList.remove('hidden');
-      if (box) box.innerHTML = '<h3 style="color:#00f2d1">กำลังโหลดรายชื่อวง...</h3>';
-
-      const renderRoomButtons = async (roomKeys) => {
-        if (!box) return;
-        const mainRooms = roomKeys.filter(r => r !== 'วงเฉพาะกิจ');
-
-        // อ่านเฉพาะฟิลด์ sortOrder และ logo ของแต่ละวง (ไม่อ่าน BotToken/ChatID) รอไม่เกิน 1.5 วินาที
-        const metaOf = {};
-        if (typeof db !== 'undefined' && db && db.ref) {
-          const fetchMeta = Promise.all(mainRooms.map(async (r) => {
-            try {
-              const [o, l] = await Promise.all([db.ref('roomConfig/' + r + '/sortOrder').once('value'), db.ref('roomConfig/' + r + '/logo').once('value')]);
-              const n = Number(o.val());
-              metaOf[r] = { order: (o.val() !== null && Number.isFinite(n)) ? n : Infinity, logo: l.val() };
-            } catch (e) { metaOf[r] = { order: Infinity, logo: null }; }
-          }));
-          await Promise.race([fetchMeta, new Promise(res => setTimeout(res, 1500))]);
-        }
-        const ord = (r) => (metaOf[r] ? metaOf[r].order : Infinity);
-        mainRooms.sort((a, b) => (ord(a) - ord(b)) || String(a).localeCompare(String(b), 'th'));
-
-        let html = '<h3 style="margin-bottom:10px;color:#00f2d1">เลือกวงดนตรี</h3>';
-        html += '<div class="room-grid">';
-        mainRooms.forEach(rName => {
-          const logo = metaOf[rName] && metaOf[rName].logo;
-          const hasLogo = typeof logo === 'string' && logo.startsWith('data:image/');
-          html += `<button onclick="selectRoom(\`${rName}\`, true)" class="room-square-btn${hasLogo ? ' has-logo' : ''}" data-room="${String(rName).replace(/"/g, '&quot;')}"${hasLogo ? ` aria-label="${String(rName).replace(/"/g, '&quot;')}"` : ''}>${hasLogo ? '<img alt="">' : rName + '<br><span style="font-size:10px;font-weight:normal">(สำหรับสมาชิก)</span>'}</button>`;
-        });
-        html += '</div>';
-        html += `<button onclick="selectRoom('วงเฉพาะกิจ', false)" class="room-full-btn">วงเฉพาะกิจ (Public)</button>`;
-        box.innerHTML = html;
-        box.querySelectorAll('.room-square-btn.has-logo').forEach(btn => {
-          const m = metaOf[btn.getAttribute('data-room')];
-          if (m && btn.firstChild) btn.firstChild.src = m.logo;
-        });
-      };
-
-      try {
-        if (typeof db !== 'undefined') {
-          const snapshot = await db.ref('rooms').once('value');
-          const rooms = snapshot.val();
-          if (rooms && typeof rooms === 'object') {
-            renderRoomButtons(Object.keys(rooms));
-          } else {
-            renderRoomButtons(['PGL8', "It's P"]);
-          }
-        } else {
-          renderRoomButtons(['PGL8', "It's P"]);
-        }
-      } catch (e) {
-        renderRoomButtons(['PGL8', "It's P"]);
-      }
+      const m = document.getElementById('memberLoginModal');
+      if (m) m.classList.remove('hidden');
     }
 
     function logout() {
       localStorage.removeItem('lsh_session');
+      document.body.classList.remove('lsh-admin-mode');
       localStorage.setItem('lsh_last_page', 'monitor');
       document.getElementById('displayUserInfo').innerText = 'ยังไม่ได้เลือกห้อง';
       if (window.lshShowTimer) window.lshShowTimer.unbind();
@@ -1214,6 +1229,7 @@
       }
 
       const session = JSON.parse(sessionStr);
+      if (session.userType === 'admin' && pageName !== 'settings') pageName = 'settings';
       if (pageName === 'settings' && (session.userType === 'guest' || !session.username)) {
         lshAlert('เฉพาะสมาชิกเท่านั้นจึงจะสามารถเข้าใช้งานหน้าตั้งค่าได้ครับ!');
         setActiveNav('monitor');

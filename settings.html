@@ -273,10 +273,18 @@
     const sessionStr = localStorage.getItem('lsh_session');
     const session = sessionStr ? JSON.parse(sessionStr) : {};
     const currentUser = session.username || '';
-    const selectedRoom = lshRoom(session);
-    if (!selectedRoom) return;
-    
-    loadUserProfile();
+    const isAdmin = session.userType === 'admin';
+    const selectedRoom = isAdmin ? '' : lshRoom(session);
+    if (!isAdmin && !selectedRoom) return;
+
+    // แท็บ "ขั้นสูง" เป็นของผู้ดูแลระบบเท่านั้น (สมาชิกทั่วไปไม่เห็น) / ผู้ดูแลระบบเห็นเฉพาะแท็บนี้
+    document.querySelectorAll('.settings-tab-btn').forEach(btn => {
+      const isAdv = /'advanced'/.test(btn.getAttribute('onclick') || '');
+      btn.classList.toggle('hidden', isAdmin ? !isAdv : isAdv);
+    });
+    document.querySelector('.settings-tabs').classList.toggle('admin-only', isAdmin);
+
+    if (!isAdmin) loadUserProfile();
     
     let currentTalkbackIndex = null;
     let genericConfirmCallback = null;
@@ -360,6 +368,7 @@
 
     // --- Switch Tabs ---
     window.switchSettingsTab = function(tabName) {
+      if ((tabName === 'advanced') !== isAdmin) return;
       document.querySelectorAll('.settings-tab-btn').forEach(btn => btn.classList.remove('active'));
       document.querySelectorAll('.settings-content').forEach(content => content.classList.add('hidden'));
 
@@ -371,11 +380,23 @@
       if (tabName === 'search') window.loadSearchPrefsTab();
       if (tabName === 'advanced') {
         // ล้างสถานะ PIN Admin ทุกครั้งที่กดเข้ามาใหม่ตามสเปก
+        // ล็อกอินด้วยบัญชี admin มาแล้ว จึงไม่ต้องถามรหัสซ้ำ
         document.getElementById('adminPinInput').value = '';
-        document.getElementById('adminGateBox').classList.remove('hidden');
-        document.getElementById('adminDashboardBox').classList.add('hidden');
+        document.getElementById('adminGateBox').classList.add('hidden');
+        document.getElementById('adminDashboardBox').classList.remove('hidden');
+        loadAdminDashboard();
       }
     };
+    if (isAdmin) {
+      document.querySelectorAll('.settings-content').forEach(c => c.classList.add('hidden'));
+      document.getElementById('tab-advanced').classList.remove('hidden');
+      document.getElementById('adminGateBox').classList.add('hidden');
+      document.getElementById('adminDashboardBox').classList.remove('hidden');
+      const advBtn = Array.from(document.querySelectorAll('.settings-tab-btn')).find(b => /'advanced'/.test(b.getAttribute('onclick') || ''));
+      if (advBtn) advBtn.classList.add('active');
+      document.querySelectorAll('.settings-tab-btn').forEach(b => { if (b !== advBtn) b.classList.remove('active'); });
+      setTimeout(loadAdminDashboard, 0);
+    }
 
     // --- 1. USER PROFILE ---
     function loadUserProfile() {
@@ -591,41 +612,95 @@
     // 4.1 จัดการสมาชิก
  // 4.1 จัดการสมาชิก (แก้ได้เฉพาะ Username และ PIN เท่านั้นตามสเปก)
     function loadAdminUsers() {
-      const __ref = db.ref('users');
-      const __cb = __ref.on('value', (snapshot) => {
-        const users = snapshot.val() || {};
+      let _users = {}, _rooms = {}, _cfg = {};
+      const render = () => {
         const container = document.getElementById('adminUserListContainer');
+        if (!container) return;
+        const bandNames = Object.keys(_rooms).sort((a, b) => String(a).localeCompare(String(b), 'th'));
         let html = '';
+        const esc = v => String(v == null ? '' : v).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
 
-        Object.keys(users).forEach(uName => {
+        Object.keys(_users).forEach(uName => {
           if (uName === 'admin') return; 
-          const u = users[uName];
+          const u = _users[uName] || {};
+          const bandRows = bandNames.map(b => {
+            const m = (_cfg[b] && _cfg[b].members && _cfg[b].members[uName]) || null;
+            const on = !!m;
+            return `
+              <div class="adm-band-row" data-band="${esc(b)}" style="display:flex;gap:8px;align-items:center">
+                <button type="button" class="adm-band-toggle" aria-pressed="${on}" onclick="admToggleBand(this)" style="min-height:40px;padding:0 12px;border-radius:20px;border:1px solid ${on ? '#00f2d1' : '#333'};background:${on ? 'rgba(0,242,209,.14)' : 'transparent'};color:${on ? '#00f2d1' : '#aaa'};font-size:13px;font-weight:700">${esc(b)}</button>
+                <input type="text" class="adm-band-role" value="${esc(m && m.role || '')}" placeholder="บทบาทในวงนี้" ${on ? '' : 'disabled'} style="flex:1;min-width:0;padding:6px;font-size:12px">
+              </div>`;
+          }).join('') || '<div class="u-empty">ยังไม่มีวง</div>';
           html += `
-            <div style="background:#12131a;padding:10px;border-radius:8px;border:1px solid #333;display:flex;flex-direction:column;gap:6px">
+            <div class="adm-user" data-u="${esc(uName)}" style="background:#12131a;padding:10px;border-radius:8px;border:1px solid #333;display:flex;flex-direction:column;gap:8px">
               <div class="u-between">
-                <!-- ช่องแก้ไข Username -->
-                <input type="text" id="adm_uname_${uName}" value="${uName}" placeholder="Username" style="padding:6px;font-size:12px;width:120px;background:#181920;color:#00f2d1;font-weight:bold;border:1px solid #333;border-radius:4px">
-                <button onclick="showGenericConfirm('ลบสมาชิก', 'ต้องการลบยูสเซอร์ ${uName} หรือไม่?', () => deleteUser('${uName}'))" style="background:#3a1a1a;border:1px solid #ef4444;color:#ef4444;border-radius:4px;padding:2px 6px;font-size:11px;cursor:pointer"><svg class="ic" aria-hidden="true"><use href="#i-trash"/></svg> ลบ</button>
+                <input type="text" id="adm_uname_${uName}" value="${esc(uName)}" placeholder="Username" style="padding:6px;font-size:12px;width:120px;background:#181920;color:#00f2d1;font-weight:bold;border:1px solid #333;border-radius:4px">
               </div>
               <div style="display:flex;gap:6px;align-items:center">
-                <input type="password" inputmode="numeric" pattern="[0-9]*" autocomplete="off" id="adm_pin_${uName}" value="${u.pin || ''}" maxlength="4" placeholder="PIN 4 หลัก" style="flex:1;padding:6px;font-size:12px">
-                <span class="u-meta">ชื่อเล่นปัจจุบัน: <b style="color:#fff">${u.nickname || '-'}</b></span>
+                <input type="password" inputmode="numeric" pattern="[0-9]*" autocomplete="off" id="adm_pin_${uName}" value="${esc(u.pin || '')}" maxlength="4" placeholder="PIN 4 หลัก" style="flex:1;padding:6px;font-size:12px">
+                <input type="text" id="adm_emoji_${uName}" value="${esc(u.emoji || '')}" placeholder="Emoji" style="width:64px;padding:6px;font-size:14px;text-align:center">
               </div>
-              <button onclick="saveAdminUser('${uName}')" style="background:#00f2d1;border:none;color:#000;font-weight:bold;padding:6px;border-radius:4px;font-size:12px;cursor:pointer"><svg class="ic" aria-hidden="true"><use href="#i-save"/></svg> บันทึกยูสเซอร์นี้</button>
+              <div style="display:flex;gap:6px">
+                <input type="text" id="adm_nick_${uName}" value="${esc(u.nickname || '')}" placeholder="ชื่อเล่น" style="flex:1;min-width:0;padding:6px;font-size:12px">
+                <input type="text" id="adm_role_${uName}" value="${esc(u.role || '')}" placeholder="Role หลัก" style="flex:1;min-width:0;padding:6px;font-size:12px">
+              </div>
+              <div class="u-meta" style="margin-top:2px">วงที่อยู่ (กดชื่อวงเพื่อเพิ่ม/ถอด)</div>
+              <div style="display:flex;flex-direction:column;gap:6px">${bandRows}</div>
+              <div style="display:flex;gap:10px;margin-top:4px">
+                <button onclick="saveAdminUser('${uName}')" style="flex:1;min-height:44px;background:#00f2d1;border:none;color:#000;font-weight:bold;border-radius:8px;font-size:14px;cursor:pointer"><svg class="ic" aria-hidden="true"><use href="#i-save"/></svg> บันทึก</button>
+                <button onclick="showGenericConfirm('ลบสมาชิก', 'ต้องการลบยูสเซอร์ ${uName} หรือไม่? ระบบจะเด้งเขาออกจากทุกวงทันที', () => deleteUser('${uName}'))" style="min-height:44px;padding:0 16px;background:transparent;border:1px solid rgba(255,90,95,.6);color:#ff8a8e;border-radius:8px;font-size:14px;cursor:pointer"><svg class="ic" aria-hidden="true"><use href="#i-trash"/></svg> ลบ</button>
+              </div>
             </div>
           `;
         });
+        // ไม่รีเรนเดอร์ทับขณะแอดมินกำลังพิมพ์ในช่องของการ์ดนี้
+        const ae = document.activeElement;
+        if (ae && container.contains(ae) && /^(INPUT|TEXTAREA)$/.test(ae.tagName)) return;
         container.innerHTML = html || '<div class="u-empty">ยังไม่มีสมาชิก</div>';
+      };
+      const refs = [['users', v => { _users = v || {}; }], ['rooms', v => { _rooms = v || {}; }], ['roomConfig', v => { _cfg = v || {}; }]];
+      refs.forEach(([path, set]) => {
+        const __ref = db.ref(path);
+        const __cb = __ref.on('value', (snapshot) => { set(snapshot.val()); render(); });
+        window.__admOff.push(() => __ref.off('value', __cb));
       });
-      window.__admOff.push(() => __ref.off('value', __cb));
     }
 
-    window.saveAdminUser = async function(oldName) {
-      const newName = document.getElementById(`adm_uname_${oldName}`).value.trim().toLowerCase();
-      const pin = document.getElementById(`adm_pin_${oldName}`).value.trim();
+    // กดชื่อวงเพื่อเพิ่ม/ถอดสมาชิกคนนี้ออกจากวง (ยังไม่บันทึกจนกว่าจะกด "บันทึก")
+    window.admToggleBand = function(btn) {
+      const on = btn.getAttribute('aria-pressed') !== 'true';
+      btn.setAttribute('aria-pressed', on);
+      btn.style.borderColor = on ? '#00f2d1' : '#333';
+      btn.style.background = on ? 'rgba(0,242,209,.14)' : 'transparent';
+      btn.style.color = on ? '#00f2d1' : '#aaa';
+      const inp = btn.closest('.adm-band-row').querySelector('.adm-band-role');
+      inp.disabled = !on;
+      if (on) inp.focus();
+    };
 
-      if (!newName || pin.length !== 4) {
-        lshAlert('กรุณากรอก Username และ PIN (4 หลัก) ให้ถูกต้อง');
+    // ลบสมาชิก: ลบบัญชี + ถอดออกจากทุกวง (แอปของเขาจะเด้งออกเองในพาร์ทถัดไป)
+    window.deleteUser = async function(uName) {
+      try {
+        const upd = {};
+        upd[`users/${uName}`] = null;
+        const rs = await db.ref('rooms').once('value');
+        Object.keys(rs.val() || {}).forEach(r => { upd[`roomConfig/${r}/members/${uName}`] = null; });
+        await db.ref().update(upd);
+        lshAlert('ลบสมาชิก ' + uName + ' เรียบร้อย');
+      } catch (e) { lshAlert('ลบสมาชิกไม่สำเร็จ: ' + e.message); }
+    };
+
+    window.saveAdminUser = async function(oldName) {
+      const g = id => { const el = document.getElementById(id); return el ? el.value.trim() : ''; };
+      const newName = g(`adm_uname_${oldName}`).toLowerCase();
+      const pin = g(`adm_pin_${oldName}`);
+      const nickname = g(`adm_nick_${oldName}`);
+      const role = g(`adm_role_${oldName}`);
+      const emoji = g(`adm_emoji_${oldName}`);
+
+      if (!newName || !/^[0-9]{4}$/.test(pin)) {
+        lshAlert('กรุณากรอก Username และ PIN (ตัวเลข 4 หลัก) ให้ถูกต้อง');
         return;
       }
 
@@ -634,18 +709,28 @@
           if (newName === 'admin' || !/^[a-z0-9_]+$/.test(newName)) { lshAlert('Username ใช้ได้เฉพาะ a-z, 0-9 และ _ (และห้ามใช้ admin)'); return; }
           const dup = await db.ref(`users/${newName}`).once('value');
           if (dup.exists()) { lshAlert('มี Username นี้อยู่แล้ว'); return; }
-          // ถ้ามีการเปลี่ยน Username ให้ย้ายข้อมูล Node เก่าไป Node ใหม่
-          const snap = await db.ref(`users/${oldName}`).once('value');
-          if (snap.exists()) {
-            let userData = snap.val();
-            userData.pin = pin; // อัปเดต PIN ใหม่ด้วย
-            await db.ref(`users/${newName}`).set(userData);
-            await db.ref(`users/${oldName}`).remove();
-          }
-        } else {
-          // ถ้าไม่ได้เปลี่ยน Username แค่อัปเดต PIN
-          await db.ref(`users/${oldName}`).update({ pin });
         }
+        const snap = await db.ref(`users/${oldName}`).once('value');
+        const userData = Object.assign({}, snap.val() || {}, { pin });
+        userData.nickname = nickname || newName;
+        if (role) userData.role = role; else delete userData.role;
+        if (emoji) userData.emoji = emoji; else delete userData.emoji;
+
+        const upd = {};
+        if (newName !== oldName) upd[`users/${oldName}`] = null;
+        upd[`users/${newName}`] = userData;
+
+        // วงของสมาชิก: ติ๊กวงไหนอยู่ในวงนั้นพร้อมบทบาท / ไม่ติ๊ก = ถอดออก
+        const card = document.querySelector(`.adm-user[data-u="${oldName}"]`);
+        if (card) {
+          card.querySelectorAll('.adm-band-row').forEach(row => {
+            const band = row.dataset.band;
+            const on = row.querySelector('.adm-band-toggle').getAttribute('aria-pressed') === 'true';
+            if (newName !== oldName) upd[`roomConfig/${band}/members/${oldName}`] = null;
+            upd[`roomConfig/${band}/members/${newName}`] = on ? { role: row.querySelector('.adm-band-role').value.trim() } : null;
+          });
+        }
+        await db.ref().update(upd);
         lshAlert('บันทึกข้อมูลสมาชิกสำเร็จ!');
       } catch (e) {
         lshAlert('เกิดข้อผิดพลาด: ' + e.message);

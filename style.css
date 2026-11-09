@@ -1519,3 +1519,17 @@ nav button.active::before { background: var(--live-soft); border-radius: 22px; b
 .song-box-next .box-label { color: var(--next) !important; }
 .box-label { font-size: 12px; font-weight: 700; letter-spacing: 0; text-transform: none; }
 .monitor-progress-bar-container { background: var(--surface); border: 1px solid var(--line); }
+
+/* ===== โหมดผู้ดูแลระบบ: เข้าได้เฉพาะตั้งค่าขั้นสูง ===== */
+body.lsh-admin-mode nav { display: none !important; }
+body.lsh-admin-mode .drawer-menu > button:not([onclick*="ตั้งค่า"]):not([onclick*="openLogoutConfirm"]):not(#menuInstallApp) { display: none !important; }
+
+/* แท็บตั้งค่า: สมาชิกเห็น 3 แท็บ / ผู้ดูแลระบบเห็นแท็บเดียว */
+.settings-tabs { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.settings-tabs.admin-only { grid-template-columns: minmax(0, 1fr); }
+.settings-tabs .settings-tab-btn.hidden { display: none !important; }
+
+/* หน้าล็อกอินใหม่ */
+#memberLoginModal .box { text-align: center; }
+#memberLoginModal .btn-primary { width: 100%; min-height: 52px; background: var(--live); color: var(--live-ink); font-weight: 800; font-size: 16px; border-radius: 12px; }
+#memberLoginModal input { min-height: 48px; border-radius: 10px; font-size: 16px; }
