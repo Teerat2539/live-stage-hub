@@ -12,13 +12,13 @@
   <div class="search-top-bar">
     <div id="topTalkbackBox" class="top-box">
       <div class="top-head">
-        <span class="top-title"><svg class="ic" aria-hidden="true"><use href="#i-mic"/></svg> ท็อคแบคล่าสุด</span>
+        <span class="top-title"><i class="tb-dot-red"></i>ท็อคแบคล่าสุด</span>
         <span id="topTalkbackSender" class="top-sender"></span>
       </div>
       <div id="topTalkbackText" class="top-content">สแตนบายรอคำสั่ง...</div>
     </div>
     <div id="topNextBox" class="top-box">
-      <span class="top-title"><svg class="ic" aria-hidden="true"><use href="#i-music"/></svg> เพลงถัดไป</span>
+      <span class="top-title">เพลงถัดไป</span>
       <div id="topNextText" class="top-content">-</div>
     </div>
   </div>
@@ -31,7 +31,7 @@
   <!-- 3. ช่องค้นหา (ย้ายมาลอยนิ่งติดขอบล่างเหนือแถบนำทาง) -->
   <div class="search-input-section">
     <div class="search-input-group">
-      <input type="text" id="chordSearchInput" class="search-text-input" placeholder="แตะเลือกเพลงจากคิว หรือพิมพ์ชื่อเพลง...">
+      <input type="text" id="chordSearchInput" class="search-text-input" placeholder="แตะเพลงจากคิว หรือพิมพ์ชื่อ">
       <button class="search-btn-submit" onclick="searchChordOnGoogle()"><svg class="ic ic-solo" aria-hidden="true"><use href="#i-search"/></svg></button>
     </div>
   </div>
@@ -112,18 +112,19 @@
           return;
         }
 
-        let html = '';
+        let html = '<div class="sq-hint">แตะเพลงจากคิวเพื่อค้นหาคอร์ด</div>';
         let nextSongObj = queueData.find(i => i.status === 'next');
         if (topNextText) {
-          topNextText.innerText = nextSongObj ? ((nextSongObj.type === 'dummy_start' || nextSongObj.type === 'dummy_end') ? lshPlain(nextSongObj.title) : `${nextSongObj.title} - ${nextSongObj.artist}`) : 'จบการแสดง';
+          topNextText.innerText = nextSongObj ? ((nextSongObj.type === 'dummy_start' || nextSongObj.type === 'dummy_end') ? lshPlain(nextSongObj.title) : `${nextSongObj.title}`) : 'จบการแสดง';
         }
         const tnb = document.getElementById('topNextBox');
         if (tnb) tnb.className = 'top-box' + (nextSongObj && nextSongObj.set ? ' set-color-' + nextSongObj.set.replace('Set ', '') : '');
         lshWatch(topNextText, 'next');
 
         queueData.forEach((song) => {
-          if (song.status === 'removed') return; // เพลงที่ลบออกจากคิวแล้ว ไม่แสดงในหน้าค้นหา
+          if (song.status === 'played' || song.status === 'playing' || song.status === 'removed') return; // ตามบอร์ดดีไซน์: แสดงเฉพาะเพลงถัดไปและที่เหลือ | เพลงที่ลบออกจากคิวแล้ว ไม่แสดงในหน้าค้นหา
           if (song.type === 'dummy_start' || song.type === 'dummy_end') {
+            return; // ตามบอร์ดดีไซน์: หน้าค้นหาไม่แสดงการ์ดเริ่ม/จบการแสดง
             let stateLabel = '';
             let style = '';
             if (song.status === 'playing') {

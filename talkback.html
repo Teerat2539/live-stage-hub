@@ -3,13 +3,13 @@
 <div class="tb-top-bar">
   <div class="top-box">
     <div class="top-head">
-      <span class="top-title"><svg class="ic" aria-hidden="true"><use href="#i-mic"/></svg> ท็อคแบคล่าสุด</span>
+      <span class="top-title"><i class="tb-dot-red"></i>ท็อคแบคล่าสุด</span>
       <span id="tbTopSender" class="top-sender"></span>
     </div>
     <div id="tbTopTalkback" class="top-content">รอคำสั่ง...</div>
   </div>
   <div class="top-box" id="tbTopNextBox">
-    <span class="top-title"><svg class="ic" aria-hidden="true"><use href="#i-music"/></svg> เพลงถัดไป</span>
+    <span class="top-title">เพลงถัดไป</span>
     <div id="tbTopNext" class="top-content">-</div>
   </div>
 </div>
@@ -19,7 +19,7 @@
   <!-- 1. Telegram Switch -->
   <div class="tg-control-card">
     <div class="tg-info">
-      <div class="tg-title"><svg class="ic" aria-hidden="true"><use href="#i-send"/></svg> ส่งการแจ้งเตือนเข้า Telegram</div>
+      <div class="tg-title"><svg class="ic tg-ic" aria-hidden="true"><use href="#i-send"/></svg> ส่งแจ้งเตือนเข้า Telegram</div>
       <div id="tgStatusText" class="tg-status">กำลังตรวจสอบการเชื่อมต่อ...</div>
     </div>
     <label class="switch">
@@ -30,7 +30,7 @@
 
   <!-- 2. Quick Talkback Grid -->
   <div>
-    <div class="section-title"><svg class="ic" aria-hidden="true"><use href="#i-bolt"/></svg> คำสั่งด่วน Quick Talkback</div>
+    <div class="section-title"><svg class="ic" aria-hidden="true"><use href="#i-bolt"/></svg> คำสั่งด่วน</div>
     <div class="quick-grid" id="quickButtonsContainer"></div>
     <div id="quickLimitNotice" style="font-size:10px;color:#888;margin-top:4px;text-align:right">
       * เพิ่ม/แก้ไขคำสั่งด่วนได้สูงสุด 6 ปุ่ม
@@ -45,14 +45,14 @@
 
   <!-- 5. Chat Display Box -->
   <div>
-    <div class="section-title" style="margin-bottom:6px"><svg class="ic" aria-hidden="true"><use href="#i-chat"/></svg> จอแสดงท็อคแบค (ห้องแชต)</div>
+    <div class="section-title" style="margin-bottom:6px">ห้องแชต</div>
     <div class="chat-container" id="chatBox"></div>
   </div>
 </div>
 
 <!-- Bottom Control Bar (8%) Sticky -->
 <div class="tb-bottom-bar" id="bottomControlBar">
-  <input type="text" id="talkbackInput" class="tb-input" placeholder="พิมพ์ข้อความท็อคแบค...">
+  <input type="text" id="talkbackInput" class="tb-input" placeholder="พิมพ์ข้อความท็อคแบค">
   <button class="btn-send" id="btnSendTalkback">ส่ง</button>
 </div>
 
@@ -384,7 +384,7 @@
         const nextSong = songs.find(s => s.status === 'next');
         const topNext = document.getElementById('tbTopNext');
         if (topNext) {
-          topNext.innerText = nextSong ? ((nextSong.type === 'dummy_start' || nextSong.type === 'dummy_end') ? lshPlain(nextSong.title) : `${nextSong.title} - ${nextSong.artist}`) : '-';
+          topNext.innerText = nextSong ? ((nextSong.type === 'dummy_start' || nextSong.type === 'dummy_end') ? lshPlain(nextSong.title) : nextSong.title) : '-';
         }
         const tbBox = document.getElementById('tbTopNextBox');
         if (tbBox) tbBox.className = 'top-box' + (nextSong && nextSong.set ? ' set-color-' + nextSong.set.replace('Set ', '') : '');
@@ -399,13 +399,15 @@
         const data = snap.val() || {};
         let html = '';
 
+        const lastKey = Object.keys(data).pop();
         Object.keys(data).forEach(k => {
           const item = data[k];
           const isSelf = item.sender === currentUser.nickname;
           const bubbleClass = isSelf ? 'self' : 'other';
+          const hhmm = item.timestamp ? new Date(item.timestamp).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false }) : '';
           html += `
-            <div class="chat-bubble ${bubbleClass}">
-              <div class="chat-sender">${item.emoji || '🎵'} ${item.sender}</div>
+            <div class="chat-bubble ${bubbleClass}${k === lastKey && !isSelf ? ' latest' : ''}">
+              <div class="chat-sender">${isSelf ? 'คุณ' : item.sender}${hhmm ? ' · ' + hhmm : ''}</div>
               <div>${item.message}</div>
             </div>
           `;

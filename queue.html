@@ -12,13 +12,13 @@
   <div class="queue-top-bar">
     <div id="topTalkbackBox" class="top-box">
       <div class="top-head">
-        <span class="top-title"><svg class="ic" aria-hidden="true"><use href="#i-mic"/></svg> ท็อคแบคล่าสุด</span>
+        <span class="top-title"><i class="tb-dot-red"></i>ท็อคแบคล่าสุด</span>
         <span id="topTalkbackSender" class="top-sender"></span>
       </div>
       <div id="topTalkbackText" class="top-content">สแตนบายรอคำสั่ง...</div>
     </div>
     <div id="topNextBox" class="top-box">
-      <span class="top-title"><svg class="ic" aria-hidden="true"><use href="#i-music"/></svg> เพลงถัดไป</span>
+      <span class="top-title">เพลงถัดไป</span>
       <div id="topNextText" class="top-content">-</div>
     </div>
   </div>
@@ -35,7 +35,7 @@
   <!-- 3. แถบควบคุมด้านล่าง (8%) -->
   <div class="queue-bottom-bar">
     <button class="btn-control btn-prev" onclick="prevSong()"><svg class="ic" aria-hidden="true"><use href="#i-prev"/></svg> ก่อนหน้า</button>
-    <button class="btn-control btn-insert" onclick="openInsertModal()"><svg class="ic" aria-hidden="true"><use href="#i-plus"/></svg> แทรกเพลง</button>
+    <button class="btn-control btn-insert" onclick="openInsertModal()"><svg class="ic" aria-hidden="true"><use href="#i-plus"/></svg> แทรก</button>
     <button class="btn-control btn-next" onclick="nextSong()"><svg class="ic" aria-hidden="true"><use href="#i-next"/></svg> เพลงถัดไป</button>
   </div>
 
@@ -61,18 +61,24 @@
   <div id="insertModal" class="slide-modal-overlay hidden" onclick="closeInsertModal(event)">
     <div class="slide-modal-content" onclick="event.stopPropagation()">
       <div style="display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #333;padding-bottom:8px">
-        <h3 style="color:#00f2d1;font-size:16px"><svg class="ic" aria-hidden="true"><use href="#i-plus"/></svg> แทรกเพลง / จัดการรีเควส</h3>
+        <h3 class="ins-title">แทรกเพลง</h3>
         <button onclick="closeInsertModal()" style="background:none;border:none;color:#aaa;font-size:18px;cursor:pointer"><svg class="ic ic-solo" aria-hidden="true"><use href="#i-close"/></svg></button>
       </div>
 
-      <div>
+      <div class="ins-tabs" id="insTabs">
+        <button type="button" class="ins-tab active" data-t="rec" onclick="insSetTab('rec')">แนะนำ 6 เพลง</button>
+        <button type="button" class="ins-tab" data-t="search" onclick="insSetTab('search')">ค้นหา</button>
+        <button type="button" class="ins-tab" data-t="req" onclick="insSetTab('req')">รีเควส<span id="insReqBadge" class="ins-badge" hidden>0</span></button>
+      </div>
+
+      <div id="insReqWrap">
         <div style="font-size:12px;color:#f59e0b;font-weight:bold;margin-bottom:6px"><svg class="ic" aria-hidden="true"><use href="#i-inbox"/></svg> เพลงรีเควสจากลูกค้า (รอจัดคิว)</div>
         <div id="requestSongList" style="background:#12131a;border:1px solid #333;border-radius:6px;padding:8px;min-height:45px;max-height:100px;overflow-y:auto;font-size:12px;color:#ccc">
           ไม่มีคำขอเพลงใหม่จากลูกค้าในขณะนี้
         </div>
       </div>
 
-      <div style="flex:1;display:flex;flex-direction:column;overflow:hidden">
+      <div id="insLibWrap" style="flex:1;display:flex;flex-direction:column;overflow:hidden">
         <div style="font-size:12px;color:#00f2d1;font-weight:bold;margin-bottom:6px" id="recommendLabel"><svg class="ic" aria-hidden="true"><use href="#i-search"/></svg> ค้นหาเพลงจากคลัง / เพลงแนะนำ</div>
         
         <div class="key-filter-bar" id="keyFilterContainer">
@@ -92,6 +98,7 @@
         </div>
 
         <input type="text" id="searchSongInput" placeholder="พิมพ์ค้นหาชื่อเพลง หรือศิลปิน..." oninput="filterBySearch()" style="width:100%;padding:8px;background:#12131a;border:1px solid #333;border-radius:6px;color:#fff;font-size:13px;margin:6px 0">
+        <div class="ins-hint">กดค้างที่เพลง แล้วลากลงไปวางในคิว</div>
         <div id="recommendSongList" style="flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:6px"></div>
       </div>
     </div>
@@ -246,7 +253,7 @@
         const chip = document.getElementById('queueTimerChip');
         chip.classList.toggle('off', !st.enabled);
         chip.classList.toggle('over', !!(st.enabled && t.info().over));
-        document.getElementById('queueTimerText').textContent = st.enabled ? t.info().text : 'ปิด';
+        document.getElementById('queueTimerText').textContent = st.enabled ? (t.info().over ? t.info().text : 'เหลือ ' + t.info().text) : 'ปิด';
       }
       if (window.lshShowTimer && !window.__qShowBarBound) { window.__qShowBarBound = true; window.lshShowTimer.onChange(() => { try { updateShowBar(); refreshShowTimerModal(); } catch (e) {} }); }
 
@@ -513,7 +520,14 @@
         let realSongIndex = 0;
         let prevNormalSet = null; // เส้นคั่นเซ็ต: คำนวณตอนวาดจากเพลงที่ยังเหลือ ไม่บันทึกลงข้อมูล
 
+        const playedReal = orderedFlow.filter(x => x.status === 'played' && x.type !== 'dummy_start' && x.type !== 'dummy_end').length;
+        if (playedReal > 0) {
+          html += `<button type="button" class="q-played-fold${window.qPlayedOpen ? ' open' : ''}" onclick="toggleQueuePlayed()"><svg class="ic" aria-hidden="true"><use href="#i-chev-right"/></svg>เล่นไปแล้ว ${playedReal} เพลง</button>`;
+        }
+
         orderedFlow.forEach((song) => {
+          if (song.status === 'played' && !window.qPlayedOpen && playedReal > 0) { if (song.type !== 'dummy_start' && song.type !== 'dummy_end') realSongIndex++; return; }
+          if (song.type === 'dummy_start' && song.status === 'played' && playedReal === 0) return;
           if (song.type === 'dummy_start' || song.type === 'dummy_end') {
             let stateLabel = '';
             let highlightStyle = '';
@@ -534,7 +548,7 @@
             if (song.status !== 'removed') realSongIndex++;
             if (song.type !== 'inserted-custom' && song.type !== 'inserted-request' && /^Set \d+$/.test(song.set || 'Set 1')) {
               let curSet = song.set || 'Set 1';
-              if (prevNormalSet !== null && prevNormalSet !== curSet) html += `<div class="set-divider sd-${curSet.replace('Set ', '')}"></div>`;
+              if (prevNormalSet !== null && prevNormalSet !== curSet) html += `<div class="set-divider sd-${curSet.replace('Set ', '')}"><span>${curSet.toUpperCase()}</span></div>`;
               prevNormalSet = curSet;
             }
             html += createSongCardHtml(song, realSongIndex, song.status);
@@ -630,6 +644,8 @@
           </div>
         `;
       }
+
+      window.toggleQueuePlayed = function() { window.qPlayedOpen = !window.qPlayedOpen; renderQueue(); };
 
       function createRemovedSongCardHtml(song) {
         return `
@@ -814,8 +830,21 @@
       };
 
       // 📌 5. ระบบหน้าต่างสไลด์แทรกเพลง
+      window.insSetTab = function(t) {
+        const m = document.getElementById('insertModal'); if (!m) return;
+        m.dataset.tab = t;
+        document.querySelectorAll('#insTabs .ins-tab').forEach(b => b.classList.toggle('active', b.dataset.t === t));
+        if (t === 'rec') {
+          const si = document.getElementById('searchSongInput'); if (si) si.value = '';
+          if (typeof window.filterByKey === 'function') window.filterByKey('ALL'); else renderSongLibrary();
+        } else if (t === 'search') {
+          const si = document.getElementById('searchSongInput'); if (si) setTimeout(() => si.focus(), 60);
+        }
+      };
+
       window.openInsertModal = function() {
         renderRequestList();
+        { const m0 = document.getElementById('insertModal'); if (m0) { m0.dataset.tab = 'rec'; document.querySelectorAll('#insTabs .ins-tab').forEach(b => b.classList.toggle('active', b.dataset.t === 'rec')); } }
         
         if (!window.songLibrary || window.songLibrary.length === 0) {
           window.songLibrary = JSON.parse(localStorage.getItem('lsh_songs')) || [];
@@ -933,6 +962,7 @@
       function renderRequestList() {
         const container = document.getElementById('requestSongList');
         if (!container) return;
+        { const bd = document.getElementById('insReqBadge'); const n = (window.requestQueue || []).length; if (bd) { bd.textContent = n; bd.hidden = !n; } }
         
         if (!window.requestQueue || window.requestQueue.length === 0) {
           container.innerHTML = '<div style="color:#666;text-align:center;padding:4px">ไม่มีคำขอเพลงใหม่จากลูกค้า</div>';
@@ -951,7 +981,7 @@
                 <span style="font-weight:bold;color:#fff">${req.title}${artistText}</span>
                 <span style="font-size:10px;color:#f59e0b;margin-left:6px">${keyText}</span>
               </div>
-              <div style="font-size:11px;color:#ec4899;font-weight:bold"><svg class="ic" aria-hidden="true"><use href="#i-inbox"/></svg> แตะเพื่อแทรก</div>
+              <div class="ins-req-go">แตะเพื่อแทรก</div>
             </div>
           `;
         });
@@ -1078,12 +1108,10 @@ window.executeInsertAfterPlaying = function() {
           finalResult.forEach(song => {
             let songJson = JSON.stringify(song).replace(/"/g, '&quot;');
             html += `
-              <div onclick="selectInsertSong(${songJson}, 'custom')" style="background:#12131a;padding:8px;border-radius:6px;border:1px solid #333;display:flex;justify-content:space-between;align-items:center;cursor:pointer">
-                <div>
-                  <div style="font-size:13px;font-weight:bold;color:#fff">${song.title} - ${song.artist}</div>
-                  <div class="u-meta">คีย์: ${song.key || '-'} | ${song.bpm || '-'} BPM</div>
-                </div>
-                <div style="color:#00f2d1;font-size:11px;font-weight:bold"><svg class="ic" aria-hidden="true"><use href="#i-chev-right"/></svg> แตะเพื่อแทรก</div>
+              <div class="ins-row" onclick="selectInsertSong(${songJson}, 'custom')">
+                <span class="ins-grip" aria-hidden="true"></span>
+                <div class="ins-row-body"><div class="ins-row-title">${song.title}</div><div class="ins-row-artist">${song.artist || ''}</div></div>
+                <div class="ins-row-meta">${[song.key && song.key !== '-' ? song.key : '', song.bpm && song.bpm !== '-' ? song.bpm : ''].filter(Boolean).join(' · ')}</div>
               </div>
             `;
           });
@@ -1165,13 +1193,11 @@ window.executeInsertAfterPlaying = function() {
         recommendedList.forEach(song => {
           let songJson = JSON.stringify(song).replace(/"/g, '&quot;');
           html += `
-            <div onclick="selectInsertSong(${songJson}, 'custom')" style="background:#12131a;padding:8px;border-radius:6px;border:1px solid #333;display:flex;justify-content:space-between;align-items:center;cursor:pointer">
-              <div>
-                <div style="font-size:13px;font-weight:bold;color:#fff">${song.title} - ${song.artist}</div>
-                <div style="font-size:11px;color:#f59e0b">คีย์: ${song.key || '-'} | ${song.bpm || '-'} BPM</div>
+            <div class="ins-row" onclick="selectInsertSong(${songJson}, 'custom')">
+                <span class="ins-grip" aria-hidden="true"></span>
+                <div class="ins-row-body"><div class="ins-row-title">${song.title}</div><div class="ins-row-artist">${song.artist || ''}</div></div>
+                <div class="ins-row-meta">${[song.key && song.key !== '-' ? song.key : '', song.bpm && song.bpm !== '-' ? song.bpm : ''].filter(Boolean).join(' · ')}</div>
               </div>
-              <div style="color:#00f2d1;font-size:11px;font-weight:bold"><svg class="ic" aria-hidden="true"><use href="#i-chev-right"/></svg> แตะเพื่อแทรก</div>
-            </div>
           `;
         });
 
@@ -1327,7 +1353,7 @@ window.executeInsertAfterPlaying = function() {
         const topNextText = document.getElementById('topNextText');
         if (topNextText) {
           if (nextItem) {
-            topNextText.innerText = (nextItem.type === 'dummy_start' || nextItem.type === 'dummy_end') ? lshPlain(nextItem.title) : `${nextItem.title} - ${nextItem.artist}`;
+            topNextText.innerText = (nextItem.type === 'dummy_start' || nextItem.type === 'dummy_end') ? lshPlain(nextItem.title) : `${nextItem.title}`;
           } else {
             topNextText.innerText = 'จบการแสดง';
           }
@@ -1412,7 +1438,9 @@ window.executeInsertAfterPlaying = function() {
           const after = y > r.top + r.height / 2;
           const target = after ? list[i] : list[i - 1];
           if (!target || target.status === 'played' || target.type === 'dummy_end') return null;
-          return { targetId: target.id, y: after ? r.bottom : r.top, left: r.left, width: r.width };
+          const ti = list.findIndex(s => s.id === target.id);
+          const n = list.slice(0, ti + 1).filter(s => s.type !== 'dummy_start' && s.type !== 'dummy_end').length + 1;
+          return { targetId: target.id, y: after ? r.bottom : r.top, left: r.left, width: r.width, n: n };
         }
         function autoScroll() {
           if (!dragging) return;
@@ -1438,7 +1466,7 @@ window.executeInsertAfterPlaying = function() {
           lastY = y;
           ghost.style.transform = `translate(${x - 20}px, ${y - 28}px)`;
           drop = resolveDrop(x, y);
-          if (drop) { line.style.display = 'block'; line.style.top = (drop.y - 2) + 'px'; line.style.left = drop.left + 'px'; line.style.width = drop.width + 'px'; }
+          if (drop) { line.style.display = 'block'; line.style.top = (drop.y - 2) + 'px'; line.style.left = drop.left + 'px'; line.style.width = drop.width + 'px'; line.setAttribute('data-n', 'วางเป็นลำดับ ' + drop.n); }
           else line.style.display = 'none';
         }
         function cleanup() {

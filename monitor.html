@@ -9,42 +9,49 @@
 <body>
 
   <div class="monitor-container">
-    <!-- 1. ส่วนบน: ท็อคแบคล่าสุด -->
+    <!-- 1. ท็อคแบคล่าสุด -->
     <div class="monitor-top-section" id="monitorTopBar" onclick="openTalkbackHistoryModal()">
       <div class="monitor-top-header">
-        <span id="tbTime">-:--</span>
-        <span id="tbSender">- 🎵</span>
-        <button type="button" id="tbSoundBtn" class="tb-sound-btn" aria-label="ตั้งค่าเสียงท็อคแบค" onclick="openTbSoundPanel(event)"><svg class="ic" aria-hidden="true"><use href="#i-volume-off"/></svg></button>
+        <div class="mon-tb-label"><i class="mon-dot-red"></i><span>ท็อคแบค</span><span id="tbSender" class="mon-sep">- 🎵</span><span id="tbTime" class="mon-sep">-:--</span></div>
+        <div class="mon-tb-ctl">
+          <svg class="mon-spk" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9.5v5h3.5L12 18.5v-13L7.5 9.5z"/><path d="M16 9a4 4 0 0 1 0 6M18.5 6.5a8 8 0 0 1 0 11"/></svg>
+          <button type="button" id="tbSoundQuick" class="snd-switch" role="switch" aria-checked="false" aria-label="เปิดเสียงท็อคแบค" onclick="event.stopPropagation();toggleTbSound()"><span></span></button>
+          <button type="button" id="tbSoundBtn" class="tb-sound-btn" aria-label="ตั้งค่าระดับเสียงและความเร็ว" onclick="openTbSoundPanel(event)"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h10M18 7h2M4 17h2M10 17h10"/><circle cx="16" cy="7" r="2"/><circle cx="8" cy="17" r="2"/></svg></button>
+        </div>
       </div>
       <div class="monitor-talkback-body">
         <div id="monitorTalkbackText" class="monitor-talkback-text">สแตนบายรอคำสั่ง...</div>
       </div>
     </div>
 
-    <!-- 2. ส่วนกลาง: คิวเพลง 3 เพลง -->
+    <!-- 2. กำลังเล่น / ถัดไป / ตามด้วย -->
     <div class="monitor-songs-section" onclick="openFullQueueModal()">
-      <!-- เพลงกำลังเล่น -->
       <div class="song-box-current">
-        <div class="box-label"><svg class="ic" aria-hidden="true"><use href="#i-play"/></svg> กำลังเล่น</div>
+        <i class="mon-dot-green"></i>
+        <span class="box-label">กำลังเล่น</span>
         <div id="mPlayingTitle" class="box-title-playing">-</div>
       </div>
 
-      <!-- เพลงถัดไป (มีเอฟเฟกต์กระพริบเตือนเมื่อเพลงถัดไปเปลี่ยน) -->
       <div class="song-box-next" id="nextSongCardBox">
-        <div class="box-label" style="color:#00f2d1"><svg class="ic" aria-hidden="true"><use href="#i-star"/></svg> เพลงถัดไป (เตรียมพร้อม)</div>
+        <div class="mon-next-head"><span class="mon-badge">ถัดไป</span><span id="mNextSet" class="mon-set"></span></div>
         <div id="mNextTitle" class="box-title-next">-</div>
         <div id="mNextDetail" class="box-detail-next">-</div>
+        <div class="mon-tiles" id="mNextTiles">
+          <div class="mon-tile"><div>KEY</div><b id="mNextKey">-</b></div>
+          <div class="mon-tile"><div>BPM</div><b id="mNextBpm">-</b></div>
+        </div>
+        <div class="mon-note" id="mNextNoteRow"><span>โน้ต</span> <span id="mNextNote"></span></div>
       </div>
 
-      <!-- เพลงสแตนบาย -->
-      <div class="song-box-standby">
-        <div class="box-label"><svg class="ic" aria-hidden="true"><use href="#i-hourglass"/></svg> เพลงสแตนบายถัดไป</div>
+      <div class="song-box-standby" id="standbyBox">
+        <div class="mon-sb-head"><span id="mStandbyLabel">ตามด้วย</span><span id="mStandbyKb" class="mon-kb"></span></div>
         <div id="mStandbyTitle" class="box-title-standby">-</div>
+        <div id="mStandbyArtist" class="mon-sb-artist"></div>
       </div>
     </div>
 
-    <!-- 3. ส่วนล่าง: Progress Bar -->
-    <div class="monitor-progress-bar-container" onclick="openFullQueueModal()">
+    <!-- 3. ความคืบหน้า (ไม่แสดงตามแบบ แต่คงไว้ให้โค้ดเดิมทำงาน) -->
+    <div class="monitor-progress-bar-container" onclick="openFullQueueModal()" style="display:none">
       <div class="progress-caption" style="display:flex;justify-content:space-between;font-size:9px;color:#888">
         <span>สถานะความคืบหน้าโชว์</span>
         <span id="progressText">Set 1 (0/0)</span>
@@ -183,44 +190,63 @@
         }
 
         const mPlayingTitle = document.getElementById('mPlayingTitle');
+        const isSpecial = (x) => !!x && (x.type === 'dummy_start' || x.type === 'dummy_end');
+        const plainTitle = (x) => isSpecial(x) ? lshPlain(x.title) : (x.title || '');
+        const setLabel = (x) => (!x || isSpecial(x)) ? '' : String(x.set || 'Set 1').toUpperCase();
+        const setNum = (x) => String((x && x.set) || 'Set 1').replace(/\D/g, '') || '1';
         if (playing) {
-          let setColorClass = colorOf(playing);
-          mPlayingTitle.className = `box-title-playing ${setColorClass}`;
-          mPlayingTitle.innerText = songLine(playing);
+          mPlayingTitle.className = 'box-title-playing';
+          mPlayingTitle.innerText = plainTitle(playing);
+          const pb = document.querySelector('.song-box-current');
+          if (pb) pb.style.setProperty('--bar', isSpecial(playing) ? 'var(--line-strong)' : 'var(--set-' + setNum(playing) + ', var(--set-1))');
         } else {
           mPlayingTitle.className = 'box-title-playing';
           mPlayingTitle.innerText = '-';
         }
 
-        // กรอบเพลงถัดไปตามสีเซ็ต (เพลงพิเศษเตรียมพร้อม/จบการแสดง ใช้สีเดิม)
-        const nextBox = document.getElementById('nextSongCardBox');
-        if (nextBox) {
-          nextBox.className = nextBox.className.replace(/\bset-color-\S+/g, '').replace(/\s+/g, ' ').trim();
-          if (next && colorOf(next)) nextBox.classList.add(colorOf(next).replace('color-set-', 'set-color-'));
-        }
-
         const mNextTitle = document.getElementById('mNextTitle');
+        const nextSetEl = document.getElementById('mNextSet');
+        const tilesEl = document.getElementById('mNextTiles');
+        const noteRow = document.getElementById('mNextNoteRow');
         if (next) {
-          let setColorClass = colorOf(next);
-          mNextTitle.className = `box-title-next ${setColorClass}`;
-          let hasNote = next.note && next.note.trim() !== '' && next.note.trim() !== '-';
-          let noteHtml = hasNote ? `<span class="song-note">(${next.note})</span>` : '';
-          mNextTitle.innerHTML = `${(next.type === 'dummy_start' || next.type === 'dummy_end') ? lshPlain(next.title) : next.title}${noteHtml}`;
-          document.getElementById('mNextDetail').innerText = (next.type === 'dummy_start' || next.type === 'dummy_end') ? '' : `${next.artist || '-'} | คีย์: ${next.key || '-'} | BPM: ${next.bpm || '-'}`;
+          mNextTitle.className = 'box-title-next';
+          mNextTitle.textContent = plainTitle(next);
+          const special = isSpecial(next);
+          document.getElementById('mNextDetail').innerText = special ? '' : (next.artist || '');
+          if (nextSetEl) nextSetEl.textContent = setLabel(next);
+          if (tilesEl) tilesEl.style.display = special ? 'none' : '';
+          const dash = (v) => (v && String(v).trim() && String(v).trim() !== '-') ? String(v).trim() : '-';
+          document.getElementById('mNextKey').textContent = dash(next.key);
+          document.getElementById('mNextBpm').textContent = dash(next.bpm);
+          const hasNote = next.note && next.note.trim() !== '' && next.note.trim() !== '-';
+          document.getElementById('mNextNote').textContent = hasNote ? next.note.trim() : '';
+          if (noteRow) noteRow.style.visibility = hasNote ? 'visible' : 'hidden';
         } else {
           mNextTitle.className = 'box-title-next';
           mNextTitle.innerText = 'ไม่มีเพลงแสดง';
-          document.getElementById('mNextDetail').innerText = '-';
+          document.getElementById('mNextDetail').innerText = '';
+          if (nextSetEl) nextSetEl.textContent = '';
+          if (tilesEl) tilesEl.style.display = 'none';
+          if (noteRow) noteRow.style.visibility = 'hidden';
         }
 
         const mStandbyTitle = document.getElementById('mStandbyTitle');
+        const sbBox = document.getElementById('standbyBox');
         if (standby) {
-          let setColorClass = colorOf(standby);
-          mStandbyTitle.className = `box-title-standby ${setColorClass}`;
-          mStandbyTitle.innerText = songLine(standby);
+          mStandbyTitle.className = 'box-title-standby';
+          mStandbyTitle.innerText = plainTitle(standby);
+          document.getElementById('mStandbyArtist').innerText = isSpecial(standby) ? '' : (standby.artist || '');
+          document.getElementById('mStandbyLabel').textContent = isSpecial(standby) ? 'ตามด้วย' : 'ตามด้วย · ' + setLabel(standby);
+          const k = (standby.key && standby.key !== '-') ? standby.key : '', b = (standby.bpm && standby.bpm !== '-') ? standby.bpm : '';
+          document.getElementById('mStandbyKb').textContent = isSpecial(standby) ? '' : [k, b].filter(Boolean).join(' · ');
+          if (sbBox) sbBox.style.setProperty('--sb', isSpecial(standby) ? 'var(--line-strong)' : 'var(--set-' + setNum(standby) + ', var(--set-1))');
         } else {
           mStandbyTitle.className = 'box-title-standby';
           mStandbyTitle.innerText = '-';
+          document.getElementById('mStandbyArtist').innerText = '';
+          document.getElementById('mStandbyLabel').textContent = 'ตามด้วย';
+          document.getElementById('mStandbyKb').textContent = '';
+          if (sbBox) sbBox.style.setProperty('--sb', 'var(--line-strong)');
         }
 
         slideSongBoxes(queueData);
@@ -247,7 +273,7 @@
 
             if (list.length > 0) {
               let latest = list[0];
-              let timeStr = new Date(latest.timestamp || Date.now()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+              let timeStr = new Date(latest.timestamp || Date.now()).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false });
 
               document.getElementById('tbTime').innerText = timeStr;
               document.getElementById('tbSender').innerText = `${latest.sender || 'ระบบ'} ${latest.emoji || '🎵'}`;
@@ -377,7 +403,8 @@
       }
       function updateTbSoundUi() {
         const btn = document.getElementById('tbSoundBtn');
-        if (btn) btn.innerHTML = `<svg class="ic" aria-hidden="true"><use href="#i-${tbSnd.on ? 'volume' : 'volume-off'}"/></svg>`;
+        const quick = document.getElementById('tbSoundQuick');
+        if (quick) quick.setAttribute('aria-checked', tbSnd.on ? 'true' : 'false');
         if (btn) btn.classList.toggle('on', tbSnd.on);
         const tg = document.getElementById('tbSoundToggle');
         if (tg) { tg.setAttribute('aria-checked', tbSnd.on ? 'true' : 'false'); const st = document.getElementById('tbSoundState'); if (st) st.textContent = tbSnd.on ? 'เปิดอยู่' : 'ปิดอยู่'; }
