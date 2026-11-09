@@ -178,9 +178,49 @@
         b.className = 'btn-quick';
         if (btn.color) b.style.setProperty('--qc', btn.color); // สีตามที่ตั้งไว้: ย้อมพื้นและขอบ
         b.innerText = btn.name;
-        b.onclick = () => setInputValue(btn.action);
+        const hint = document.createElement('span'); hint.className = 'q-hint'; hint.textContent = 'แตะอีกครั้งเพื่อส่ง'; b.appendChild(hint);
+        b.onclick = () => (isLandscapeQuick() ? landQuickTap(b, btn) : setInputValue(btn.action));
         container.appendChild(b);
       });
+      container.dataset.n = String(buttons.length);
+      container.style.setProperty('--qn', String(Math.max(1, Math.min(buttons.length, 3))));
+    }
+
+    // ===== แนวนอน: ใช้ได้เฉพาะคำสั่งด่วน — แตะครั้งแรกขยาย แตะซ้ำภายใน 3 วินาทีถึงส่ง แล้วกลับมอนิเตอร์ =====
+    const LAND_MQ = '(orientation: landscape) and (max-height: 640px)';
+    function isLandscapeQuick() { return window.matchMedia && window.matchMedia(LAND_MQ).matches; }
+    let armedBtn = null, armTimer = null;
+    function disarmQuick() {
+      clearTimeout(armTimer); armTimer = null;
+      if (armedBtn) { armedBtn.classList.remove('armed'); armedBtn = null; }
+    }
+    window.__tbDisarm = disarmQuick;
+    if (!window.__tbOrientBound && window.matchMedia) {
+      window.__tbOrientBound = true;
+      window.matchMedia(LAND_MQ).addEventListener('change', () => { if (window.__tbDisarm) window.__tbDisarm(); });
+    }
+    function landMsg(t) {
+      let m = document.getElementById('tbLandMsg');
+      if (!m) { m = document.createElement('div'); m.id = 'tbLandMsg'; document.body.appendChild(m); }
+      m.textContent = t; m.classList.add('on');
+      clearTimeout(m._t); m._t = setTimeout(() => m.classList.remove('on'), 3500);
+    }
+    async function landQuickTap(b, btn) {
+      if (armedBtn === b) {                       // แตะซ้ำ = ส่งจริง
+        disarmQuick();
+        if (navigator.onLine === false) { landMsg('ส่งไม่สำเร็จ: ไม่มีอินเทอร์เน็ต'); return; }
+        try {
+          setInputValue(btn.action);
+          await sendTalkback();                   // ใช้เส้นทางส่งเดิมของหน้านี้ทุกอย่าง
+        } catch (e) { landMsg('ส่งไม่สำเร็จ ลองใหม่อีกครั้ง'); return; }
+        b.classList.add('sent');
+        const h = b.querySelector('.q-hint'); if (h) h.textContent = 'ส่งแล้ว';
+        setTimeout(() => { if (typeof setActiveNav === 'function') setActiveNav('monitor'); }, 450);
+        return;
+      }
+      disarmQuick();                              // ปุ่มอื่นเด้งแทน
+      armedBtn = b; b.classList.remove('armed'); void b.offsetWidth; b.classList.add('armed');
+      armTimer = setTimeout(disarmQuick, 3000);   // ไม่แตะซ้ำใน 3 วินาที = กลับขนาดเดิม
     }
 
     function setInputValue(text) {

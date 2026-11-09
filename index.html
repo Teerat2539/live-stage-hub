@@ -811,11 +811,12 @@
       return {
         sync: function (page) {
           want = true; acquire();
-          // มอนิเตอร์หมุนได้ ทุกหน้าอื่นล็อกแนวตั้ง
+          // มอนิเตอร์และท็อคแบคหมุนได้ (ท็อคแบคแนวนอนใช้ได้เฉพาะคำสั่งด่วน) ทุกหน้าอื่นล็อกแนวตั้ง
           document.body.classList.toggle('lsh-page-monitor', page === 'monitor');
+          document.body.classList.toggle('lsh-page-talkback', page === 'talkback');
           try {
             if (screen.orientation && screen.orientation.lock) {
-              if (page === 'monitor') screen.orientation.unlock();
+              if (page === 'monitor' || page === 'talkback') screen.orientation.unlock();
               else screen.orientation.lock('portrait').catch(() => {});
             }
           } catch (e) {}
