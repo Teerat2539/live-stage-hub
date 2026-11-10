@@ -2043,3 +2043,10 @@ nav button:active:not(.active) { background: var(--surface-2); }
   .mq-host .mq { display: inline-block; padding-left: 100%; white-space: nowrap; animation: mqRun var(--mq-dur, 10s) linear infinite; }
 }
 @keyframes mqRun { to { transform: translateX(-100%); } }
+
+/* ===== หัวหน้าจอ: ping ซ้าย (ต่อจากปุ่มเมนู) / นาฬิกา HH:MM:SS ขวา ===== */
+.header-left { display: flex; align-items: center; gap: 10px; }
+.hdr-clock { font-size: 13px; font-weight: 500; color: var(--text-2); font-variant-numeric: tabular-nums; letter-spacing: .02em; }
+@media (orientation: landscape) and (max-height: 640px) {
+  body:is(.lsh-page-monitor,.lsh-page-talkback) .hdr-clock { display: none !important; }
+}

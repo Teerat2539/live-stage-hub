@@ -863,11 +863,11 @@
   <header>
     <div class="header-left">
       <button type="button" onclick="toggleDrawer(true)" class="hdr-btn" aria-label="เมนู"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
+      <span id="pingBadge" class="ping-badge ping-green">-- ms</span>
     </div>
     <div id="showTimerDisplay" class="show-timer hidden" aria-live="off" role="button" tabindex="0" onclick="openBandPanel()"></div>
     <div class="header-right">
-      <span id="pingBadge" class="ping-badge ping-green">-- ms</span>
-      <span id="clockDisplay" class="hdr-hidden">00:00:00</span>
+      <span id="clockDisplay" class="hdr-clock">00:00:00</span>
       <span id="userEmojiDisplay" class="hdr-hidden">👤</span>
       <button type="button" onclick="toggleDrawer(true)" class="hdr-btn hdr-acct" aria-label="บัญชีผู้ใช้"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="3.5"/><path d="M5 20c0-3.5 3.1-6 7-6s7 2.5 7 6"/></svg></button>
     </div>
