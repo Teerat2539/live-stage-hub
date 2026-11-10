@@ -70,9 +70,11 @@
     <div id="karMain" class="kar-main">
       <div id="karCur" class="kar-line cur"></div>
       <div id="karNxt" class="kar-line nxt"></div>
+      <div id="karWheel" class="kw-wrap" aria-hidden="true"></div>
       <div id="karMsg" class="kar-msg"></div>
+      <div id="karPause" class="kar-pause hidden">⏸ หยุดชั่วคราว · แตะเพื่อเล่นต่อ</div>
     </div>
-    <div class="kar-bot">
+    <div class="kar-bot" id="karBot">
       <div class="kar-tb"><i></i><div class="kar-tbc"><small id="karTbMeta">ท็อคแบค</small><div id="karTbText">สแตนบายรอคำสั่ง...</div></div></div>
       <div id="karNx" class="kar-nx"><em id="karNxSet">ถัดไป</em><b id="karNxTitle">-</b><span id="karNxKey"></span></div>
     </div>
@@ -605,14 +607,14 @@
       // ===== แตะการ์ด "กำลังเล่น": แนวตั้ง → หน้าค้นหาคอร์ด (ขยายเพลงนี้) / แนวนอน → คาราโอเกะ =====
       const hasChordsOf = (x) => !!(x && x.songId && ((window.lshChordMarks && window.lshChordMarks.has(String(x.songId))) || (window.lshChordOwn && window.lshChordOwn.has(String(x.songId)))));
       const NO_CHORD_TXT = 'เพลงนี้ยังไม่มีคอร์ดในฐานข้อมูล';
-      const kar = { on: false, qid: null, key: '', doc: null, lines: [], N: 0, dur: 240, speed: 1, p0: 0, t0: 0, drag: null, shown: -1, tok: 0, timer: 0, tbSig: '' };
+      const kar = { on: false, qid: null, key: '', doc: null, lines: [], N: 0, dur: 240, speed: 1, p0: 0, t0: 0, drag: null, shown: -1, tok: 0, timer: 0, tbSig: '', paused: false, hold: false, wp: 0, v: 0, raf: 0, settle: null, rows: [], rowsFor: null, wl: null, lastTb: null, lastNx: null };
       const $k = (id) => document.getElementById(id);
       const kEsc = (t) => String(t == null ? '' : t).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
       const kReal = (x) => !!x && x.type !== 'dummy_start' && x.type !== 'dummy_end';
       const kClamp = (v, a, b) => Math.max(a, Math.min(b, v));
 
-      function karPos(now) { return kar.N ? kClamp(kar.p0 + (now - kar.t0) / 1000 * kar.speed * kar.N / kar.dur, 0, kar.N - 1) : 0; }
-      function karMsg(t) { kar.lines = []; kar.N = 0; kar.doc = null; kar.shown = -1; $k('karCur').innerHTML = ''; $k('karNxt').innerHTML = ''; $k('karSec').textContent = ''; $k('karMsg').textContent = t || ''; }
+      function karPos(now) { return kar.N ? (kar.paused ? kClamp(kar.p0, 0, kar.N - 1) : kClamp(kar.p0 + (now - kar.t0) / 1000 * kar.speed * kar.N / kar.dur, 0, kar.N - 1)) : 0; }
+      function karMsg(t) { karWheelExit(); kar.rowsFor = null; kar.lines = []; kar.N = 0; kar.doc = null; kar.shown = -1; $k('karCur').innerHTML = ''; $k('karNxt').innerHTML = ''; $k('karSec').textContent = ''; $k('karMsg').textContent = t || ''; }
       function karSegs(line) { return line.segs.map(g => '<span class="seg"><b>' + (g.c ? kEsc(g.c) : '&nbsp;') + '</b><span>' + kEsc(g.t || ' ') + '</span></span>').join(''); }
       // ย่อตัวอักษรให้พอดีหนึ่งบรรทัด (ย่อได้ถึง 60%) ถ้ายังไม่พอค่อยขึ้นบรรทัดใหม่
       function karFit(el, px) {
@@ -643,7 +645,7 @@
         kar.lines = window.lshChords._x.flatLines(kar.doc.rec.s, a.n, a.flat); kar.N = kar.lines.length;
       }
       async function karLoad(item) {
-        const tok = ++kar.tok; kar.qid = String(item.id); kar.key = item.key || '';
+        const tok = ++kar.tok; kar.qid = String(item.id); kar.key = item.key || ''; kar.paused = false; $k('karPause').classList.add('hidden');
         karSetup(item); karMsg('');
         const X = window.lshChords && window.lshChords._x;
         if (!item.songId || !X) { karMsg(NO_CHORD_TXT); return; }
@@ -662,32 +664,42 @@
         const tb = $k('monitorTalkbackText'), sd = $k('tbSender'), tm = $k('tbTime');
         const sig = (tb ? tb.textContent : '') + '|' + (sd ? sd.textContent : '') + '|' + (tm ? tm.textContent : '');
         if (sig !== kar.tbSig) {
+          const tbNow = tb ? tb.textContent : '';
+          if (kar.lastTb !== null && kar.lastTb !== tbNow && !/^(-|สแตนบายรอคำสั่ง\.\.\.|รอคำสั่ง\.\.\.)?$/.test(kar.lastTb) && tbNow) karAttn('talk'); // ข้อความท็อคแบคใหม่
+          kar.lastTb = tbNow;
           kar.tbSig = sig;
           $k('karTbText').textContent = tb ? tb.textContent : '';
           $k('karTbMeta').textContent = 'ท็อคแบค · ' + ((sd ? sd.textContent : '').replace(/^\s*-\s*/, '').trim() || '-') + ' · ' + (tm ? tm.textContent : '');
         }
         const nx = currentQueue.find(i => i.status === 'next');
         const nk = nx ? ((isSpecialK(nx) ? lshPlain(nx.title) : (nx.title || ''))) : 'ไม่มีเพลงถัดไป';
+        if (kar.lastNx !== null && kar.lastNx !== nk) karAttn('next'); // เพลงถัดไปเปลี่ยน
+        kar.lastNx = nk;
         $k('karNxTitle').textContent = nk;
         $k('karNxSet').textContent = nx && !isSpecialK(nx) ? 'ถัดไป · ' + String(nx.set || 'Set 1').toUpperCase() : 'ถัดไป';
         $k('karNxKey').textContent = nx && !isSpecialK(nx) && nx.key && nx.key !== '-' ? nx.key : '';
         const col = nx && !isSpecialK(nx) ? nxColor(nx) : 'var(--line-strong)';
         $k('karNx').style.setProperty('--nx', col);
       }
+      function karAttn(kind) {
+        const bar = $k('karBot'); if (!bar) return;
+        clearTimeout(bar._attnTimer); delete bar.dataset.attn; void bar.offsetWidth; bar.dataset.attn = kind;
+        bar._attnTimer = setTimeout(() => { delete bar.dataset.attn; }, 3000);
+      }
       function isSpecialK(x) { return !!x && (x.type === 'dummy_start' || x.type === 'dummy_end'); }
       function karTick() {
         if (!$k('karView')) { clearInterval(kar.timer); kar.timer = 0; return; }
         if (!kar.on) return;
         karBar();
-        if (kar.N && !kar.drag) { const i = Math.floor(karPos(Date.now()) + 1e-6); if (i !== kar.shown) karRender(i, true); }
+        if (kar.N && !kar.hold && !kar.drag) { const i = Math.floor(karPos(Date.now()) + 1e-6); if (i !== kar.shown) karRender(i, true); }
       }
       function karOpen(item) {
-        kar.on = true; $k('karView').classList.remove('hidden');
+        kar.on = true; kar.lastTb = null; kar.lastNx = null; kar.tbSig = ''; $k('karView').classList.remove('hidden');
         $k('karSpV').textContent = 'x' + kar.speed.toFixed(1);
         karLoad(item); karBar();
         if (!kar.timer) kar.timer = setInterval(karTick, 150);
       }
-      function karClose() { kar.on = false; kar.tok++; kar.drag = null; const v = $k('karView'); if (v) v.classList.add('hidden'); }
+      function karClose() { kar.on = false; kar.tok++; kar.drag = null; kar.paused = false; karWheelExit(); const kp = $k('karPause'); if (kp) kp.classList.add('hidden'); const v = $k('karView'); if (v) v.classList.add('hidden'); }
       function karSpeed(d) {
         const now = Date.now(), p = karPos(now);
         kar.speed = kClamp(Math.round((kar.speed + d) * 4) / 4, 0.5, 2); kar.p0 = p; kar.t0 = now;
@@ -701,8 +713,69 @@
         karSetup(playing);
         if ((playing.key || '') !== kar.key && kar.doc) {
           kar.key = playing.key || ''; const pos = karPos(Date.now()); karApply(kar.doc.at(playing.key));
-          kar.N = kar.lines.length; if (kar.N) { kar.p0 = kClamp(pos, 0, kar.N - 1); kar.t0 = Date.now(); karRender(Math.floor(kar.p0), false); }
+          kar.N = kar.lines.length; kar.rowsFor = null; karWheelExit(); if (kar.N) { kar.p0 = kClamp(pos, 0, kar.N - 1); kar.t0 = Date.now(); karRender(Math.floor(kar.p0), false); }
         }
+      }
+      function karTogglePause() {
+        const now = Date.now();
+        if (kar.paused) { kar.paused = false; kar.t0 = now; } else { kar.p0 = karPos(now); kar.paused = true; }
+        $k('karPause').classList.toggle('hidden', !kar.paused);
+      }
+      // ===== วงล้อ 5 บรรทัดตอนลากนิ้ว =====
+      function karWheelBuild() {
+        if (kar.rowsFor === kar.lines) return;
+        const w = $k('karWheel'); w.innerHTML = kar.lines.map(l => '<div class="kar-line kw">' + karSegs(l) + '</div>').join('');
+        kar.rows = Array.prototype.slice.call(w.children); kar.rowsFor = kar.lines;
+      }
+      function karWheelEnter() {
+        karWheelBuild();
+        const main = $k('karMain'), mh = main.clientHeight, kf = kClamp(Math.round(window.innerHeight * 0.115), 26, 54);
+        const rowH = Math.max(40, Math.min(mh / 5, 66));
+        kar.wl = { rowH: rowH, fs: Math.min(kf * 0.62, rowH * 0.46) };
+        kar.rows.forEach(el => { el._f = 0; el._v = 0; el.style.opacity = '0'; });
+        kar.hold = true; kar.wp = Math.max(0, kar.shown);
+        ['karCur', 'karNxt'].forEach(id => $k(id).classList.remove('kar-in'));
+        main.classList.add('kar-wheel'); karWheelPaint(kar.wp);
+      }
+      function karWheelPaint(wp) {
+        const W = kar.wl, sel = Math.round(wp);
+        kar.rows.forEach((el, i) => {
+          const d = i - wp, a = Math.abs(d);
+          if (a > 2.7) { if (el._v) { el.style.opacity = '0'; el._v = 0; } return; }
+          if (!el._f) { karFit(el, W.fs); el._f = 1; }
+          el._v = 1;
+          el.style.opacity = String(Math.max(0, 1 - a * 0.35));
+          el.style.transform = 'translateY(calc(-50% + ' + (d * W.rowH).toFixed(1) + 'px)) scale(' + (1 - Math.min(a, 2) * 0.07).toFixed(3) + ')';
+          el.classList.toggle('sel', i === sel);
+        });
+        const ln = kar.lines[sel]; $k('karSec').textContent = ln ? (ln.sec || '') : '';
+      }
+      function karWheelRun() {
+        cancelAnimationFrame(kar.raf); let last = performance.now();
+        const step = (t) => {
+          const dt = Math.min(0.05, (t - last) / 1000); last = t;
+          if (kar.settle) {
+            const s = kar.settle, k = Math.min(1, (t - s.t0) / s.dur), e = 1 - Math.pow(1 - k, 3);
+            kar.wp = s.from + (s.to - s.from) * e; karWheelPaint(kar.wp);
+            if (k >= 1) { karWheelDone(s.to); return; }
+          } else {
+            kar.v *= Math.exp(-dt * 4.5); kar.wp = kClamp(kar.wp + kar.v * dt, 0, kar.N - 1);
+            if (kar.wp <= 0 || kar.wp >= kar.N - 1) kar.v = 0;
+            karWheelPaint(kar.wp);
+            if (Math.abs(kar.v) < 1.2) kar.settle = { from: kar.wp, to: Math.round(kar.wp), t0: t, dur: 220 };
+          }
+          kar.raf = requestAnimationFrame(step);
+        };
+        kar.raf = requestAnimationFrame(step);
+      }
+      function karWheelDone(idx) {
+        kar.raf = 0; kar.settle = null; kar.hold = false; kar.drag = null;
+        kar.p0 = idx; kar.t0 = Date.now(); karRender(idx, false);
+        const m = $k('karMain'); if (m) m.classList.remove('kar-wheel');
+      }
+      function karWheelExit() {
+        cancelAnimationFrame(kar.raf); kar.raf = 0; kar.settle = null; kar.hold = false;
+        const m = $k('karMain'); if (m) m.classList.remove('kar-wheel');
       }
       (function bindKaraoke() {
         const pc = document.querySelector('.song-box-current'), main = $k('karMain');
@@ -716,15 +789,29 @@
         });
         $k('karExit').onclick = karClose;
         $k('karSpM').onclick = () => karSpeed(-0.25); $k('karSpP').onclick = () => karSpeed(0.25);
-        // ลากนิ้วขึ้น/ลงเลือกบรรทัดเหมือนวงล้อ แล้วเลื่อนต่ออัตโนมัติจากบรรทัดนั้น
-        main.addEventListener('pointerdown', (e) => { if (!kar.N) return; kar.drag = { y: e.clientY, base: kar.shown }; try { main.setPointerCapture(e.pointerId); } catch (x) {} });
+        // แตะสั้นๆ = พอส/เล่นต่อ | ลากนิ้วขึ้น/ลง = วงล้อ 5 บรรทัด (เลื่อนต่อเนื่อง มีแรงเฉื่อย) แล้วกลับมาเลื่อนต่อจากบรรทัดที่เลือก
+        main.addEventListener('pointerdown', (e) => {
+          if (!kar.N) return;
+          cancelAnimationFrame(kar.raf); kar.settle = null;
+          kar.drag = { y: e.clientY, t: performance.now(), moved: kar.hold, base: kar.hold ? kar.wp : kar.shown, s: [] };
+          kar.v = 0;
+          try { main.setPointerCapture(e.pointerId); } catch (x) {}
+        });
         main.addEventListener('pointermove', (e) => {
           const d = kar.drag; if (!d) return;
-          const step = Math.max(38, window.innerHeight * 0.1), i = kClamp(d.base + Math.round(-(e.clientY - d.y) / step), 0, kar.N - 1);
-          if (i !== kar.shown) karRender(i, true);
-          kar.p0 = i; kar.t0 = Date.now();
+          const dy = e.clientY - d.y;
+          if (!d.moved) { if (Math.abs(dy) < 8) return; d.moved = true; karWheelEnter(); d.base = kar.wp; d.y = e.clientY; return; }
+          kar.wp = kClamp(d.base - dy / kar.wl.rowH, 0, kar.N - 1);
+          const now = performance.now(); d.s.push([now, kar.wp]); while (d.s.length > 1 && now - d.s[0][0] > 120) d.s.shift();
+          karWheelPaint(kar.wp);
         });
-        const end = () => { if (kar.drag) { kar.drag = null; kar.p0 = kar.shown < 0 ? 0 : kar.shown; kar.t0 = Date.now(); } };
+        const end = (e) => {
+          const d = kar.drag; kar.drag = null; if (!d) return;
+          if (!d.moved) { if (e.type === 'pointerup' && performance.now() - d.t < 600) karTogglePause(); return; }
+          const s = d.s; let v = 0;
+          if (s.length > 1) { const dt = (s[s.length - 1][0] - s[0][0]) / 1000; if (dt > 0.01) v = (s[s.length - 1][1] - s[0][1]) / dt; }
+          kar.v = kClamp(v, -25, 25); karWheelRun();
+        };
         main.addEventListener('pointerup', end); main.addEventListener('pointercancel', end);
       })();
       window.__karResize = function() {

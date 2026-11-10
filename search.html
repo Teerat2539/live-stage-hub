@@ -244,11 +244,11 @@
         box.className = 'q-exp qx' + (qx.lyr ? ' lyr' : '') + (qx.cols2 ? ' cols2' : '');
         box.onclick = (e) => e.stopPropagation();
         box.innerHTML = '<div class="qx-bar"><div class="qx-row">' +
-          '<div class="qx-seg" data-k="cols"><button type="button" data-v="1" class="' + (qx.cols2 ? '' : 'on') + '">1 คอลัมน์</button><button type="button" data-v="2" class="' + (qx.cols2 ? 'on' : '') + '">2 คอลัมน์</button></div>' +
-          '<div class="qx-seg" data-k="mode"><button type="button" data-v="c" class="' + (qx.lyr ? '' : 'on') + '">คอร์ด+เนื้อ</button><button type="button" data-v="l" class="' + (qx.lyr ? 'on' : '') + '">เนื้อ</button></div>' +
+          '<div class="qx-seg" data-k="cols"><button type="button" data-v="1" aria-label="1 คอลัมน์" title="1 คอลัมน์" class="' + (qx.cols2 ? '' : 'on') + '"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="3.5" width="14" height="17" rx="2.5"/><path d="M8.5 8h7M8.5 12h7M8.5 16h5"/></svg></button><button type="button" data-v="2" aria-label="2 คอลัมน์" title="2 คอลัมน์" class="' + (qx.cols2 ? 'on' : '') + '"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3.5" width="8.2" height="17" rx="2"/><rect x="12.8" y="3.5" width="8.2" height="17" rx="2"/><path d="M5.3 8h3.6M5.3 12h3.6M15.1 8h3.6M15.1 12h3.6"/></svg></button></div>' +
+          '<div class="qx-seg" data-k="mode"><button type="button" data-v="c" aria-label="คอร์ด+เนื้อ" title="คอร์ด+เนื้อ" class="' + (qx.lyr ? '' : 'on') + '"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 4.5h3M12 4.5h3" stroke-width="2.4"/><path d="M4 10h16M4 15h16M4 20h10"/></svg></button><button type="button" data-v="l" aria-label="เนื้ออย่างเดียว" title="เนื้ออย่างเดียว" class="' + (qx.lyr ? 'on' : '') + '"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h11"/></svg></button></div>' +
           '<div class="qx-seg" data-k="fs"><button type="button" data-v="-">A−</button><button type="button" data-v="+">A+</button></div>' +
           '<span class="qx-chip">' + set + (set ? ' · ' : '') + '<b class="qx-key">' + (item.key && item.key !== '-' ? 'คีย์ ' + item.key : 'คีย์ -') + '</b></span>' +
-          '<button type="button" class="qx-fold">▲ ย่อ</button></div></div>' +
+          '</div></div>' +
           '<div class="qx-status">กำลังโหลดคอร์ด…</div><div class="ch-body qx-body"></div>';
         card.appendChild(box);
         const tb = document.querySelector('.search-top-bar'), inp = document.querySelector('.search-input-section'), scr = qxScroller();
@@ -264,7 +264,8 @@
           else if (k === 'mode') { qx.lyr = v === 'l'; qxSave('lsh_chord_lyr', qx.lyr ? '1' : '0'); box.classList.toggle('lyr', qx.lyr); mark(g, v); }
           else { qx.fs = Math.max(12, Math.min(44, qx.fs + (v === '+' ? 2 : -2))); qxSave('lsh_chord_fs', qx.fs); body.style.fontSize = qx.fs + 'px'; }
         });
-        box.querySelector('.qx-fold').onclick = () => qxClose();
+        // แตะสั้นๆ ที่ตัวเนื้อเพลง = ย่อการ์ด (ไม่ย่อถ้ากำลังเลือกข้อความ / เลื่อนหน้า ซึ่งไม่นับเป็นการแตะ)
+        body.addEventListener('click', () => { const sel = window.getSelection && window.getSelection(); if (sel && String(sel).length) return; qxClose(); });
         qxFill(box, item);
         if (!keep) setTimeout(() => { const r = card.getBoundingClientRect(), sr = (scr === document.scrollingElement || scr === document.documentElement) ? 0 : scr.getBoundingClientRect().top; scr.scrollTop += r.top - sr - stickTop - 8; }, 30);
       }

@@ -2227,3 +2227,27 @@ nav button:active:not(.active) { background: var(--surface-2); }
 .kar-nx em { font-style: normal; font-size: 10px; font-weight: 800; padding: 3px 8px; border-radius: 999px; background: var(--surface-3); color: var(--text-2); white-space: nowrap; }
 .kar-nx b { flex: 1; min-width: 0; font-size: 16px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .kar-nx span { color: var(--text-2); font-size: 13px; font-weight: 700; }
+
+
+/* ===== อัปเดต XL ===== */
+.qx-seg button svg { display: block; margin: 0 auto; }
+.qx-seg button { min-width: 44px; }
+.qx .qx-body { cursor: pointer; }
+.qx-chip { margin-left: auto; }
+
+/* คาราโอเกะ: วงล้อ 5 บรรทัดตอนลากนิ้ว + พอส + แจ้งเตือนแถบล่าง */
+.kar-in { animation: karIn .22s ease-out backwards; }
+.kar-main .kar-line.cur, .kar-main .kar-line.nxt { transition: opacity .22s ease, transform .22s ease; transform-origin: left center; }
+.kar-main.kar-wheel .kar-line.cur, .kar-main.kar-wheel .kar-line.nxt { opacity: 0; transform: scale(.9); }
+.kw-wrap { position: absolute; inset: 0; opacity: 0; pointer-events: none; transition: opacity .2s ease; }
+.kar-main.kar-wheel .kw-wrap { opacity: 1; }
+.kw-wrap .kw { position: absolute; left: 0; right: 0; top: 50%; transform-origin: left center; will-change: transform, opacity; opacity: 0; }
+.kw .seg b { color: var(--dim); transition: color .12s; }
+.kw .seg span { color: var(--dim); font-weight: 600; transition: color .12s; }
+.kw.sel .seg b { color: var(--live); }
+.kw.sel .seg span { color: #fff; font-weight: 700; }
+.kar-pause { position: absolute; left: 50%; top: 2px; z-index: 3; transform: translateX(-50%); padding: 5px 14px; border-radius: 999px; background: var(--surface-2); color: var(--text-2); font-size: 12px; font-weight: 700; pointer-events: none; white-space: nowrap; }
+.kar-tb, .kar-nx { transition: flex-grow .35s var(--ease); }
+.kar-bot[data-attn="talk"] .kar-tb { flex: 2.4 1 0; --attn-c: var(--tb, #FF5A5F); outline: 3px solid transparent; outline-offset: 2px; animation: attnGlow .5s ease-in-out 6; }
+.kar-bot[data-attn="next"] .kar-nx { flex: 2.4 1 0; --attn-c: var(--nx, var(--next)); outline: 3px solid transparent; outline-offset: 2px; animation: attnGlow .5s ease-in-out 6; }
+.kar-bot[data-attn="talk"] .kar-tbc div, .kar-bot[data-attn="next"] .kar-nx b { color: #fff; }
