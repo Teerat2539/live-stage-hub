@@ -2062,3 +2062,42 @@ nav button:active:not(.active) { background: var(--surface-2); }
 #bandPanelModal.closing .band-sheet { animation: bandDown .22s ease-in both !important; }
 .band-ic.has-logo { background: var(--surface-3); overflow: hidden; padding: 0; }
 .band-ic.has-logo img { width: 100%; height: 100%; object-fit: cover; display: block; }
+
+/* ===== ดูคอร์ดเพลง (lshChords) ===== */
+.chord-open-btn { display:block; width:100%; margin-top:14px; min-height:48px; border:0; border-radius:12px; background:var(--live); color:var(--live-ink); font-size:16px; font-weight:800; }
+.ch-view { position:fixed; inset:0; z-index:20001; background:var(--bg); color:var(--text); display:flex; flex-direction:column; }
+.ch-bar { flex:none; padding:8px 10px calc(6px); background:var(--surface); border-bottom:1px solid var(--line); }
+.ch-row1 { display:flex; align-items:center; gap:10px; margin-bottom:6px; }
+.ch-ttl { min-width:0; flex:1; }
+.ch-t1 { font-size:16px; font-weight:800; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.ch-t2 { font-size:12px; color:var(--text-2); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.ch-row2 { display:flex; flex-wrap:wrap; gap:6px 12px; align-items:center; }
+.ch-grp { display:flex; align-items:center; gap:6px; }
+.ch-btn { min-width:40px; height:40px; padding:0 10px; border:1px solid var(--line-strong); border-radius:10px; background:var(--surface-2); color:var(--text); font-size:15px; font-weight:700; }
+.ch-btn.ch-sm { font-size:12px; padding:0 8px; }
+.ch-btn.ch-play { background:var(--live); color:var(--live-ink); border-color:var(--live); min-width:48px; }
+.ch-keybox { min-width:54px; text-align:center; line-height:1.1; }
+.ch-keybox b { display:block; font-size:18px; color:var(--live); }
+.ch-keybox span { font-size:10px; color:var(--text-3); }
+.ch-spd { font-size:12px; color:var(--text-2); min-width:34px; }
+.ch-scroll { flex:1; overflow-y:auto; -webkit-overflow-scrolling:touch; padding:14px 14px 0; }
+.ch-status { text-align:center; color:var(--text-2); padding:30px 0; }
+.ch-status:empty { display:none; }
+.ch-body { font-size:20px; line-height:1.35; padding-bottom:30px; }
+.ch-sec { margin-bottom:18px; }
+.ch-secname { display:inline-block; margin-bottom:6px; padding:2px 10px; border-radius:999px; background:var(--surface-3); color:var(--next); font-size:.7em; font-weight:800; }
+.ch-line { margin-bottom:6px; }
+.ch-seg { display:inline-flex; flex-direction:column; vertical-align:bottom; }
+.ch-c { color:var(--live); font-weight:800; font-size:.92em; line-height:1.25; padding-right:.5em; white-space:pre; }
+.ch-t { white-space:pre; line-height:1.5; }
+.ch-raw { white-space:pre-wrap; word-break:break-word; }
+.ch-rawc { color:var(--live); font-weight:800; font-family:ui-monospace,Menlo,monospace; margin-bottom:2px; }
+.ch-end { height:60vh; }
+
+/* ===== การ์ดนำเข้าข้อมูลเพลง (หน้าตั้งค่าแอดมิน) ===== */
+.chimp-card { margin-top:18px; padding:14px; border-radius:14px; background:var(--surface); border:1px solid var(--line); }
+.chimp-title { font-size:15px; font-weight:800; margin-bottom:4px; }
+.chimp-sub { font-size:12px; color:var(--text-2); margin-bottom:10px; line-height:1.5; }
+.chimp-prev { margin-top:10px; padding:10px; border-radius:10px; background:var(--bg); border:1px solid var(--line); font-size:12.5px; line-height:1.6; white-space:pre-wrap; color:var(--text-2); }
+.chimp-act { display:flex; gap:8px; margin-top:10px; }
+.chimp-cancel { height:44px; padding:0 14px; border:1px solid var(--line-strong); border-radius:12px; background:transparent; color:var(--text); font-weight:700; }

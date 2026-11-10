@@ -143,6 +143,19 @@
         </div>
         <div id="adminBandListContainer" class="adm2-list"></div>
       </div>
+
+      <!-- 3. นำเข้าข้อมูลเพลง (ความยาว/BPM/ปี/แนวเพลง/รหัสคอร์ด) จากไฟล์ chord_import.json -->
+      <div id="admChordImport" class="chimp-card">
+        <div class="chimp-title">นำเข้าข้อมูลเพลง (คอร์ดเพลง)</div>
+        <div class="chimp-sub">เลือกไฟล์ chord_import.json แอปจะแสดงตัวอย่างก่อน ไม่เขียนข้อมูลจนกว่าจะกดยืนยัน และเติมเฉพาะช่องที่ยังว่าง</div>
+        <input type="file" id="chImportFile" accept=".json,application/json" class="hidden">
+        <button type="button" id="chImportPick" class="adm2-add" onclick="chImportPick()">เลือกไฟล์นำเข้า</button>
+        <div id="chImportPreview" class="chimp-prev hidden"></div>
+        <div id="chImportActions" class="chimp-act hidden">
+          <button type="button" id="chImportGo" class="adm2-add" onclick="chImportGo()">ยืนยันนำเข้า</button>
+          <button type="button" class="chimp-cancel" onclick="chImportCancel()">ยกเลิก</button>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -363,6 +376,73 @@
       });
     };
     window.switchAdminSub('users');
+
+    // --- นำเข้าข้อมูลเพลง: เลือกไฟล์ → ตัวอย่าง → ยืนยัน (เติมเฉพาะช่องว่าง ไม่ทับข้อมูลเดิม) ---
+    (function() {
+      let plan = null;
+      const $ = (id) => document.getElementById(id);
+      const empty = (v) => v == null || v === '' || v === '-' || v === 0 || v === '0' || (Array.isArray(v) && !v.length);
+      const FIELDS = { duration: 'ความยาว', bpm: 'BPM', year: 'ปี', genres: 'แนวเพลง' };
+      const mmss = (n) => Math.floor(n / 60) + ':' + String(n % 60).padStart(2, '0');
+      function reset() { plan = null; $('chImportPreview').classList.add('hidden'); $('chImportActions').classList.add('hidden'); $('chImportFile').value = ''; $('chImportPick').disabled = false; }
+      window.chImportPick = function() { $('chImportFile').click(); };
+      window.chImportCancel = reset;
+      $('chImportFile').onchange = async function(e) {
+        const f = e.target.files && e.target.files[0]; if (!f) return;
+        const pv = $('chImportPreview'); pv.classList.remove('hidden'); pv.textContent = 'กำลังตรวจไฟล์…'; $('chImportActions').classList.add('hidden');
+        try {
+          const j = JSON.parse(await f.text());
+          if (!j || j.v !== 1 || typeof j.bk !== 'object' || typeof j.fill !== 'object') throw new Error('ไฟล์ไม่ใช่ chord_import.json');
+          const snap = await db.ref('songs').once('value'), songs = snap.val() || {};
+          const updates = {}, cnt = { duration: 0, bpm: 0, year: 0, genres: 0, bk: 0 }, ex = {}; let missing = 0, conflict = 0, same = 0;
+          Object.keys(j.bk).forEach(id => {
+            const v = j.bk[id], s = songs[id];
+            if (!s) { missing++; return; }
+            if (typeof v !== 'string' || !/^[0-9a-z_]+$/.test(v)) return;
+            if (s.bk === v) { same++; return; }
+            if (s.bk) { conflict++; return; }
+            updates[id + '/bk'] = v; cnt.bk++; (ex[id] = ex[id] || []).push('คอร์ดเชื่อมแล้ว');
+          });
+          Object.keys(j.fill).forEach(path => {
+            const m = /^([a-z]\d{3})\/(duration|bpm|year|genres)$/.exec(path); if (!m) return;
+            const id = m[1], fld = m[2], v = j.fill[path], s = songs[id]; if (!s) return;
+            const ok = fld === 'genres' ? (Array.isArray(v) && v.length && v.every(x => typeof x === 'string')) : (typeof v === 'number' && v > 0);
+            if (!ok || !empty(s[fld])) return;
+            updates[id + '/' + fld] = v; cnt[fld]++;
+            (ex[id] = ex[id] || []).push(FIELDS[fld] + ' ' + (fld === 'duration' ? mmss(v) : (fld === 'genres' ? v.join('/') : v)));
+          });
+          const n = Object.keys(updates).length;
+          const ids = Object.keys(ex);
+          plan = { updates: updates, n: n };
+          let t = 'จะเติมให้ ' + ids.length + ' เพลง (' + n + ' ช่อง)\n' +
+            '• ความยาว ' + cnt.duration + ' · BPM ' + cnt.bpm + ' · ปี ' + cnt.year + ' · แนวเพลง ' + cnt.genres + ' · เชื่อมคอร์ด ' + cnt.bk + '\n';
+          if (same) t += '• เชื่อมคอร์ดไว้แล้ว ' + same + ' เพลง (ข้าม)\n';
+          if (conflict) t += '• มีรหัสคอร์ดอื่นอยู่แล้ว ' + conflict + ' เพลง (ข้าม ไม่ทับ)\n';
+          if (missing) t += '• ไม่พบเพลงในฐานข้อมูล ' + missing + ' เพลง (ข้าม)\n';
+          t += '\nตัวอย่าง:\n' + ids.slice(0, 6).map(id => '  ' + (songs[id].title || id) + ' — ' + ex[id].join(', ')).join('\n');
+          pv.textContent = t;
+          $('chImportActions').classList.toggle('hidden', n === 0);
+          if (n === 0) pv.textContent += '\n\nไม่มีอะไรต้องเติม';
+        } catch (err) { plan = null; pv.textContent = 'อ่านไฟล์ไม่ได้: ' + err.message; }
+      };
+      window.chImportGo = async function() {
+        if (!plan || !plan.n) return;
+        const btn = $('chImportGo'); btn.disabled = true;
+        try {
+          const keys = Object.keys(plan.updates); let done = 0;
+          for (let i = 0; i < keys.length; i += 400) {
+            const part = {}; keys.slice(i, i + 400).forEach(k => part[k] = plan.updates[k]);
+            await db.ref('songs').update(part); done += Object.keys(part).length;
+            $('chImportPreview').textContent = 'กำลังนำเข้า ' + done + '/' + keys.length + ' ช่อง…';
+          }
+          if (window.lshAutoAdv && window.lshAutoAdv.refreshDurations) window.lshAutoAdv.refreshDurations();
+          lshToast('นำเข้าแล้ว ' + keys.length + ' ช่อง', 'ok');
+          $('chImportPreview').textContent = 'นำเข้าเสร็จ ' + keys.length + ' ช่อง';
+          $('chImportActions').classList.add('hidden'); plan = null; $('chImportFile').value = '';
+        } catch (err) { lshToast('นำเข้าไม่สำเร็จ: ' + err.message, 'error'); }
+        btn.disabled = false;
+      };
+    })();
 
     // --- Switch Tabs ---
     window.switchSettingsTab = function(tabName) {

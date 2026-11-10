@@ -122,6 +122,7 @@
     <div>ความยาวเพลง: <b id="detailDuration" style="color:#fff">-</b></div>
     <div>ความถี่ที่เล่น: <b id="detailPlayCount" style="color:#f59e0b">0 ครั้ง</b></div>
   </div>
+  <button id="btnSongChords" type="button" class="chord-open-btn hidden">ดูคอร์ด</button>
 </div>
 
 <div id="songFormOverlay" class="sub-overlay hidden">
@@ -217,6 +218,8 @@
         // ความยาวเพลง (วินาที) — ฟิลด์ใหม่ songs/{id}/duration; ไม่กรอก = ไม่เก็บ (ระบบใช้ค่าเฉลี่ยแทน)
         const durSec = (parseInt($('formDurMin').value, 10) || 0) * 60 + (parseInt($('formDurSec').value, 10) || 0);
         if (durSec > 0) songPayload.duration = durSec;
+        // เก็บฟิลด์ที่แอปนี้ไม่ได้แก้ในฟอร์ม (bk/year/genres) ไว้ตอนแก้ไขเพลง เพราะการบันทึกเป็นการเขียนทับทั้งเพลง
+        if (isEditing) { const old = ctx.getAll()[songId] || {}; ['bk', 'year', 'genres'].forEach(k => { if (old[k] != null && old[k] !== '') songPayload[k] = old[k]; }); }
         try {
           await db.ref('songs/' + songId).set(songPayload);
           if (window.lshAutoAdv) window.lshAutoAdv.refreshDurations();
@@ -248,6 +251,7 @@
         $('detailDuration').innerText = dd > 0 ? Math.floor(dd / 60) + ':' + String(dd % 60).padStart(2, '0') : '-';
         $('detailPlayCount').innerText = (ctx.getPlayCount(songId) || 0) + ' ครั้ง';
         $('btnDeleteSong').style.display = ctx.allowDelete ? '' : 'none';
+        $('btnSongChords').classList.toggle('hidden', !song.bk);
         $('detailOverlay').classList.remove('hidden');
         setTimeout(() => { $('songDetailDrawer').classList.add('open'); }, 10);
       }
@@ -297,6 +301,7 @@
           }
         };
         $('detailOverlay').onclick = closeDrawer;
+        $('btnSongChords').onclick = () => { const sg = ctx.getAll()[currentActiveSongId]; if (sg && sg.bk && window.lshChords) { closeDrawer(); window.lshChords.open(currentActiveSongId, sg); } };
         $('btnEditSong').onclick = () => { closeDrawer(); if (ctx.getAll()[currentActiveSongId]) openForm(currentActiveSongId); };
         $('btnDeleteSong').onclick = () => {
           closeDrawer();
@@ -323,6 +328,125 @@
         setup: function(c) { ctx = Object.assign({ getAll: () => ({}), getPlayCount: () => 0, allowDelete: true, onChanged: () => {} }, c); mount(); },
         open: openDrawer, openForm: openForm, close: closeDrawer
       };
+    })();
+
+    // ===== ดูคอร์ดเพลง: อ่านจากฐานข้อมูลคอร์ด (โปรเจ็ค Firebase แยก) ทีละเพลง และจำไว้ในเครื่อง (IndexedDB) =====
+    window.lshChords = (function() {
+      const CHORD_DB_URL = 'https://live-stage-chords-default-rtdb.asia-southeast1.firebasedatabase.app';
+      let cdb = null, root = null, st = 0, baseKey = '', bandKey = '', rec = null, song = null, fs = 20, speed = 1;
+      let playing = false, raf = 0, lastT = 0, pos = 0, wake = null;
+      const $ = (id) => document.getElementById(id);
+      const esc = (s) => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+      const SH = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'], FL = ['C', 'Db', 'D', 'Eb', 'E', 'F', 'Gb', 'G', 'Ab', 'A', 'Bb', 'B'];
+      const MAJ_FLAT = [1, 3, 5, 6, 8, 10], MIN_FLAT = [0, 2, 3, 5, 7, 10];
+      function rootIdx(n) { const m = /^([A-G])([#b]?)/.exec(n || ''); if (!m) return -1; let i = { C: 0, D: 2, E: 4, F: 5, G: 7, A: 9, B: 11 }[m[1]]; if (m[2] === '#') i++; else if (m[2] === 'b') i--; return (i + 12) % 12; }
+      function isMinor(k) { return /^[A-G][#b]?m(?!aj)/.test(k || ''); }
+      function useFlat(idx, minor) { return (minor ? MIN_FLAT : MAJ_FLAT).indexOf(idx) >= 0; }
+      const CH_RE = /^([A-G][#b]?)([^\/]*)(?:\/([A-G][#b]?))?(.*)$/, CH_OK = /^[A-G][#b]?(m|maj|min|dim|aug|sus|add|M|\d|\(|\/|-|\+|°|$)/;
+      function isChordTok(t) { return CH_OK.test(t); }
+      function tChord(tok, n, flat) {
+        if (!n || !isChordTok(tok)) return tok;
+        const m = CH_RE.exec(tok); if (!m) return tok;
+        const nm = (r) => { const i = rootIdx(r); return i < 0 ? r : (flat ? FL : SH)[(i + n + 120) % 12]; };
+        return nm(m[1]) + m[2] + (m[3] ? '/' + nm(m[3]) : '') + m[4];
+      }
+      function tLine(c, n, flat) { return c.split(/([\s|]+)/).map(p => /^[\s|]*$/.test(p) ? p : tChord(p, n, flat)).join(''); }
+      function keyName(k, n) { const i = rootIdx(k); if (i < 0) return k || '-'; const mi = isMinor(k), t = (i + n + 120) % 12; return (useFlat(t, mi) ? FL : SH)[t] + (mi ? 'm' : ''); }
+
+      function openIdb() { return new Promise((res, rej) => { try { const q = indexedDB.open('lsh-chords', 1); q.onupgradeneeded = () => q.result.createObjectStore('c'); q.onsuccess = () => res(q.result); q.onerror = () => rej(q.error); } catch (e) { rej(e); } }); }
+      async function cacheGet(k) { try { const d = await openIdb(); return await new Promise(r => { const q = d.transaction('c').objectStore('c').get(k); q.onsuccess = () => r(q.result || null); q.onerror = () => r(null); }); } catch (e) { return null; } }
+      async function cacheSet(k, v) { try { const d = await openIdb(); d.transaction('c', 'readwrite').objectStore('c').put(v, k); } catch (e) {} }
+      function chordDb() {
+        if (cdb) return cdb;
+        let app; try { app = firebase.app('chords'); } catch (e) { app = firebase.initializeApp({ databaseURL: CHORD_DB_URL }, 'chords'); }
+        cdb = app.database(); return cdb;
+      }
+      async function load(bk) {
+        const hit = await cacheGet(bk); if (hit) return hit;
+        const snap = await Promise.race([chordDb().ref('chordBank/' + bk).once('value'), new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), 10000))]);
+        const v = snap.val(); if (!v) throw new Error('notfound');
+        cacheSet(bk, v); return v;
+      }
+
+      function render() {
+        const flat = useFlat((rootIdx(baseKey) + st + 120) % 12, isMinor(baseKey));
+        const body = $('chBody'); let h = '';
+        (rec.s || []).forEach(sec => {
+          h += '<div class="ch-sec"><div class="ch-secname">' + esc(sec.name || '') + '</div>';
+          (sec.lines || []).forEach(ln => {
+            const c = ln.c || '', l = ln.l || '';
+            const toks = c.split(/[\s|]+/).filter(Boolean).filter(isChordTok), a = ln.a;
+            if (l && a && a.length && a.length === toks.length) {
+              h += '<div class="ch-line">';
+              if (a[0] > 0) h += '<span class="ch-seg"><b class="ch-c">&nbsp;</b><span class="ch-t">' + esc(l.slice(0, a[0])) + '</span></span>';
+              toks.forEach((t, i) => { h += '<span class="ch-seg"><b class="ch-c">' + esc(tChord(t, st, flat)) + '</b><span class="ch-t">' + esc(l.slice(a[i], i + 1 < a.length ? a[i + 1] : undefined)) + '</span></span>'; });
+              h += '</div>';
+            } else {
+              if (c) h += '<div class="ch-raw ch-rawc">' + esc(tLine(c, st, flat)) + '</div>';
+              if (l) h += '<div class="ch-raw">' + esc(l) + '</div>';
+            }
+          });
+          h += '</div>';
+        });
+        body.innerHTML = h;
+        $('chKey').textContent = keyName(baseKey, st);
+        $('chKeyNote').textContent = (st === 0 ? 'คีย์ต้นฉบับ' : (bandKey && st === bandShift() ? 'คีย์วง' : (st > 0 ? '+' : '') + st));
+        body.style.fontSize = fs + 'px';
+      }
+      function shiftKeyNow(d) { st = ((st + d + 5) % 12) - 5; if (st < -5) st += 12; render(); }
+      function setPlay(on) {
+        playing = on; $('chPlay').textContent = on ? '⏸' : '▶';
+        cancelAnimationFrame(raf);
+        if (on) { const sc = $('chScroll'); pos = sc.scrollTop; lastT = 0; raf = requestAnimationFrame(tick); }
+      }
+      function tick(t) {
+        if (!playing) return; const sc = $('chScroll');
+        if (lastT) { const dur = Number(song && song.duration) || Number(rec && rec.d) || 240, total = Math.max(0, sc.scrollHeight - sc.clientHeight); pos += (t - lastT) / 1000 * (total / dur) * speed; sc.scrollTop = pos; if (pos >= total) { setPlay(false); return; } }
+        lastT = t; raf = requestAnimationFrame(tick);
+      }
+      async function lockScreen() { try { if (navigator.wakeLock) wake = await navigator.wakeLock.request('screen'); } catch (e) {} }
+      function close() { setPlay(false); if (root) root.classList.add('hidden'); try { if (wake) wake.release(); } catch (e) {} wake = null; }
+      function mountUi() {
+        if (root) return;
+        try { fs = parseInt(localStorage.getItem('lsh_chord_fs'), 10) || 20; } catch (e) {}
+        root = document.createElement('div'); root.id = 'lshChordView'; root.className = 'ch-view hidden';
+        root.innerHTML = '<div class="ch-bar"><div class="ch-row1"><button id="chClose" type="button" class="ch-btn" aria-label="ปิด">✕</button><div class="ch-ttl"><div id="chTitle" class="ch-t1"></div><div id="chArtist" class="ch-t2"></div></div></div>' +
+          '<div class="ch-row2"><div class="ch-grp"><button id="chDn" type="button" class="ch-btn">♭</button><div class="ch-keybox"><b id="chKey">-</b><span id="chKeyNote"></span></div><button id="chUp" type="button" class="ch-btn">♯</button><button id="chBand" type="button" class="ch-btn ch-sm">คีย์วง</button><button id="chOrig" type="button" class="ch-btn ch-sm">ต้นฉบับ</button></div>' +
+          '<div class="ch-grp"><button id="chFm" type="button" class="ch-btn">A−</button><button id="chFp" type="button" class="ch-btn">A+</button></div>' +
+          '<div class="ch-grp"><button id="chSm" type="button" class="ch-btn">−</button><button id="chPlay" type="button" class="ch-btn ch-play">▶</button><button id="chSp" type="button" class="ch-btn">+</button><span id="chSpd" class="ch-spd">x1.0</span></div></div></div>' +
+          '<div id="chScroll" class="ch-scroll"><div id="chStatus" class="ch-status"></div><div id="chBody" class="ch-body"></div><div class="ch-end"></div></div>';
+        document.body.appendChild(root);
+        const on = (id, f) => { $(id).onclick = f; };
+        on('chClose', close); on('chDn', () => shiftKeyNow(-1)); on('chUp', () => shiftKeyNow(1));
+        on('chOrig', () => { st = 0; render(); }); on('chBand', () => { st = bandShift(); render(); });
+        on('chFm', () => { fs = Math.max(12, fs - 2); try { localStorage.setItem('lsh_chord_fs', fs); } catch (e) {} $('chBody').style.fontSize = fs + 'px'; });
+        on('chFp', () => { fs = Math.min(44, fs + 2); try { localStorage.setItem('lsh_chord_fs', fs); } catch (e) {} $('chBody').style.fontSize = fs + 'px'; });
+        on('chPlay', () => setPlay(!playing));
+        on('chSm', () => { speed = Math.max(0.5, Math.round((speed - 0.1) * 10) / 10); $('chSpd').textContent = 'x' + speed.toFixed(1); });
+        on('chSp', () => { speed = Math.min(2, Math.round((speed + 0.1) * 10) / 10); $('chSpd').textContent = 'x' + speed.toFixed(1); });
+        const sc = $('chScroll'); ['touchstart', 'wheel'].forEach(ev => sc.addEventListener(ev, () => { if (playing) setPlay(false); }, { passive: true }));
+        document.addEventListener('visibilitychange', () => { if (!document.hidden && root && !root.classList.contains('hidden')) lockScreen(); });
+      }
+      // เลื่อนคีย์ให้ตรงคีย์ของวง เมื่อทั้งคู่เป็นเมเจอร์/ไมเนอร์เหมือนกันเท่านั้น (ถ้าไม่เหมือนกันใช้คีย์ต้นฉบับ)
+      function bandShift() {
+        const a = rootIdx(bandKey), b = rootIdx(baseKey);
+        if (a < 0 || b < 0 || isMinor(bandKey) !== isMinor(baseKey)) return 0;
+        let d = (a - b + 12) % 12; if (d > 6) d -= 12; return d;
+      }
+      async function open(songId, s) {
+        mountUi(); song = s || {}; rec = null; speed = 1; $('chSpd').textContent = 'x1.0';
+        root.classList.remove('hidden'); lockScreen();
+        $('chTitle').textContent = song.title || ''; $('chArtist').textContent = song.artist || '';
+        $('chBody').innerHTML = ''; $('chStatus').textContent = 'กำลังโหลดคอร์ด…'; $('chScroll').scrollTop = 0;
+        try {
+          rec = await load(song.bk);
+          baseKey = rec.k || song.key || ''; bandKey = song.key || ''; st = bandShift();
+          $('chStatus').textContent = ''; render();
+        } catch (e) {
+          $('chStatus').textContent = e.message === 'notfound' ? 'ไม่พบคอร์ดของเพลงนี้ในฐานข้อมูลคอร์ด' : 'โหลดคอร์ดไม่ได้ (ตรวจสอบอินเทอร์เน็ต แล้วลองใหม่)';
+        }
+      }
+      return { open: open, close: close };
     })();
 
     // แถบแจ้งสั้นๆ ที่ไม่บล็อกหน้า (แทน alert) kind = 'ok' | 'warn' | 'error' | 'info'
