@@ -657,10 +657,10 @@
 
         const setPill = /^Set \d+$/.test(setVal) ? '' : `<span class="set-pill">${setVal}</span>`;
         const chips = isNext
-          ? `<div class="q-chips">${hasKey ? `<span class="q-chip">KEY ${song.key}</span>` : ''}${hasBpm ? `<span class="q-chip">${song.bpm} BPM</span>` : ''}</div>${hasNote ? `<div class="q-note">โน้ต: ${song.note}</div>` : ''}`
+          ? `<div class="q-chips">${hasKey ? `<span class="q-chip ${window.lshChordCls ? lshChordCls(song.songId) : ''}" data-chordid="${song.songId || ''}">KEY ${song.key}</span>` : ''}${hasBpm ? `<span class="q-chip">${song.bpm} BPM</span>` : ''}</div>${hasNote ? `<div class="q-note">โน้ต: ${song.note}</div>` : ''}`
           : '';
         const side = (!isNext && stateClass !== 'playing' && (hasKey || hasBpm))
-          ? `<div class="q-side">${[hasKey ? song.key : '', hasBpm ? song.bpm : ''].filter(Boolean).join(' · ')}</div>` : '';
+          ? `<div class="q-side ${window.lshChordCls ? lshChordCls(song.songId) : ''}" data-chordid="${song.songId || ''}">${[hasKey ? song.key : '', hasBpm ? song.bpm : ''].filter(Boolean).join(' · ')}</div>` : '';
 
         return `
           <div class="song-card ${setColorClass} ${customClass}" ${cardClickAttr} data-qid="${song.id}" ${(stateClass === 'normal' || stateClass === 'next' || stateClass === 'standby') ? 'data-movable="1"' : ''}>

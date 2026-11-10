@@ -209,7 +209,7 @@
             </div>
             <div style="display:flex;align-items:center;gap:12px">
               <span style="font-size:12px;color:#f59e0b">(${song.playCount || 0} ครั้ง)</span>
-              <div class="song-key">${song.key || '-'}</div>
+              <div class="song-key ${window.lshChordCls ? lshChordCls(song.id) : ''}" data-chordid="${song.id}">${song.key || '-'}</div>
             </div>
           </div>
         `;

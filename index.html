@@ -1206,10 +1206,13 @@
     // เครื่องหมายโน้ตข้างชื่อเพลงที่มีคอร์ดแล้ว (เพลงที่มีฟิลด์ bk): ทุกหน้าเรียก lshChordIc(songId)
     window.lshChordMarks = new Set();
     window.lshChordOwn = new Set();
-    window.lshChordOwnRefresh = function() { try { fetch(firebaseConfig.databaseURL + '/songContent.json?shallow=true').then(r => r.ok ? r.json() : null).then(j => { if (j && typeof j === 'object') window.lshChordOwn = new Set(Object.keys(j)); }).catch(() => {}); } catch (e) {} };
+    window.lshChordOwnRefresh = function() { try { fetch(firebaseConfig.databaseURL + '/songContent.json?shallow=true').then(r => r.ok ? r.json() : null).then(j => { if (j && typeof j === 'object') { window.lshChordOwn = new Set(Object.keys(j)); if (window.lshChordPaint) window.lshChordPaint(); } }).catch(() => {}); } catch (e) {} };
     window.lshChordOwnRefresh();
     window.lshChordIc = function(id) { return id && (window.lshChordMarks.has(String(id)) || window.lshChordOwn.has(String(id))) ? '<svg class="ic chord-mark" role="img" aria-label="มีคอร์ด"><use href="#i-music"/></svg>' : ''; };
-    try { db.ref('songs').on('value', snap => { const v = snap.val() || {}, s = new Set(); Object.keys(v).forEach(k => { if (v[k] && v[k].bk) s.add(k); }); window.lshChordMarks = s; }); } catch (e) {}
+    window.lshChordCls = function(id) { const k = String(id || ''); return k && (window.lshChordMarks.has(k) || window.lshChordOwn.has(k)) ? 'has-chord' : ''; };
+    // ไฮไลท์ตัวบอกคีย์ของเพลงที่มีคอร์ด: ทุกจุดที่มี data-chordid จะถูกอัปเดตเมื่อรายชื่อเพลงมีคอร์ดโหลดเสร็จ/เปลี่ยน
+    window.lshChordPaint = function() { try { document.querySelectorAll('[data-chordid]').forEach(el => el.classList.toggle('has-chord', !!el.dataset.chordid && lshChordCls(el.dataset.chordid) === 'has-chord')); } catch (e) {} };
+    try { db.ref('songs').on('value', snap => { const v = snap.val() || {}, s = new Set(); Object.keys(v).forEach(k => { if (v[k] && v[k].bk) s.add(k); }); window.lshChordMarks = s; window.lshChordPaint(); }); } catch (e) {}
 
     let selectedRoom = '';
     let targetRoomToDelete = null;
