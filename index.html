@@ -1210,13 +1210,20 @@
     window.lshRegenInvite = (room) => lshInviteFor(room, true);
 
     // ----- วงที่สมาชิกคนนี้อยู่ (สแกนจาก roomConfig/{วง}/members/{username}) -----
+    // โลโก้วง (data:image ที่ roomConfig/{วง}/logo) — ไม่มี = null
+    async function lshBandLogo(r) {
+      try { const v = (await db.ref('roomConfig/' + r + '/logo').once('value')).val(); return (typeof v === 'string' && v.indexOf('data:image/') === 0) ? v : null; } catch (e) { return null; }
+    }
+    function lshBandIc(name, logo) {
+      return logo ? `<div class="band-ic has-logo"><img alt="" src="${lshEsc(logo)}"></div>` : `<div class="band-ic">${lshEsc(String(name).charAt(0).toUpperCase())}</div>`;
+    }
     async function lshMyBands(username) {
       const rs = await db.ref('rooms').once('value');
       const out = [];
       await Promise.all(Object.keys(rs.val() || {}).map(async (r) => {
         try {
           const m = await db.ref('roomConfig/' + r + '/members/' + username).once('value');
-          if (m.exists()) out.push({ name: r, role: (m.val() && m.val().role) || '' });
+          if (m.exists()) out.push({ name: r, role: (m.val() && m.val().role) || '', logo: await lshBandLogo(r) });
         } catch (e) {}
       }));
       return out.sort((a, b) => String(a.name).localeCompare(String(b.name), 'th'));
@@ -1229,13 +1236,15 @@
       if (!s || s.userType === 'admin') return;
       const modal = document.getElementById('bandPanelModal');
       const box = document.getElementById('bandPanelBox');
+      clearTimeout(lshPanelCloseT); modal.classList.remove('closing');
       modal.classList.remove('hidden');
       box.innerHTML = '<div class="u-empty">กำลังโหลด...</div>';
       clearInterval(lshPanelTimer);
 
       if (lshIsGuest(s)) {
+        const gLogo = await lshBandLogo(s.room);
         box.innerHTML = `<div class="band-grab"></div><h3 style="margin:0 0 10px">ห้องปัจจุบัน</h3>
-          <div class="band-row on"><div class="band-ic">${lshEsc(String(s.room).charAt(0).toUpperCase())}</div><div style="flex:1"><div class="band-name">${lshEsc(s.room)}</div><div class="band-role">ผู้เยี่ยมชม · <span id="bpLeft"></span></div></div></div>
+          <div class="band-row on">${lshBandIc(s.room, gLogo)}<div style="flex:1"><div class="band-name">${lshEsc(s.room)}</div><div class="band-role">ผู้เยี่ยมชม · <span id="bpLeft"></span></div></div></div>
           <button type="button" class="band-join" onclick="closeBandPanel();openLogoutConfirm()">ออกจากห้อง</button>`;
         const upd = () => { const e = document.getElementById('bpLeft'); if (e) { const m = Math.max(0, Math.ceil((s.loginTimestamp + LSH_VISIT_MS - Date.now()) / 60000)); e.textContent = 'เหลือ ' + Math.floor(m / 60) + ':' + String(m % 60).padStart(2, '0') + ' ชม.'; } };
         upd(); lshPanelTimer = setInterval(upd, 30000);
@@ -1256,10 +1265,11 @@
 
       const rows = bands.map(b => {
         const on = b.name === cur.room;
-        return `<button type="button" class="band-row${on ? ' on' : ''}" data-band="${lshEsc(b.name)}"><div class="band-ic">${lshEsc(String(b.name).charAt(0).toUpperCase())}</div><div style="flex:1;text-align:left"><div class="band-name">${lshEsc(b.name)}</div><div class="band-role">${lshEsc(b.role || '-')}${on && !visiting ? ' · วงปัจจุบัน' : ''}</div></div>${on ? '<svg class="ic ic-solo" aria-hidden="true"><use href="#i-check"/></svg>' : ''}</button>`;
+        return `<button type="button" class="band-row${on ? ' on' : ''}" data-band="${lshEsc(b.name)}">${lshBandIc(b.name, b.logo)}<div style="flex:1;text-align:left"><div class="band-name">${lshEsc(b.name)}</div><div class="band-role">${lshEsc(b.role || '-')}${on && !visiting ? ' · วงปัจจุบัน' : ''}</div></div>${on ? '<svg class="ic ic-solo" aria-hidden="true"><use href="#i-check"/></svg>' : ''}</button>`;
       }).join('');
 
-      const visitRow = visiting ? `<div class="band-row on" style="margin-top:8px"><div class="band-ic">${lshEsc(String(cur.room).charAt(0).toUpperCase())}</div><div style="flex:1;text-align:left"><div class="band-name">${lshEsc(cur.room)}</div><div class="band-role">ผู้เยี่ยมชม · <span id="bpLeft"></span></div></div></div>
+      const vLogo = visiting ? await lshBandLogo(cur.room) : null;
+      const visitRow = visiting ? `<div class="band-row on" style="margin-top:8px">${lshBandIc(cur.room, vLogo)}<div style="flex:1;text-align:left"><div class="band-name">${lshEsc(cur.room)}</div><div class="band-role">ผู้เยี่ยมชม · <span id="bpLeft"></span></div></div></div>
         <button type="button" class="band-join" id="bpBack" data-band="${lshEsc(home)}">กลับวง ${lshEsc(home)}</button>` : '';
       const codeCard = inv ? `<div class="band-code"><div style="flex:1"><div class="band-role">รหัสจอยวง ${lshEsc(cur.room)}</div><div class="band-pin" id="bpPin">${lshEsc(inv.pin)}</div><div class="band-role" id="bpLeftCode"></div></div><button type="button" class="band-copy" id="bpCopy">คัดลอก</button></div>` : '';
 
@@ -1288,7 +1298,16 @@
         setTimeout(() => { cp.textContent = 'คัดลอก'; }, 1500);
       };
     }
-    function closeBandPanel() { clearInterval(lshPanelTimer); document.getElementById('bandPanelModal').classList.add('hidden'); }
+    let lshPanelCloseT = null;
+    // ปิด: เลื่อนลงก่อนแล้วค่อยซ่อน (เปิด: เลื่อนขึ้นจากล่างด้วย CSS)
+    function closeBandPanel() {
+      clearInterval(lshPanelTimer);
+      const m = document.getElementById('bandPanelModal');
+      if (m.classList.contains('hidden')) return;
+      m.classList.add('closing');
+      clearTimeout(lshPanelCloseT);
+      lshPanelCloseT = setTimeout(() => { m.classList.add('hidden'); m.classList.remove('closing'); }, 220);
+    }
 
     // สลับวง (สมาชิก: วงที่ตัวเองอยู่ ไม่ต้องกรอกรหัส) — ยืนยันสิทธิ์จากฐานข้อมูลก่อนเสมอ
     async function switchBand(name) {
