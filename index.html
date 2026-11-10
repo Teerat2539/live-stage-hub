@@ -123,6 +123,7 @@
     <div>ความถี่ที่เล่น: <b id="detailPlayCount" style="color:#f59e0b">0 ครั้ง</b></div>
   </div>
   <button id="btnSongChords" type="button" class="chord-open-btn hidden">ดูคอร์ด</button>
+  <button id="btnSongChordFind" type="button" class="chord-open-btn chord-edit-btn hidden">ค้นหาคอร์ดในคลัง</button>
   <button id="btnSongChordEdit" type="button" class="chord-open-btn chord-edit-btn hidden">เพิ่มคอร์ด</button>
 </div>
 
@@ -219,6 +220,14 @@
         // ความยาวเพลง (วินาที) — ฟิลด์ใหม่ songs/{id}/duration; ไม่กรอก = ไม่เก็บ (ระบบใช้ค่าเฉลี่ยแทน)
         const durSec = (parseInt($('formDurMin').value, 10) || 0) * 60 + (parseInt($('formDurSec').value, 10) || 0);
         if (durSec > 0) songPayload.duration = durSec;
+        // เพลงใหม่: ค้นหาคอร์ดในคลัง (ตรงเป๊ะเชื่อมให้เอง / ชื่อเหมือนแต่ศิลปินต่างให้เลือก) — ถ้าค้นหาไม่ได้จะบันทึกตามปกติ
+        if (!isEditing && window.lshChordLookup) {
+          try {
+            const lk = await window.lshChordLookup.lookup({ title: title, artist: artist, key: key });
+            if (lk === 'cancel') return;
+            if (lk && lk.bk) { songPayload.bk = lk.bk; if (!songPayload.duration && lk.d) songPayload.duration = lk.d; if (!songPayload.bpm && lk.b) songPayload.bpm = lk.b; if (lk.y) songPayload.year = lk.y; if (lk.g) songPayload.genres = lk.g; }
+          } catch (e) {}
+        }
         // เก็บฟิลด์ที่แอปนี้ไม่ได้แก้ในฟอร์ม (bk/year/genres) ไว้ตอนแก้ไขเพลง เพราะการบันทึกเป็นการเขียนทับทั้งเพลง
         if (isEditing) { const old = ctx.getAll()[songId] || {}; ['bk', 'year', 'genres'].forEach(k => { if (old[k] != null && old[k] !== '') songPayload[k] = old[k]; }); }
         try {
@@ -256,6 +265,7 @@
         $('btnSongChords').classList.toggle('hidden', !(song.bk || ownC));
         let canEditC = false; try { canEditC = JSON.parse(localStorage.getItem('lsh_session') || '{}').userType === 'member'; } catch (e) {}
         const ebC = $('btnSongChordEdit'); ebC.classList.toggle('hidden', !canEditC);
+        $('btnSongChordFind').classList.toggle('hidden', !(canEditC && !song.bk && !ownC));
         ebC.textContent = ownC ? 'แก้คอร์ด' : (song.bk ? 'แก้คอร์ด (สร้างสำเนา)' : 'เพิ่มคอร์ด');
         $('detailOverlay').classList.remove('hidden');
         setTimeout(() => { $('songDetailDrawer').classList.add('open'); }, 10);
@@ -276,6 +286,7 @@
         $('formDurSec').value = fd > 0 ? fd % 60 : '';
         tapTimes = [];
         $('songFormOverlay').classList.remove('hidden');
+        if (!songId && window.lshChordLookup) window.lshChordLookup.preload();
       }
 
       function mount() {
@@ -307,6 +318,7 @@
         };
         $('detailOverlay').onclick = closeDrawer;
         $('btnSongChords').onclick = () => { const sg = ctx.getAll()[currentActiveSongId]; if (sg && (sg.bk || (window.lshChordOwn && window.lshChordOwn.has(String(currentActiveSongId)))) && window.lshChords) { closeDrawer(); window.lshChords.open(currentActiveSongId, sg); } };
+        $('btnSongChordFind').onclick = () => { const sg = ctx.getAll()[currentActiveSongId]; if (sg && window.lshChordLookup) { closeDrawer(); window.lshChordLookup.link(currentActiveSongId, sg); } };
         $('btnSongChordEdit').onclick = () => { const sg = ctx.getAll()[currentActiveSongId]; if (sg && window.lshChords) { closeDrawer(); window.lshChords.edit(currentActiveSongId, sg); } };
         $('btnEditSong').onclick = () => { closeDrawer(); if (ctx.getAll()[currentActiveSongId]) openForm(currentActiveSongId); };
         $('btnDeleteSong').onclick = () => {
@@ -607,7 +619,112 @@
         ed.classList.remove('show-p'); $('ceTabE').classList.add('on'); $('ceTabP').classList.remove('on');
         edTools(); edPrev(); ed.classList.remove('hidden');
       }
-      return { open: open, close: close, edit: openEditor };
+      return { open: open, close: close, edit: openEditor, _x: { cacheGet: cacheGet, cacheSet: cacheSet, chordDb: chordDb, load: load } };
+    })();
+
+    // ===== ค้นหาคอร์ดในคลังตอนเพิ่มเพลง: ตรงเป๊ะ (ชื่อ+ศิลปิน) = เชื่อมให้อัตโนมัติ / ชื่อเพลงเหมือนแต่ศิลปินต่าง = ให้เลือกเอง =====
+    window.lshChordLookup = (function() {
+      // ฟังก์ชันสร้างกุญแจชุดเดียวกับสคริปต์ที่อัปโหลดฐานข้อมูลคอร์ด (ห้ามแก้ ไม่งั้นกุญแจจะไม่ตรง)
+      function bkNorm(s, strip) {
+        s = String(s == null ? '' : s).normalize('NFKC').toLowerCase();
+        if (strip) s = s.replace(/\(.*?\)|\[.*?\]|\{.*?\}/g, ' ');
+        return s.replace(/\b(feat|ft|featuring)\b\.?.*$/i, ' ').replace(/[่-์]/g, '').replace(/[^\p{L}\p{N}]+/gu, '');
+      }
+      function bkHash(str) {
+        let h1 = 0xdeadbeef, h2 = 0x41c6ce57;
+        for (let i = 0; i < str.length; i++) { const ch = str.charCodeAt(i); h1 = Math.imul(h1 ^ ch, 2654435761); h2 = Math.imul(h2 ^ ch, 1597334677); }
+        h1 = Math.imul(h1 ^ (h1 >>> 16), 2246822507) ^ Math.imul(h2 ^ (h2 >>> 13), 3266489909);
+        h2 = Math.imul(h2 ^ (h2 >>> 16), 2246822507) ^ Math.imul(h1 ^ (h1 >>> 13), 3266489909);
+        return (4294967296 * (2097151 & h2) + (h1 >>> 0)).toString(36);
+      }
+      const bkKey = (t, a) => bkHash(bkNorm(t) + '|' + bkNorm(a));
+      const bkBase = (t, a) => bkHash(bkNorm(t, true) + '|' + bkNorm(a, true));
+      const X = () => window.lshChords._x;
+      const esc = (s) => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+      let idx = null, idxP = null;
+
+      function build(cat) {
+        const byKey = new Map(), byTitle = new Map();
+        cat.forEach(e => { byKey.set(e[0], e); const tk = bkNorm(e[1], true); if (tk) { let a = byTitle.get(tk); if (!a) byTitle.set(tk, a = []); a.push(e); } });
+        return { cat: cat, byKey: byKey, byTitle: byTitle };
+      }
+      // สารบัญเพลงของคลัง (~1.7MB) โหลดครั้งเดียวแล้วจำไว้ในเครื่อง 7 วัน
+      function getIdx() {
+        if (idx) return Promise.resolve(idx);
+        if (idxP) return idxP;
+        idxP = (async () => {
+          const x = X(); let hit = await x.cacheGet('catalog');
+          if (hit && hit.data && Date.now() - (hit.at || 0) < 7 * 864e5) { idx = build(hit.data); return idx; }
+          try {
+            const snap = await Promise.race([x.chordDb().ref('catalogIndex').once('value'), new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), 20000))]);
+            let v = snap.val(); if (v && !Array.isArray(v)) v = Object.keys(v).map(k => v[k]);
+            if (!v || !v.length) throw new Error('empty');
+            x.cacheSet('catalog', { at: Date.now(), data: v }); idx = build(v); return idx;
+          } catch (e) { if (hit && hit.data) { idx = build(hit.data); return idx; } idxP = null; throw e; }
+        })();
+        return idxP;
+      }
+      async function take(e) {
+        const out = { bk: e[0], d: e[4] || 0, b: e[5] || 0 };
+        try { const r = await X().load(e[0]); if (r.y) out.y = r.y; if (r.g && r.g.length) out.g = r.g; if (r.d && !out.d) out.d = r.d; if (r.b && !out.b) out.b = r.b; } catch (er) {}
+        return out;
+      }
+      function pickDialog(info, ix, allowCancel) {
+        return new Promise(resolve => {
+          const ov = document.createElement('div'); ov.className = 'lk-ov';
+          const near = ix.byTitle.get(bkNorm(info.title, true)) || [];
+          const base = bkBase(info.title, info.artist);
+          const cands = near.slice().sort((a, b) => ((b[6] === base) - (a[6] === base)) || ((b[3] === info.key) - (a[3] === info.key))).slice(0, 8);
+          ov.innerHTML = '<div class="lk-box"><div class="lk-h">เชื่อมคอร์ดจากคลัง</div><div class="lk-s">เพลงของคุณ: <b>' + esc(info.title) + '</b> — ' + esc(info.artist || '') + '</div>' +
+            '<input class="lk-q" type="search" placeholder="ค้นหาชื่อเพลงหรือศิลปินในคลัง" autocomplete="off"><div class="lk-list"></div>' +
+            '<button type="button" class="lk-skip"></button>' + (allowCancel ? '<button type="button" class="lk-cancel">ยกเลิก (กลับไปแก้ฟอร์ม)</button>' : '') + '</div>';
+          document.body.appendChild(ov);
+          const list = ov.querySelector('.lk-list'), q = ov.querySelector('.lk-q'), skip = ov.querySelector('.lk-skip');
+          skip.textContent = allowCancel ? 'ไม่ใช่เพลงเหล่านี้ — บันทึกต่อโดยไม่มีคอร์ด' : 'ปิด';
+          const done = (v) => { ov.remove(); resolve(v); };
+          function show(rows, head) {
+            list.innerHTML = (head ? '<div class="lk-hd">' + head + '</div>' : '') + (rows.length ? '' : '<div class="lk-none">ไม่พบ</div>');
+            rows.forEach(e => {
+              const b = document.createElement('button'); b.type = 'button'; b.className = 'lk-it';
+              b.innerHTML = '<b>' + esc(e[1]) + '</b><span> — ' + esc(e[2]) + '</span><i>' + (e[3] ? 'คีย์ ' + esc(e[3]) + (e[3] === info.key ? ' ✓' : '') : '') + (e[4] ? ' · ' + Math.floor(e[4] / 60) + ':' + String(e[4] % 60).padStart(2, '0') : '') + '</i>';
+              b.onclick = async () => { b.disabled = true; done(await take(e)); };
+              list.appendChild(b);
+            });
+          }
+          show(cands, cands.length ? 'พบเพลงชื่อเหมือนกัน เลือกอันที่ตรงกับเพลงของคุณ' : 'ไม่พบเพลงชื่อเหมือนกัน ลองค้นหาด้วยชื่ออื่นหรือชื่อศิลปิน');
+          let tm = 0;
+          q.oninput = () => { clearTimeout(tm); tm = setTimeout(() => {
+            const t = bkNorm(q.value, true); if (!t) { show(cands); return; }
+            const rows = []; for (let i = 0; i < ix.cat.length && rows.length < 20; i++) { const e = ix.cat[i]; if (bkNorm(e[1], true).indexOf(t) >= 0 || bkNorm(e[2], true).indexOf(t) >= 0) rows.push(e); }
+            show(rows, 'ผลค้นหา');
+          }, 250); };
+          skip.onclick = () => done({});
+          if (allowCancel) ov.querySelector('.lk-cancel').onclick = () => done('cancel');
+        });
+      }
+      // ตอนเพิ่มเพลงใหม่: คืน 'cancel' (กลับไปแก้ฟอร์ม) / {} (บันทึกโดยไม่มีคอร์ด) / {bk,d,b,y,g}
+      async function lookup(info) {
+        let ix; try { ix = await getIdx(); } catch (e) { lshToast('ข้ามการค้นหาคอร์ดในคลัง (โหลดสารบัญไม่ได้)', 'warn'); return {}; }
+        const ex = ix.byKey.get(bkKey(info.title, info.artist));
+        if (ex) { const r = await take(ex); lshToast('พบคอร์ดในคลัง เชื่อมให้แล้ว', 'ok'); return r; }
+        const near = ix.byTitle.get(bkNorm(info.title, true));
+        if (!near || !near.length) return {};
+        return await pickDialog(info, ix, true);
+      }
+      // จากปุ่มในรายละเอียดเพลง: ค้นหา/เลือกคอร์ดให้เพลงที่มีอยู่แล้ว เติมเฉพาะช่องที่ยังว่าง
+      async function link(songId, song) {
+        let ix; try { ix = await getIdx(); } catch (e) { lshToast('โหลดสารบัญคอร์ดไม่ได้ ตรวจสอบอินเทอร์เน็ตแล้วลองใหม่', 'error'); return; }
+        const info = { title: song.title || '', artist: song.artist || '', key: song.key || '' };
+        const ex = ix.byKey.get(bkKey(info.title, info.artist));
+        const r = ex ? await take(ex) : await pickDialog(info, ix, false);
+        if (!r || !r.bk) return;
+        const empty = (v) => v == null || v === '' || v === '-' || v === 0 || v === '0' || (Array.isArray(v) && !v.length);
+        const up = { bk: r.bk };
+        if (empty(song.duration) && r.d) up.duration = r.d; if (empty(song.bpm) && r.b) up.bpm = r.b;
+        if (empty(song.year) && r.y) up.year = r.y; if (empty(song.genres) && r.g) up.genres = r.g;
+        try { await db.ref('songs/' + songId).update(up); if (window.lshAutoAdv && window.lshAutoAdv.refreshDurations) window.lshAutoAdv.refreshDurations(); lshToast('เชื่อมคอร์ดแล้ว', 'ok'); } catch (e) { lshToast('บันทึกไม่สำเร็จ: ' + e.message, 'error'); }
+      }
+      return { lookup: lookup, link: link, preload: () => { getIdx().catch(() => {}); }, _key: bkKey };
     })();
 
     // แถบแจ้งสั้นๆ ที่ไม่บล็อกหน้า (แทน alert) kind = 'ok' | 'warn' | 'error' | 'info'
