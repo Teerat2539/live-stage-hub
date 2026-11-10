@@ -1,5 +1,0 @@
-update-O-land — รายการแก้ JS (monitor.html)
- + fitMarquee(el), refitNextMarquee(), MQ_LAND: แนวนอนเท่านั้น — ชื่อเพลง/ศิลปินของกล่อง "ถัดไป" บรรทัดเดียว ถ้าแสดงไม่หมดให้วิ่งขวา->ซ้าย (แสดงหมดอยู่นิ่ง), ฟัง resize/หมุนจอแล้วคำนวณใหม่
- ~ processQueueData(): หลังใส่ข้อความกล่องถัดไป เก็บข้อความเต็มไว้ใน data-full แล้วเรียก refitNextMarquee()
- ~ openFullQueueModal(): ป้าย [เพลงถัดไป] ใช้สี var(--nx) ตามเซ็ต
-style.css: ท้ายไฟล์ เพิ่มบล็อกมอนิเตอร์แนวนอน (ชื่อเพลงใหญ่ clamp(44px,20vh,120px), KEY/BPM ลงล่าง, .mq-host/.mq)
