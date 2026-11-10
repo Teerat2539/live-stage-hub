@@ -411,8 +411,8 @@
         const flat = useFlat((rootIdx(baseKey) + st + 120) % 12, isMinor(baseKey));
         const body = $('chBody');
         body.innerHTML = sectionsHtml(rec.s, st, flat);
-        $('chKey').textContent = keyName(baseKey, st);
-        $('chKeyNote').textContent = (st === 0 ? 'คีย์ต้นฉบับ' : (bandKey && st === bandShift() ? 'คีย์วง' : (st > 0 ? '+' : '') + st));
+        $('chKey').textContent = (bandKey && rootIdx(bandKey) >= 0 && st === bandShift()) ? bandKey : keyName(baseKey, st);
+        $('chKeyNote').textContent = ((bandKey && rootIdx(bandKey) >= 0 && st === bandShift()) ? 'คีย์วง' : (st === 0 ? 'คีย์ต้นฉบับ' : (st > 0 ? '+' : '') + st));
         body.style.fontSize = fs + 'px';
       }
       function applyMode() { root.classList.toggle('ch-cols2', cols2); $('chCols').textContent = cols2 ? '2 คอลัมน์' : '1 คอลัมน์'; root.classList.toggle('ch-lyr', lyr); $('chMode').textContent = lyr ? 'เนื้ออย่างเดียว' : 'คอร์ด+เนื้อ'; $('chDn').disabled = $('chUp').disabled = $('chBand').disabled = $('chOrig').disabled = lyr; }
@@ -455,11 +455,8 @@
         document.addEventListener('visibilitychange', () => { if (!document.hidden && root && !root.classList.contains('hidden')) lockScreen(); });
       }
       // เลื่อนคีย์ให้ตรงคีย์ของวง เมื่อทั้งคู่เป็นเมเจอร์/ไมเนอร์เหมือนกันเท่านั้น (ถ้าไม่เหมือนกันใช้คีย์ต้นฉบับ)
-      function bandShift() {
-        const a = rootIdx(bandKey), b = rootIdx(baseKey);
-        if (a < 0 || b < 0 || isMinor(bandKey) !== isMinor(baseKey)) return 0;
-        let d = (a - b + 12) % 12; if (d > 6) d -= 12; return d;
-      }
+      // ถ้าเมเจอร์/ไมเนอร์ไม่ตรงกัน ให้เทียบกับคีย์คู่ขนาน (เช่น คอร์ดต้นฉบับ Gb แต่ในเซ็ตเป็น Em → เลื่อนไปคีย์ G ซึ่งเป็นคู่ขนานของ Em)
+      function bandShift() { return shiftFor(baseKey, bandKey); }
       // เนื้อหาคอร์ดที่สมาชิกเพิ่มเอง: songContent/{id} ในฐานข้อมูลหลัก (ดึงสดทุกครั้ง ถ้าเน็ตไม่ได้ใช้ที่แคชไว้)
       async function loadOwn(id) {
         try {
@@ -622,8 +619,10 @@
       // ===== ใช้ร่วมหน้าค้นหาคอร์ด/คาราโอเกะ: ดึงเนื้อคอร์ดของเพลงในคิวตามคีย์ที่ตั้งไว้ในเซ็ต (อ่านอย่างเดียว ไม่เขียนข้อมูล) =====
       function shiftFor(base, target) {
         const a = rootIdx(target), b = rootIdx(base);
-        if (a < 0 || b < 0 || isMinor(target) !== isMinor(base)) return 0;
-        let d = (a - b + 12) % 12; if (d > 6) d -= 12; return d;
+        if (a < 0 || b < 0) return 0;
+        const tm = isMinor(target), bm = isMinor(base);
+        const t = (tm && !bm) ? (a + 3) % 12 : (!tm && bm) ? (a + 9) % 12 : a;   // คีย์คู่ขนาน: ไมเนอร์→เมเจอร์ +3 / เมเจอร์→ไมเนอร์ −3
+        let d = (t - b + 12) % 12; if (d > 6) d -= 12; return d;
       }
       async function getDoc(songId, qkey) {
         const sn = await Promise.race([db.ref('songs/' + songId).once('value'), new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), 8000))]);
@@ -633,7 +632,7 @@
         else if (s.bk) r = await load(s.bk);
         else throw new Error('notfound');
         const base = r.k || s.key || '';
-        return { rec: r, song: s, base: base, duration: Number(s.duration) || Number(r.d) || 0, at: function(key) { const n = shiftFor(base, key || s.key || ''); return { n: n, flat: useFlat((rootIdx(base) + n + 120) % 12, isMinor(base)), keyLabel: keyName(base, n) }; } };
+        return { rec: r, song: s, base: base, duration: Number(s.duration) || Number(r.d) || 0, at: function(key) { const n = shiftFor(base, key || s.key || ''); return { n: n, flat: useFlat((rootIdx(base) + n + 120) % 12, isMinor(base)), keyLabel: (rootIdx(key || s.key || '') >= 0 ? String(key || s.key).trim() : keyName(base, n)) }; } };
       }
       // แตกเป็นรายบรรทัดสำหรับคาราโอเกะ: [{sec, segs:[{c,t}]}] คอร์ดถูกเลื่อนตามคีย์แล้ว
       function flatLines(secs, n, flat) {
