@@ -40,6 +40,14 @@
     window.initSearchPageModule = function() {
       let currentQueueList = [];
 
+      // ===== การ์ดขยายดูเนื้อ+คอร์ดเต็มจอ (แตะแว่นขยายสีเขียวบนการ์ด) =====
+      // คำขอจากหน้ามอนิเตอร์: window.__lshExpandReq = {qid, mode:'expand'|'none'} (อ่านครั้งเดียวตอนเข้าหน้านี้)
+      const qx = { openId: null, docs: {}, fs: 20, lyr: false, cols2: false, req: window.__lshExpandReq || null };
+      window.__lshExpandReq = null;
+      try { qx.fs = parseInt(localStorage.getItem('lsh_chord_fs'), 10) || 20; qx.lyr = localStorage.getItem('lsh_chord_lyr') === '1'; qx.cols2 = localStorage.getItem('lsh_chord_cols') === '2'; } catch (e) {}
+      const qxSave = (k, v) => { try { localStorage.setItem(k, v); } catch (e) {} };
+      const NO_CHORD_TXT = 'เพลงนี้ยังไม่มีคอร์ดในฐานข้อมูล';
+
       // ค่าตั้งค่าการค้นหารายบุคคล: users/{ชื่อผู้ใช้}/searchPrefs (ตั้งในหน้าตั้งค่า)
       let searchPrefs = { suffix: 'คอร์ด', includeArtist: true, copy: true, copyMode: 'title', copySuffix: false };
       try {
@@ -123,7 +131,8 @@
 
         let prevNormalSet = null; // เส้นคั่นเซ็ต: คำนวณตอนวาดจากเพลงที่แสดงอยู่ ไม่บันทึกลงข้อมูล
         queueData.forEach((song) => {
-          if (song.status === 'played' || song.status === 'playing' || song.status === 'removed') return; // ตามบอร์ดดีไซน์: แสดงเฉพาะเพลงถัดไปและที่เหลือ | เพลงที่ลบออกจากคิวแล้ว ไม่แสดงในหน้าค้นหา
+          const isReqCard = !!(qx.req && String(song.id) === String(qx.req.qid)); // เพลงที่กำลังเล่นแสดงเฉพาะเมื่อถูกเปิดมาจากหน้ามอนิเตอร์
+          if (song.status === 'removed' || ((song.status === 'played' || song.status === 'playing') && !isReqCard)) return; // ตามบอร์ดดีไซน์: แสดงเฉพาะเพลงถัดไปและที่เหลือ | เพลงที่ลบออกจากคิวแล้ว ไม่แสดงในหน้าค้นหา
           if (song.type === 'dummy_start' || song.type === 'dummy_end') {
             return; // ตามบอร์ดดีไซน์: หน้าค้นหาไม่แสดงการ์ดเริ่ม/จบการแสดง
             let stateLabel = '';
@@ -168,21 +177,107 @@
                 <div class="song-title-main">${song.title}</div>
                 <div class="q-artist">${song.artist || ''}${/^Set \d+$/.test(setVal) ? '' : `<span class="set-pill">${setVal}</span>`}</div>
               </div>
-              <svg class="ic q-go" aria-hidden="true"><use href="#i-search"/></svg>
+              <svg class="ic q-go ${window.lshChordCls && song.songId ? window.lshChordCls(song.songId) : ''}" data-chordid="${song.songId || ''}" aria-hidden="true"><use href="#i-search"/></svg>
+              ${isReqCard && qx.req.mode === 'none' ? '<div class="qx-none">' + NO_CHORD_TXT + '</div>' : ''}
             </div>
           `;
           html += cardHtml;
         });
 
+        const scr0 = qxScroller(), top0 = scr0 ? scr0.scrollTop : 0;
         container.innerHTML = html;
+        if (qx.openId) {
+          if (document.getElementById('card_' + qx.openId)) { qxOpen(qx.openId, true); if (scr0) scr0.scrollTop = top0; }
+          else qx.openId = null;
+        }
+        if (qx.req && !qx.req.done && queueData.some(x => String(x.id) === String(qx.req.qid))) {
+          qx.req.done = true;
+          if (qx.req.mode === 'expand') qxOpen(qx.req.qid);
+        }
 
         setTimeout(() => {
-          let targetEl = container.querySelector('.next-song') || container.querySelector('.badge-playing')?.closest('.song-card');
+          if (qx.openId) return;
+          const reqEl = qx.req && document.getElementById('card_' + qx.req.qid);
+          let targetEl = reqEl || container.querySelector('.next-song') || container.querySelector('.badge-playing')?.closest('.song-card');
           if (targetEl) {
             targetEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
           }
         }, 100);
       }
+
+      function qxScroller() {
+        let el = document.getElementById('searchQueueContainer');
+        while (el && el !== document.body) { const o = getComputedStyle(el).overflowY; if ((o === 'auto' || o === 'scroll') && el.scrollHeight > el.clientHeight + 1) return el; el = el.parentElement; }
+        return document.scrollingElement || document.documentElement;
+      }
+      const qxItem = (id) => currentQueueList.find(i => i && String(i.id) === String(id));
+      function qxClose() {
+        qx.openId = null;
+        document.querySelectorAll('#searchQueueContainer .q-exp').forEach(n => n.remove());
+        document.querySelectorAll('#searchQueueContainer .song-card.q-open').forEach(n => { n.classList.remove('q-open'); n.style.minHeight = ''; });
+      }
+      function qxFill(box, item) {
+        const st = box.querySelector('.qx-status'), body = box.querySelector('.qx-body'), keyEl = box.querySelector('.qx-key');
+        const X = window.lshChords && window.lshChords._x;
+        const none = () => { st.textContent = NO_CHORD_TXT; st.classList.add('grey'); body.innerHTML = ''; };
+        if (!item.songId || !X) { none(); return; }
+        let p = qx.docs[item.songId];
+        if (!p) { p = qx.docs[item.songId] = X.getDoc(item.songId); p.catch(() => { delete qx.docs[item.songId]; }); }
+        p.then(d => {
+          if (String(qx.openId) !== String(item.id) || !box.isConnected) return;
+          const a = d.at(item.key);
+          body.innerHTML = X.sectionsHtml(d.rec.s, a.n, a.flat);
+          st.textContent = ''; keyEl.textContent = 'คีย์ ' + a.keyLabel;
+        }).catch(e => {
+          if (String(qx.openId) !== String(item.id) || !box.isConnected) return;
+          if (e && e.message === 'notfound') none(); else { st.textContent = 'โหลดคอร์ดไม่ได้ (ตรวจสอบอินเทอร์เน็ต แล้วลองใหม่)'; st.classList.add('grey'); }
+        });
+      }
+      function qxOpen(qid, keep) {
+        const item = qxItem(qid), card = document.getElementById('card_' + qid);
+        if (!item || !card) return;
+        if (!keep) qxClose();
+        qx.openId = String(qid);
+        card.classList.add('q-open');
+        const set = /^Set \d+$/.test(item.set || '') ? String(item.set).toUpperCase() : (item.set || '');
+        const box = document.createElement('div');
+        box.className = 'q-exp qx' + (qx.lyr ? ' lyr' : '') + (qx.cols2 ? ' cols2' : '');
+        box.onclick = (e) => e.stopPropagation();
+        box.innerHTML = '<div class="qx-bar"><div class="qx-row">' +
+          '<div class="qx-seg" data-k="cols"><button type="button" data-v="1" class="' + (qx.cols2 ? '' : 'on') + '">1 คอลัมน์</button><button type="button" data-v="2" class="' + (qx.cols2 ? 'on' : '') + '">2 คอลัมน์</button></div>' +
+          '<div class="qx-seg" data-k="mode"><button type="button" data-v="c" class="' + (qx.lyr ? '' : 'on') + '">คอร์ด+เนื้อ</button><button type="button" data-v="l" class="' + (qx.lyr ? 'on' : '') + '">เนื้อ</button></div>' +
+          '<div class="qx-seg" data-k="fs"><button type="button" data-v="-">A−</button><button type="button" data-v="+">A+</button></div>' +
+          '<span class="qx-chip">' + set + (set ? ' · ' : '') + '<b class="qx-key">' + (item.key && item.key !== '-' ? 'คีย์ ' + item.key : 'คีย์ -') + '</b></span>' +
+          '<button type="button" class="qx-fold">▲ ย่อ</button></div></div>' +
+          '<div class="qx-status">กำลังโหลดคอร์ด…</div><div class="ch-body qx-body"></div>';
+        card.appendChild(box);
+        const tb = document.querySelector('.search-top-bar'), inp = document.querySelector('.search-input-section'), scr = qxScroller();
+        const vh = scr === document.scrollingElement || scr === document.documentElement ? window.innerHeight : scr.clientHeight;
+        card.style.minHeight = Math.max(320, vh - (tb ? tb.offsetHeight : 0) - (inp ? inp.offsetHeight : 0) - 70) + 'px';
+        const stickTop = (tb && scr.contains(tb)) ? tb.offsetHeight : 0; // แถบบนติดอยู่ในตัวเลื่อนเดียวกันหรือไม่ (ตัวเลื่อนจริงของแอป = ใช่)
+        box.querySelector('.qx-bar').style.top = stickTop + 'px';
+        const body = box.querySelector('.qx-body'); body.style.fontSize = qx.fs + 'px';
+        const mark = (g, v) => g.querySelectorAll('button').forEach(b => b.classList.toggle('on', b.dataset.v === v));
+        box.querySelectorAll('.qx-seg').forEach(g => g.onclick = (e) => {
+          const b = e.target.closest('button'); if (!b) return; const k = g.dataset.k, v = b.dataset.v;
+          if (k === 'cols') { qx.cols2 = v === '2'; qxSave('lsh_chord_cols', qx.cols2 ? '2' : '1'); box.classList.toggle('cols2', qx.cols2); mark(g, v); }
+          else if (k === 'mode') { qx.lyr = v === 'l'; qxSave('lsh_chord_lyr', qx.lyr ? '1' : '0'); box.classList.toggle('lyr', qx.lyr); mark(g, v); }
+          else { qx.fs = Math.max(12, Math.min(44, qx.fs + (v === '+' ? 2 : -2))); qxSave('lsh_chord_fs', qx.fs); body.style.fontSize = qx.fs + 'px'; }
+        });
+        box.querySelector('.qx-fold').onclick = () => qxClose();
+        qxFill(box, item);
+        if (!keep) setTimeout(() => { const r = card.getBoundingClientRect(), sr = (scr === document.scrollingElement || scr === document.documentElement) ? 0 : scr.getBoundingClientRect().top; scr.scrollTop += r.top - sr - stickTop - 8; }, 30);
+      }
+      (function bindQx() {
+        const c = document.getElementById('searchQueueContainer'); if (!c) return;
+        c.addEventListener('click', (e) => {
+          const g = e.target.closest && e.target.closest('.q-go.has-chord'); if (!g) return;
+          const card = g.closest('.song-card'); if (!card) return;
+          e.stopPropagation(); e.preventDefault();
+          const qid = card.id.replace(/^card_/, '');
+          if (qx.openId === qid) qxClose(); else qxOpen(qid);
+        }, true);
+      })();
 
       window.selectSongForSearch = function(encodedTitle, encodedArtist) {
         let title = decodeURIComponent(encodedTitle);

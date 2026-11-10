@@ -619,7 +619,44 @@
         ed.classList.remove('show-p'); $('ceTabE').classList.add('on'); $('ceTabP').classList.remove('on');
         edTools(); edPrev(); ed.classList.remove('hidden');
       }
-      return { open: open, close: close, edit: openEditor, _x: { cacheGet: cacheGet, cacheSet: cacheSet, chordDb: chordDb, load: load } };
+      // ===== ใช้ร่วมหน้าค้นหาคอร์ด/คาราโอเกะ: ดึงเนื้อคอร์ดของเพลงในคิวตามคีย์ที่ตั้งไว้ในเซ็ต (อ่านอย่างเดียว ไม่เขียนข้อมูล) =====
+      function shiftFor(base, target) {
+        const a = rootIdx(target), b = rootIdx(base);
+        if (a < 0 || b < 0 || isMinor(target) !== isMinor(base)) return 0;
+        let d = (a - b + 12) % 12; if (d > 6) d -= 12; return d;
+      }
+      async function getDoc(songId, qkey) {
+        const sn = await Promise.race([db.ref('songs/' + songId).once('value'), new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), 8000))]);
+        const s = sn.val() || {};
+        let r;
+        if (hasOwn(songId)) r = await loadOwn(songId);
+        else if (s.bk) r = await load(s.bk);
+        else throw new Error('notfound');
+        const base = r.k || s.key || '';
+        return { rec: r, song: s, base: base, duration: Number(s.duration) || Number(r.d) || 0, at: function(key) { const n = shiftFor(base, key || s.key || ''); return { n: n, flat: useFlat((rootIdx(base) + n + 120) % 12, isMinor(base)), keyLabel: keyName(base, n) }; } };
+      }
+      // แตกเป็นรายบรรทัดสำหรับคาราโอเกะ: [{sec, segs:[{c,t}]}] คอร์ดถูกเลื่อนตามคีย์แล้ว
+      function flatLines(secs, n, flat) {
+        const out = [];
+        (secs || []).forEach(sec => {
+          const name = sec.name || '';
+          (sec.lines || []).forEach(ln => {
+            const c = ln.c || '', l = ln.l || '';
+            const toks = c.split(/[\s|]+/).filter(Boolean).filter(isChordTok), a = ln.a;
+            if (l && a && a.length && a.length === toks.length) {
+              const segs = [];
+              if (a[0] > 0) segs.push({ c: '', t: l.slice(0, a[0]) });
+              toks.forEach((t, i) => segs.push({ c: tChord(t, n, flat), t: l.slice(a[i], i + 1 < a.length ? a[i + 1] : undefined) }));
+              out.push({ sec: name, segs: segs });
+            } else {
+              if (c) out.push({ sec: name, segs: tLine(c, n, flat).split(/[\s|]+/).filter(Boolean).map(t => ({ c: t, t: ' ' })) });
+              if (l) out.push({ sec: name, segs: [{ c: '', t: l }] });
+            }
+          });
+        });
+        return out;
+      }
+      return { open: open, close: close, edit: openEditor, _x: { cacheGet: cacheGet, cacheSet: cacheSet, chordDb: chordDb, load: load, getDoc: getDoc, sectionsHtml: sectionsHtml, flatLines: flatLines, hasOwn: hasOwn } };
     })();
 
     // ===== ค้นหาคอร์ดในคลังตอนเพิ่มเพลง: ตรงเป๊ะ (ชื่อ+ศิลปิน) = เชื่อมให้อัตโนมัติ / ชื่อเพลงเหมือนแต่ศิลปินต่าง = ให้เลือกเอง =====

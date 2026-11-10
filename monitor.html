@@ -27,7 +27,7 @@
     <!-- 2. กำลังเล่น / ถัดไป / ตามด้วย -->
     <div class="monitor-songs-section" onclick="openFullQueueModal()">
       <div class="song-box-current">
-        <i class="mon-dot-green"></i>
+        <i class="mon-dot-green mon-eq" aria-hidden="true"><u></u><u></u><u></u><u></u></i>
         <span class="box-label">กำลังเล่น</span>
         <div id="mPlayingTitle" class="box-title-playing">-</div>
       </div>
@@ -57,6 +57,24 @@
         <span id="progressText">Set 1 (0/0)</span>
       </div>
       <div class="progress-segments" id="progressSegmentsContainer"></div>
+    </div>
+  </div>
+
+  <!-- หน้าคาราโอเกะ (แนวนอน แตะการ์ดกำลังเล่น) -->
+  <div id="karView" class="kar hidden" role="dialog" aria-label="คาราโอเกะ">
+    <div class="kar-top">
+      <div class="kar-l"><div id="karTitle" class="kar-title"></div><div id="karSec" class="kar-sec"></div></div>
+      <button type="button" id="karExit" class="kar-exit" aria-label="ออกจากหน้าคาราโอเกะ"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 9l7 7 7-7"/></svg></button>
+      <div class="kar-spd"><span>ความเร็ว</span><button type="button" id="karSpM" aria-label="ช้าลง">−</button><b id="karSpV">x1.0</b><button type="button" id="karSpP" aria-label="เร็วขึ้น">+</button></div>
+    </div>
+    <div id="karMain" class="kar-main">
+      <div id="karCur" class="kar-line cur"></div>
+      <div id="karNxt" class="kar-line nxt"></div>
+      <div id="karMsg" class="kar-msg"></div>
+    </div>
+    <div class="kar-bot">
+      <div class="kar-tb"><i></i><div class="kar-tbc"><small id="karTbMeta">ท็อคแบค</small><div id="karTbText">สแตนบายรอคำสั่ง...</div></div></div>
+      <div id="karNx" class="kar-nx"><em id="karNxSet">ถัดไป</em><b id="karNxTitle">-</b><span id="karNxKey"></span></div>
     </div>
   </div>
 
@@ -287,6 +305,11 @@
 
         slideSongBoxes(queueData);
         renderProgressBar(queueData);
+        {
+          const pbx = document.querySelector('.song-box-current');
+          if (pbx) pbx.classList.toggle('is-live', !!playing && !isSpecial(playing)); // เปิดแอนิเมชันเฉพาะตอนมีเพลงเล่นจริง
+          if (typeof karSync === 'function') karSync(playing);
+        }
       }
 
       function initMonitorTalkbackListener() {
@@ -578,6 +601,138 @@
           document.getElementById('talkbackHistoryModal').classList.add('hidden');
         }
       };
+
+      // ===== แตะการ์ด "กำลังเล่น": แนวตั้ง → หน้าค้นหาคอร์ด (ขยายเพลงนี้) / แนวนอน → คาราโอเกะ =====
+      const hasChordsOf = (x) => !!(x && x.songId && ((window.lshChordMarks && window.lshChordMarks.has(String(x.songId))) || (window.lshChordOwn && window.lshChordOwn.has(String(x.songId)))));
+      const NO_CHORD_TXT = 'เพลงนี้ยังไม่มีคอร์ดในฐานข้อมูล';
+      const kar = { on: false, qid: null, key: '', doc: null, lines: [], N: 0, dur: 240, speed: 1, p0: 0, t0: 0, drag: null, shown: -1, tok: 0, timer: 0, tbSig: '' };
+      const $k = (id) => document.getElementById(id);
+      const kEsc = (t) => String(t == null ? '' : t).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+      const kReal = (x) => !!x && x.type !== 'dummy_start' && x.type !== 'dummy_end';
+      const kClamp = (v, a, b) => Math.max(a, Math.min(b, v));
+
+      function karPos(now) { return kar.N ? kClamp(kar.p0 + (now - kar.t0) / 1000 * kar.speed * kar.N / kar.dur, 0, kar.N - 1) : 0; }
+      function karMsg(t) { kar.lines = []; kar.N = 0; kar.doc = null; kar.shown = -1; $k('karCur').innerHTML = ''; $k('karNxt').innerHTML = ''; $k('karSec').textContent = ''; $k('karMsg').textContent = t || ''; }
+      function karSegs(line) { return line.segs.map(g => '<span class="seg"><b>' + (g.c ? kEsc(g.c) : '&nbsp;') + '</b><span>' + kEsc(g.t || ' ') + '</span></span>').join(''); }
+      // ย่อตัวอักษรให้พอดีหนึ่งบรรทัด (ย่อได้ถึง 60%) ถ้ายังไม่พอค่อยขึ้นบรรทัดใหม่
+      function karFit(el, px) {
+        el.classList.remove('wrap'); el.style.fontSize = px + 'px';
+        const cw = el.clientWidth; if (!cw) return;
+        let f = px;
+        for (let k = 0; k < 4 && el.scrollWidth > cw && f > px * 0.6; k++) {
+          f = Math.max(px * 0.6, f * cw / el.scrollWidth * 0.97); el.style.fontSize = f + 'px';
+        }
+        if (el.scrollWidth > cw) el.classList.add('wrap');
+      }
+      function karRender(idx, anim) {
+        if (!kar.N) return;
+        kar.shown = idx;
+        const cur = $k('karCur'), nxt = $k('karNxt'), kf = kClamp(Math.round(window.innerHeight * 0.115), 26, 54);
+        cur.innerHTML = karSegs(kar.lines[idx]);
+        nxt.innerHTML = idx + 1 < kar.N ? karSegs(kar.lines[idx + 1]) : '';
+        karFit(cur, kf); karFit(nxt, Math.round(kf * 0.56));
+        $k('karSec').textContent = kar.lines[idx].sec || '';
+        if (anim) { [cur, nxt].forEach(el => { el.classList.remove('kar-in'); void el.offsetWidth; el.classList.add('kar-in'); }); }
+      }
+      function karSetup(item) {
+        const sn = String((item && item.set) || 'Set 1').replace(/\D/g, '') || '1';
+        $k('karView').style.setProperty('--set', 'var(--set-' + sn + ', var(--set-1))');
+        $k('karTitle').textContent = (item && item.title) || '';
+      }
+      function karApply(a) {
+        kar.lines = window.lshChords._x.flatLines(kar.doc.rec.s, a.n, a.flat); kar.N = kar.lines.length;
+      }
+      async function karLoad(item) {
+        const tok = ++kar.tok; kar.qid = String(item.id); kar.key = item.key || '';
+        karSetup(item); karMsg('');
+        const X = window.lshChords && window.lshChords._x;
+        if (!item.songId || !X) { karMsg(NO_CHORD_TXT); return; }
+        try {
+          const d = await X.getDoc(item.songId); if (tok !== kar.tok || !kar.on) return;
+          kar.doc = d; karApply(d.at(item.key));
+          if (!kar.N) { karMsg(NO_CHORD_TXT); return; }
+          kar.dur = d.duration || (window.lshAutoAdv && window.lshAutoAdv.durationOf ? window.lshAutoAdv.durationOf(item) : 240) || 240;
+          kar.p0 = 0; kar.t0 = Date.now(); $k('karMsg').textContent = ''; karRender(0, true);
+        } catch (e) {
+          if (tok !== kar.tok || !kar.on) return;
+          karMsg(e && e.message === 'notfound' ? NO_CHORD_TXT : 'โหลดคอร์ดไม่ได้ (ตรวจสอบอินเทอร์เน็ต)');
+        }
+      }
+      function karBar() {
+        const tb = $k('monitorTalkbackText'), sd = $k('tbSender'), tm = $k('tbTime');
+        const sig = (tb ? tb.textContent : '') + '|' + (sd ? sd.textContent : '') + '|' + (tm ? tm.textContent : '');
+        if (sig !== kar.tbSig) {
+          kar.tbSig = sig;
+          $k('karTbText').textContent = tb ? tb.textContent : '';
+          $k('karTbMeta').textContent = 'ท็อคแบค · ' + ((sd ? sd.textContent : '').replace(/^\s*-\s*/, '').trim() || '-') + ' · ' + (tm ? tm.textContent : '');
+        }
+        const nx = currentQueue.find(i => i.status === 'next');
+        const nk = nx ? ((isSpecialK(nx) ? lshPlain(nx.title) : (nx.title || ''))) : 'ไม่มีเพลงถัดไป';
+        $k('karNxTitle').textContent = nk;
+        $k('karNxSet').textContent = nx && !isSpecialK(nx) ? 'ถัดไป · ' + String(nx.set || 'Set 1').toUpperCase() : 'ถัดไป';
+        $k('karNxKey').textContent = nx && !isSpecialK(nx) && nx.key && nx.key !== '-' ? nx.key : '';
+        const col = nx && !isSpecialK(nx) ? nxColor(nx) : 'var(--line-strong)';
+        $k('karNx').style.setProperty('--nx', col);
+      }
+      function isSpecialK(x) { return !!x && (x.type === 'dummy_start' || x.type === 'dummy_end'); }
+      function karTick() {
+        if (!$k('karView')) { clearInterval(kar.timer); kar.timer = 0; return; }
+        if (!kar.on) return;
+        karBar();
+        if (kar.N && !kar.drag) { const i = Math.floor(karPos(Date.now()) + 1e-6); if (i !== kar.shown) karRender(i, true); }
+      }
+      function karOpen(item) {
+        kar.on = true; $k('karView').classList.remove('hidden');
+        $k('karSpV').textContent = 'x' + kar.speed.toFixed(1);
+        karLoad(item); karBar();
+        if (!kar.timer) kar.timer = setInterval(karTick, 150);
+      }
+      function karClose() { kar.on = false; kar.tok++; kar.drag = null; const v = $k('karView'); if (v) v.classList.add('hidden'); }
+      function karSpeed(d) {
+        const now = Date.now(), p = karPos(now);
+        kar.speed = kClamp(Math.round((kar.speed + d) * 4) / 4, 0.5, 2); kar.p0 = p; kar.t0 = now;
+        $k('karSpV').textContent = 'x' + kar.speed.toFixed(1);
+      }
+      // เพลงที่กำลังเล่นเปลี่ยน (หรือคีย์ในคิวเปลี่ยน) ขณะเปิดคาราโอเกะอยู่
+      function karSync(playing) {
+        if (!kar.on || !$k('karView')) return;
+        if (!kReal(playing)) { kar.tok++; kar.qid = null; karSetup(null); karMsg('ยังไม่มีเพลงที่กำลังเล่น'); return; }
+        if (String(playing.id) !== kar.qid) { karLoad(playing); return; }
+        karSetup(playing);
+        if ((playing.key || '') !== kar.key && kar.doc) {
+          kar.key = playing.key || ''; const pos = karPos(Date.now()); karApply(kar.doc.at(playing.key));
+          kar.N = kar.lines.length; if (kar.N) { kar.p0 = kClamp(pos, 0, kar.N - 1); kar.t0 = Date.now(); karRender(Math.floor(kar.p0), false); }
+        }
+      }
+      (function bindKaraoke() {
+        const pc = document.querySelector('.song-box-current'), main = $k('karMain');
+        if (!pc || !main) return;
+        pc.addEventListener('click', (e) => {
+          const p = currentQueue.find(i => i.status === 'playing');
+          if (!kReal(p)) return;                       // ไม่มีเพลงเล่นจริง: ให้เปิดรายการคิวเต็มเหมือนเดิม
+          e.stopPropagation();
+          if (window.matchMedia(MQ_LAND).matches) karOpen(p);
+          else { window.__lshExpandReq = { qid: p.id, mode: hasChordsOf(p) ? 'expand' : 'none' }; if (typeof window.setActiveNav === 'function') window.setActiveNav('search'); }
+        });
+        $k('karExit').onclick = karClose;
+        $k('karSpM').onclick = () => karSpeed(-0.25); $k('karSpP').onclick = () => karSpeed(0.25);
+        // ลากนิ้วขึ้น/ลงเลือกบรรทัดเหมือนวงล้อ แล้วเลื่อนต่ออัตโนมัติจากบรรทัดนั้น
+        main.addEventListener('pointerdown', (e) => { if (!kar.N) return; kar.drag = { y: e.clientY, base: kar.shown }; try { main.setPointerCapture(e.pointerId); } catch (x) {} });
+        main.addEventListener('pointermove', (e) => {
+          const d = kar.drag; if (!d) return;
+          const step = Math.max(38, window.innerHeight * 0.1), i = kClamp(d.base + Math.round(-(e.clientY - d.y) / step), 0, kar.N - 1);
+          if (i !== kar.shown) karRender(i, true);
+          kar.p0 = i; kar.t0 = Date.now();
+        });
+        const end = () => { if (kar.drag) { kar.drag = null; kar.p0 = kar.shown < 0 ? 0 : kar.shown; kar.t0 = Date.now(); } };
+        main.addEventListener('pointerup', end); main.addEventListener('pointercancel', end);
+      })();
+      window.__karResize = function() {
+        if (!$k('karView')) return;
+        if (kar.on && !window.matchMedia(MQ_LAND).matches) { karClose(); return; }   // หมุนกลับแนวตั้ง = ออกจากคาราโอเกะ
+        if (kar.on && kar.N && kar.shown >= 0) karRender(kar.shown, false);
+      };
+      if (!window.__karResizeBound) { window.__karResizeBound = true; window.addEventListener('resize', () => { if (window.__karResize) window.__karResize(); }); }
 
       initMonitorQueueListener();
       initMonitorTalkbackListener();
