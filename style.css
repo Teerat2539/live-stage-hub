@@ -2101,3 +2101,15 @@ nav button:active:not(.active) { background: var(--surface-2); }
 .chimp-prev { margin-top:10px; padding:10px; border-radius:10px; background:var(--bg); border:1px solid var(--line); font-size:12.5px; line-height:1.6; white-space:pre-wrap; color:var(--text-2); }
 .chimp-act { display:flex; gap:8px; margin-top:10px; }
 .chimp-cancel { height:44px; padding:0 14px; border:1px solid var(--line-strong); border-radius:12px; background:transparent; color:var(--text); font-weight:700; }
+
+/* เครื่องหมายมีคอร์ด + โหมดเนื้ออย่างเดียวในหน้าดูคอร์ด */
+.chord-mark { width:15px; height:15px; margin-left:6px; vertical-align:-2px; color:var(--live); flex:none; }
+.ch-view.ch-lyr .ch-c, .ch-view.ch-lyr .ch-rawc { display:none; }
+.ch-view.ch-lyr .ch-seg { display:inline; }
+.ch-view.ch-lyr .ch-t { display:inline; white-space:pre-wrap; }
+.ch-btn:disabled { opacity:.35; }
+
+/* หน้าดูคอร์ด: โหมด 2 คอลัมน์ (ดูเต็มหน้าโดยไม่ต้องเลื่อน) */
+.ch-view.ch-cols2 .ch-body { column-count:2; column-gap:28px; column-rule:1px solid var(--line); }
+.ch-view.ch-cols2 .ch-sec { break-inside:avoid; }
+.ch-view.ch-cols2 .ch-end { height:16px; }

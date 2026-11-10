@@ -334,7 +334,7 @@
     window.lshChords = (function() {
       const CHORD_DB_URL = 'https://live-stage-chords-default-rtdb.asia-southeast1.firebasedatabase.app';
       let cdb = null, root = null, st = 0, baseKey = '', bandKey = '', rec = null, song = null, fs = 20, speed = 1;
-      let playing = false, raf = 0, lastT = 0, pos = 0, wake = null;
+      let cols2 = false, lyr = false, playing = false, raf = 0, lastT = 0, pos = 0, wake = null;
       const $ = (id) => document.getElementById(id);
       const esc = (s) => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
       const SH = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'], FL = ['C', 'Db', 'D', 'Eb', 'E', 'F', 'Gb', 'G', 'Ab', 'A', 'Bb', 'B'];
@@ -393,6 +393,7 @@
         $('chKeyNote').textContent = (st === 0 ? 'คีย์ต้นฉบับ' : (bandKey && st === bandShift() ? 'คีย์วง' : (st > 0 ? '+' : '') + st));
         body.style.fontSize = fs + 'px';
       }
+      function applyMode() { root.classList.toggle('ch-cols2', cols2); $('chCols').textContent = cols2 ? '2 คอลัมน์' : '1 คอลัมน์'; root.classList.toggle('ch-lyr', lyr); $('chMode').textContent = lyr ? 'เนื้ออย่างเดียว' : 'คอร์ด+เนื้อ'; $('chDn').disabled = $('chUp').disabled = $('chBand').disabled = $('chOrig').disabled = lyr; }
       function shiftKeyNow(d) { st = ((st + d + 5) % 12) - 5; if (st < -5) st += 12; render(); }
       function setPlay(on) {
         playing = on; $('chPlay').textContent = on ? '⏸' : '▶';
@@ -408,19 +409,23 @@
       function close() { setPlay(false); if (root) root.classList.add('hidden'); try { if (wake) wake.release(); } catch (e) {} wake = null; }
       function mountUi() {
         if (root) return;
-        try { fs = parseInt(localStorage.getItem('lsh_chord_fs'), 10) || 20; } catch (e) {}
+        try { fs = parseInt(localStorage.getItem('lsh_chord_fs'), 10) || 20; lyr = localStorage.getItem('lsh_chord_lyr') === '1'; cols2 = localStorage.getItem('lsh_chord_cols') === '2'; } catch (e) {}
         root = document.createElement('div'); root.id = 'lshChordView'; root.className = 'ch-view hidden';
         root.innerHTML = '<div class="ch-bar"><div class="ch-row1"><button id="chClose" type="button" class="ch-btn" aria-label="ปิด">✕</button><div class="ch-ttl"><div id="chTitle" class="ch-t1"></div><div id="chArtist" class="ch-t2"></div></div></div>' +
           '<div class="ch-row2"><div class="ch-grp"><button id="chDn" type="button" class="ch-btn">♭</button><div class="ch-keybox"><b id="chKey">-</b><span id="chKeyNote"></span></div><button id="chUp" type="button" class="ch-btn">♯</button><button id="chBand" type="button" class="ch-btn ch-sm">คีย์วง</button><button id="chOrig" type="button" class="ch-btn ch-sm">ต้นฉบับ</button></div>' +
+          '<div class="ch-grp"><button id="chMode" type="button" class="ch-btn ch-sm">คอร์ด+เนื้อ</button><button id="chCols" type="button" class="ch-btn ch-sm">1 คอลัมน์</button></div>' +
           '<div class="ch-grp"><button id="chFm" type="button" class="ch-btn">A−</button><button id="chFp" type="button" class="ch-btn">A+</button></div>' +
           '<div class="ch-grp"><button id="chSm" type="button" class="ch-btn">−</button><button id="chPlay" type="button" class="ch-btn ch-play">▶</button><button id="chSp" type="button" class="ch-btn">+</button><span id="chSpd" class="ch-spd">x1.0</span></div></div></div>' +
           '<div id="chScroll" class="ch-scroll"><div id="chStatus" class="ch-status"></div><div id="chBody" class="ch-body"></div><div class="ch-end"></div></div>';
         document.body.appendChild(root);
         const on = (id, f) => { $(id).onclick = f; };
+        applyMode();
         on('chClose', close); on('chDn', () => shiftKeyNow(-1)); on('chUp', () => shiftKeyNow(1));
         on('chOrig', () => { st = 0; render(); }); on('chBand', () => { st = bandShift(); render(); });
         on('chFm', () => { fs = Math.max(12, fs - 2); try { localStorage.setItem('lsh_chord_fs', fs); } catch (e) {} $('chBody').style.fontSize = fs + 'px'; });
         on('chFp', () => { fs = Math.min(44, fs + 2); try { localStorage.setItem('lsh_chord_fs', fs); } catch (e) {} $('chBody').style.fontSize = fs + 'px'; });
+        on('chMode', () => { lyr = !lyr; try { localStorage.setItem('lsh_chord_lyr', lyr ? '1' : '0'); } catch (e) {} applyMode(); });
+        on('chCols', () => { cols2 = !cols2; try { localStorage.setItem('lsh_chord_cols', cols2 ? '2' : '1'); } catch (e) {} applyMode(); });
         on('chPlay', () => setPlay(!playing));
         on('chSm', () => { speed = Math.max(0.5, Math.round((speed - 0.1) * 10) / 10); $('chSpd').textContent = 'x' + speed.toFixed(1); });
         on('chSp', () => { speed = Math.min(2, Math.round((speed + 0.1) * 10) / 10); $('chSpd').textContent = 'x' + speed.toFixed(1); });
@@ -1041,6 +1046,11 @@
       firebase.initializeApp(firebaseConfig);
     }
     const db = firebase.database();
+
+    // เครื่องหมายโน้ตข้างชื่อเพลงที่มีคอร์ดแล้ว (เพลงที่มีฟิลด์ bk): ทุกหน้าเรียก lshChordIc(songId)
+    window.lshChordMarks = new Set();
+    window.lshChordIc = function(id) { return id && window.lshChordMarks.has(String(id)) ? '<svg class="ic chord-mark" role="img" aria-label="มีคอร์ด"><use href="#i-music"/></svg>' : ''; };
+    try { db.ref('songs').on('value', snap => { const v = snap.val() || {}, s = new Set(); Object.keys(v).forEach(k => { if (v[k] && v[k].bk) s.add(k); }); window.lshChordMarks = s; }); } catch (e) {}
 
     let selectedRoom = '';
     let targetRoomToDelete = null;
