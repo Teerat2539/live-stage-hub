@@ -2323,3 +2323,28 @@ nav button:active:not(.active) { background: var(--surface-2); }
   body.lsh-page-monitor .monitor-container { grid-template-rows: minmax(0,1fr) auto auto auto; }
   body.lsh-page-monitor .monitor-progress-bar-container { grid-column: 1 / -1; grid-row: 4; }
 }
+
+
+/* หน้าค้นหา: แถวพับ "เล่นแล้ว N เพลง" */
+.sq-played { display: flex; align-items: center; justify-content: space-between; width: 100%; box-sizing: border-box; margin: 0 0 10px; padding: 10px 14px; border-radius: var(--r-md, 12px); border: 1px dashed var(--line); background: transparent; color: var(--text-2); font: inherit; font-size: 13px; font-weight: 700; cursor: pointer; }
+.sq-played span { color: var(--text-3); font-weight: 600; }
+.sq-played.open { border-style: solid; }
+
+
+/* คาราโอเกะ: แถบท่อนเพลง + ปุ่มเลื่อนบรรทัด */
+.kar-segs { display: flex; align-items: center; gap: 3px; height: 24px; padding: 0 2px; cursor: pointer; flex: none; }
+.kar-segs.hidden { display: none; }
+.kar-segs .ks { --kc: #8A90A5; position: relative; height: 6px; min-width: 6px; border-radius: 3px; overflow: hidden; background: color-mix(in srgb, var(--kc) 24%, transparent); transition: height .15s ease; }
+.kar-segs .ks i { position: absolute; left: 0; top: 0; bottom: 0; width: 0; background: var(--kc); border-radius: 3px; }
+.kar-segs .ks.done i { opacity: .55; }
+.kar-segs .ks.cur { height: 10px; box-shadow: 0 0 9px color-mix(in srgb, var(--kc) 70%, transparent); }
+.kar-segs .ks.sv { --kc: #6c8cff; } .kar-segs .ks.sh { --kc: #ff7ab6; } .kar-segs .ks.sb { --kc: #b79cff; } .kar-segs .ks.si { --kc: #9aa0b4; } .kar-segs .ks.so { --kc: #5eead4; }
+.kar-steps { position: absolute; right: 8px; bottom: 8px; display: flex; gap: 10px; z-index: 3; }
+.kar-step { width: 56px; height: 56px; border-radius: 50%; border: 1px solid var(--line); background: color-mix(in srgb, var(--surface-3) 88%, transparent); color: var(--text); display: flex; align-items: center; justify-content: center; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+.kar-step:active { background: var(--surface-2); transform: scale(.94); }
+
+/* คาราโอเกะแนวนอน: ปุ่มเลื่อนบรรทัดอยู่กลางขอบขวา และกันที่สองข้างไว้ไม่ให้ทับเนื้อเพลง (เนื้อยังอยู่กึ่งกลาง) */
+@media (orientation: landscape) {
+  .kar-main { padding-left: 68px; padding-right: 68px; }
+  .kar-steps { flex-direction: column; top: 50%; bottom: auto; right: 6px; transform: translateY(-50%); }
+}

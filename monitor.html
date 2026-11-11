@@ -67,6 +67,7 @@
       <button type="button" id="karExit" class="kar-exit" aria-label="ออกจากหน้าคาราโอเกะ"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 9l7 7 7-7"/></svg></button>
       <div class="kar-spd"><span>ความเร็ว</span><button type="button" id="karSpM" aria-label="ช้าลง">−</button><b id="karSpV">x1.0</b><button type="button" id="karSpP" aria-label="เร็วขึ้น">+</button></div>
     </div>
+    <div id="karSegs" class="kar-segs hidden" aria-label="ท่อนของเพลง"></div>
     <div id="karMain" class="kar-main">
       <div id="karCur" class="kar-line cur"></div>
       <div id="karNxt" class="kar-line nxt"></div>
@@ -74,6 +75,7 @@
       <div id="karN3" class="kar-line nxt nxt3" style="display:none"></div>
       <div id="karWheel" class="kw-wrap" aria-hidden="true"></div>
       <div id="karMsg" class="kar-msg"></div>
+      <div class="kar-steps"><button type="button" id="karUp" class="kar-step" aria-label="บรรทัดก่อนหน้า"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6 15l6-6 6 6"/></svg></button><button type="button" id="karDn" class="kar-step" aria-label="บรรทัดถัดไป"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></button></div>
       <div id="karPause" class="kar-pause hidden">⏸ หยุดชั่วคราว · แตะเพื่อเล่นต่อ</div>
     </div>
     <div class="kar-bot" id="karBot">
@@ -616,7 +618,7 @@
       const kClamp = (v, a, b) => Math.max(a, Math.min(b, v));
 
       function karPos(now) { return kar.N ? (kar.paused ? kClamp(kar.p0, 0, kar.N - 1) : kClamp(kar.p0 + (now - kar.t0) / 1000 * kar.speed * kar.N / kar.dur, 0, kar.N - 1)) : 0; }
-      function karMsg(t) { karWheelExit(); kar.rowsFor = null; kar.lines = []; kar.N = 0; kar.doc = null; kar.shown = -1; $k('karCur').innerHTML = ''; $k('karNxt').innerHTML = ''; $k('karN2').innerHTML = ''; $k('karN3').innerHTML = ''; $k('karSec').textContent = ''; $k('karMsg').textContent = t || ''; }
+      function karMsg(t) { karWheelExit(); kar.rowsFor = null; kar.lines = []; kar.N = 0; kar.doc = null; kar.shown = -1; kar.secs = null; kar.secsFor = null; $k('karSegs').classList.add('hidden'); $k('karCur').innerHTML = ''; $k('karNxt').innerHTML = ''; $k('karN2').innerHTML = ''; $k('karN3').innerHTML = ''; $k('karSec').textContent = ''; $k('karMsg').textContent = t || ''; }
       function karSegs(line) { return line.segs.map(g => '<span class="seg' + (g.bar ? ' bar' : '') + '"><b>' + (g.c ? kEsc(g.c) : '&nbsp;') + '</b><span>' + kEsc(g.t || ' ') + '</span></span>').join(''); }
       // ย่อตัวอักษรให้พอดีหนึ่งบรรทัด (ย่อได้ถึง 60%) ถ้ายังไม่พอค่อยขึ้นบรรทัดใหม่
       // ขนาดตัวอักษรเนื้อเพลงตั้งต้น: แนวนอนอิงความสูงจอ แนวตั้งอิงความกว้างจอ
@@ -630,25 +632,74 @@
         }
         if (el.scrollWidth > cw) el.classList.add('wrap');
       }
+      // ===== ท่อนของเพลง (Intro/Verse/Hook ...): สร้างจากข้อมูลคอร์ด 1 ท่อน = 1 ช่องในแถบ =====
+      function karSecClass(n) {
+        n = String(n || '').toLowerCase();
+        if (/hook|chorus|ฮุก|ฮุค|refrain/.test(n)) return 'sh';
+        if (/verse|เวิร์ส|เวิร์ด|ท่อน/.test(n)) return 'sv';
+        if (/pre|bridge|บริดจ์|break/.test(n)) return 'sb';
+        if (/intro|outro|inst|solo|interlude|guitar|bass|ending|end/.test(n)) return 'si';
+        return 'so';
+      }
+      function karSecBuild() {
+        if (kar.secsFor === kar.lines) return kar.secs;
+        const secs = [], of = [];
+        kar.lines.forEach((l, i) => {
+          const key = l.si != null ? 's' + l.si : 'n' + l.sec;
+          let s = secs[secs.length - 1];
+          if (!s || s.key !== key) { s = { key: key, name: l.sec || '', start: i, end: i + 1 }; secs.push(s); } else s.end = i + 1;
+          of[i] = secs.length - 1;
+        });
+        const total = {}, seen = {};
+        secs.forEach(s => { total[s.name] = (total[s.name] || 0) + 1; });
+        secs.forEach(s => {
+          seen[s.name] = (seen[s.name] || 0) + 1;
+          s.label = (!s.name) ? '' : (/\d/.test(s.name) || total[s.name] < 2) ? s.name : s.name + ' ' + seen[s.name] + '/' + total[s.name];   // ฮุคซ้ำ = ฮุค 2/3
+          s.cls = karSecClass(s.name);
+        });
+        kar.secs = secs; kar.secOf = of; kar.secsFor = kar.lines;
+        const box = $k('karSegs');
+        box.innerHTML = secs.map((s, k) => '<div class="ks ' + s.cls + '" data-k="' + k + '" style="flex:' + (s.end - s.start) + ' 1 0"><i></i></div>').join('');
+        box.classList.toggle('hidden', secs.length < 2);
+        return secs;
+      }
+      function karSecPaint(idx) {
+        const secs = kar.secs; if (!secs) return;
+        const cur = kar.secOf[idx], kids = $k('karSegs').children;
+        for (let k = 0; k < secs.length && k < kids.length; k++) {
+          const el = kids[k], s = secs[k];
+          el.classList.toggle('done', k < cur); el.classList.toggle('cur', k === cur);
+          el.firstChild.style.width = k < cur ? '100%' : k === cur ? Math.round((idx - s.start + 1) / (s.end - s.start) * 100) + '%' : '0%';
+        }
+      }
+      function karGo(i) {
+        if (!kar.N || kar.hold || kar.drag) return;
+        i = kClamp(i, 0, kar.N - 1); kar.p0 = i; kar.t0 = Date.now();   // จับเวลาใหม่จากบรรทัดนี้ แล้วเลื่อนต่อเองด้วยความเร็วเดิม
+        karRender(i, true);
+      }
+
       function karRender(idx, anim) {
         if (!kar.N) return;
         kar.shown = idx;
+        karSecBuild();
         const port = window.innerWidth <= window.innerHeight, kf = karBase();
         const cnt = port ? 4 : 2, scale = port ? [1, 0.62, 0.54, 0.54] : [1, 0.56];   // แนวตั้งโชว์ 4 บรรทัด แนวนอน 2 บรรทัด
         const els = [$k('karCur'), $k('karNxt'), $k('karN2'), $k('karN3')];
-        let prevSec = kar.lines[idx].sec;
+        let prevSec = kar.secOf[idx];
         els.forEach((el, k) => {
           const li = k < cnt ? kar.lines[idx + k] : null;
           if (k >= 2) el.style.display = li ? '' : 'none';
           if (!li) { el.innerHTML = ''; el.classList.remove('inst'); return; }
-          const tag = (k > 0 && port && li.sec && li.sec !== prevSec) ? '<span class="kar-tag">' + kEsc(li.sec) + '</span>' : '';
-          prevSec = li.sec;
+          const si = kar.secOf[idx + k], sl = kar.secs[si].label;
+          const tag = (k > 0 && port && si !== prevSec && sl) ? '<span class="kar-tag">' + kEsc(sl) + '</span>' : '';
+          prevSec = si;
           el.classList.toggle('inst', !!li.inst);
           el.innerHTML = tag + karSegs(li);
           karFit(el, Math.round(kf * scale[k]));
           if (anim) { el.classList.remove('kar-in'); void el.offsetWidth; el.classList.add('kar-in'); }
         });
-        $k('karSec').textContent = kar.lines[idx].sec || '';
+        $k('karSec').textContent = kar.secs[kar.secOf[idx]].label || kar.lines[idx].sec || '';
+        karSecPaint(idx);
       }
       function karSetup(item) {
         const sn = String((item && item.set) || 'Set 1').replace(/\D/g, '') || '1';
@@ -801,6 +852,13 @@
           karOpen(p);                                  // เปิดคาราโอเกะได้ทุกแนวจอ (ไปหน้าค้นหาคอร์ดให้กดที่แถบเมนูนำทางเอง)
         });
         $k('karExit').onclick = karClose;
+        // ปุ่มเลื่อนทีละบรรทัด + แตะแถบท่อนเพื่อกระโดด (ไม่ให้ไปกวนการแตะ=พัก / ลาก=วงล้อ ของ #karMain)
+        [['karUp', -1], ['karDn', 1]].forEach(([id, d]) => { const b = $k(id); ['pointerdown', 'pointerup', 'pointercancel'].forEach(t => b.addEventListener(t, ev => ev.stopPropagation())); b.onclick = () => karGo((kar.shown < 0 ? 0 : kar.shown) + d); });
+        $k('karSegs').addEventListener('click', (e) => {
+          if (!kar.secs) return;
+          let best = -1, bd = 1e9; Array.prototype.forEach.call($k('karSegs').children, (el, k) => { const r = el.getBoundingClientRect(), d = e.clientX < r.left ? r.left - e.clientX : e.clientX > r.right ? e.clientX - r.right : 0; if (d < bd) { bd = d; best = k; } });
+          if (best >= 0) karGo(kar.secs[best].start);
+        });
         $k('karSpM').onclick = () => karSpeed(-0.25); $k('karSpP').onclick = () => karSpeed(0.25);
         // แตะสั้นๆ = พอส/เล่นต่อ | ลากนิ้วขึ้น/ลง = วงล้อ 5 บรรทัด (เลื่อนต่อเนื่อง มีแรงเฉื่อย) แล้วกลับมาเลื่อนต่อจากบรรทัดที่เลือก
         main.addEventListener('pointerdown', (e) => {

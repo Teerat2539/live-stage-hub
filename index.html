@@ -637,7 +637,7 @@
       // แตกเป็นรายบรรทัดสำหรับคาราโอเกะ: [{sec, segs:[{c,t}]}] คอร์ดถูกเลื่อนตามคีย์แล้ว
       function flatLines(secs, n, flat) {
         const out = [];
-        (secs || []).forEach(sec => {
+        (secs || []).forEach((sec, si) => {
           const name = sec.name || '';
           const instSec = !(sec.lines || []).some(x => x && x.l && String(x.l).trim());   // ท่อนที่ไม่มีเนื้อร้องเลย (Intro/Instruments)
           (sec.lines || []).forEach(ln => {
@@ -647,10 +647,10 @@
               const segs = [];
               if (a[0] > 0) segs.push({ c: '', t: l.slice(0, a[0]) });
               toks.forEach((t, i) => segs.push({ c: tChord(t, n, flat), t: l.slice(a[i], i + 1 < a.length ? a[i + 1] : undefined) }));
-              out.push({ sec: name, segs: segs });
+              out.push({ sec: name, si: si, segs: segs });
             } else {
-              if (c) out.push({ sec: name, inst: instSec, segs: tLine(c, n, flat).replace(/\|/g, ' | ').split(/\s+/).filter(Boolean).map(t => t === '|' ? { c: '|', t: ' ', bar: true } : { c: t, t: ' ' }) });
-              if (l) out.push({ sec: name, segs: [{ c: '', t: l }] });
+              if (c) out.push({ sec: name, si: si, inst: instSec, segs: tLine(c, n, flat).replace(/\|/g, ' | ').split(/\s+/).filter(Boolean).map(t => t === '|' ? { c: '|', t: ' ', bar: true } : { c: t, t: ' ' }) });
+              if (l) out.push({ sec: name, si: si, segs: [{ c: '', t: l }] });
             }
           });
         });

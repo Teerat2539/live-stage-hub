@@ -42,7 +42,7 @@
 
       // ===== การ์ดขยายดูเนื้อ+คอร์ดเต็มจอ (แตะแว่นขยายสีเขียวบนการ์ด) =====
       // คำขอจากหน้ามอนิเตอร์: window.__lshExpandReq = {qid, mode:'expand'|'none'} (อ่านครั้งเดียวตอนเข้าหน้านี้)
-      const qx = { openId: null, docs: {}, fs: 20, lyr: false, cols2: false, req: window.__lshExpandReq || null };
+      const qx = { openId: null, docs: {}, fs: 20, lyr: false, cols2: false, req: window.__lshExpandReq || null, showPlayed: false, autoFor: null, autoOpened: null, autoTry: 0, noteFor: null };
       window.__lshExpandReq = null;
       try { qx.fs = parseInt(localStorage.getItem('lsh_chord_fs'), 10) || 20; qx.lyr = localStorage.getItem('lsh_chord_lyr') === '1'; qx.cols2 = localStorage.getItem('lsh_chord_cols') === '2'; } catch (e) {}
       const qxSave = (k, v) => { try { localStorage.setItem(k, v); } catch (e) {} };
@@ -121,6 +121,8 @@
         }
 
         let html = '<div class="sq-hint">แตะเพลงจากคิวเพื่อค้นหาคอร์ด</div>';
+        const playedN = queueData.filter(x => x && x.status === 'played' && x.type !== 'dummy_start' && x.type !== 'dummy_end').length;
+        if (playedN) html += '<button type="button" id="sqPlayedToggle" class="sq-played' + (qx.showPlayed ? ' open' : '') + '" onclick="toggleSqPlayed()">เล่นแล้ว ' + playedN + ' เพลง <span>' + (qx.showPlayed ? 'ซ่อน ▴' : 'แสดง ▾') + '</span></button>';
         let nextSongObj = queueData.find(i => i.status === 'next');
         if (topNextText) {
           topNextText.innerText = nextSongObj ? ((nextSongObj.type === 'dummy_start' || nextSongObj.type === 'dummy_end') ? lshPlain(nextSongObj.title) : `${nextSongObj.title}`) : 'จบการแสดง';
@@ -132,7 +134,7 @@
         let prevNormalSet = null; // เส้นคั่นเซ็ต: คำนวณตอนวาดจากเพลงที่แสดงอยู่ ไม่บันทึกลงข้อมูล
         queueData.forEach((song) => {
           const isReqCard = !!(qx.req && String(song.id) === String(qx.req.qid)); // เพลงที่กำลังเล่นแสดงเฉพาะเมื่อถูกเปิดมาจากหน้ามอนิเตอร์
-          if (song.status === 'removed' || ((song.status === 'played' || song.status === 'playing') && !isReqCard)) return; // ตามบอร์ดดีไซน์: แสดงเฉพาะเพลงถัดไปและที่เหลือ | เพลงที่ลบออกจากคิวแล้ว ไม่แสดงในหน้าค้นหา
+          if (song.status === 'removed' || (song.status === 'played' && !qx.showPlayed && !isReqCard)) return; // เพลงที่เล่นแล้วพับไว้ในแถว "เล่นแล้ว N เพลง" (แตะเพื่อแสดง) เพลงที่กำลังเล่นแสดงเสมอ เพลงที่ลบออกจากคิวแล้ว ไม่แสดงในหน้าค้นหา
           if (song.type === 'dummy_start' || song.type === 'dummy_end') {
             return; // ตามบอร์ดดีไซน์: หน้าค้นหาไม่แสดงการ์ดเริ่ม/จบการแสดง
             let stateLabel = '';
@@ -178,7 +180,7 @@
                 <div class="q-artist">${song.artist || ''}${/^Set \d+$/.test(setVal) ? '' : `<span class="set-pill">${setVal}</span>`}</div>
               </div>
               <svg class="ic q-go ${window.lshChordCls && song.songId ? window.lshChordCls(song.songId) : ''}" data-chordid="${song.songId || ''}" aria-hidden="true"><use href="#i-search"/></svg>
-              ${isReqCard && qx.req.mode === 'none' ? '<div class="qx-none">' + NO_CHORD_TXT + '</div>' : ''}
+              ${(isReqCard && qx.req.mode === 'none') || (song.status === 'playing' && qx.noteFor === String(song.id)) ? '<div class="qx-none">' + NO_CHORD_TXT + '</div>' : ''}
             </div>
           `;
           html += cardHtml;
@@ -195,14 +197,35 @@
           if (qx.req.mode === 'expand') qxOpen(qx.req.qid);
         }
 
+        qxAuto();   // เพลงที่กำลังเล่น: กางคอร์ดให้อัตโนมัติ (ครั้งแรกที่เจอเพลงนั้น)
+
         setTimeout(() => {
           if (qx.openId) return;
           const reqEl = qx.req && document.getElementById('card_' + qx.req.qid);
-          let targetEl = reqEl || container.querySelector('.next-song') || container.querySelector('.badge-playing')?.closest('.song-card');
+          let targetEl = reqEl || container.querySelector('.badge-playing')?.closest('.song-card') || container.querySelector('.next-song');
           if (targetEl) {
             targetEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
           }
         }, 100);
+      }
+
+      window.toggleSqPlayed = function() { qx.showPlayed = !qx.showPlayed; renderSearchQueue(currentQueueList); };
+
+      // กางคอร์ดเพลงที่กำลังเล่นอัตโนมัติ: ทำครั้งเดียวต่อเพลง และไม่แย่งถ้าผู้ใช้กางการ์ดเพลงอื่นอยู่
+      function qxAuto() {
+        const pl = currentQueueList.find(i => i && i.status === 'playing' && i.type !== 'dummy_start' && i.type !== 'dummy_end');
+        if (!pl) return;
+        const id = String(pl.id);
+        if (qx.autoFor === id || !document.getElementById('card_' + id)) return;
+        const has = window.lshChordCls && pl.songId && window.lshChordCls(pl.songId) === 'has-chord';
+        if (!has) {
+          // เครื่องหมายคอร์ดอาจยังโหลดไม่เสร็จ: ลองใหม่ไม่กี่ครั้ง ถ้ายังไม่มีจริงๆ แสดงข้อความว่าไม่มีคอร์ด
+          if (qx.autoTry < 4) { qx.autoTry++; setTimeout(qxAuto, 700); return; }
+          qx.autoFor = id; qx.autoTry = 0; qx.noteFor = id; renderSearchQueue(currentQueueList); return;
+        }
+        qx.autoFor = id; qx.autoTry = 0; qx.noteFor = null;
+        const prev = qx.autoOpened;
+        if (!qx.openId || qx.openId === prev || !document.getElementById('card_' + qx.openId)) { qxOpen(id); qx.autoOpened = id; }
       }
 
       function qxScroller() {
