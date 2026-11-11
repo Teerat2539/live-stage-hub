@@ -2348,3 +2348,15 @@ nav button:active:not(.active) { background: var(--surface-2); }
   .kar-main { padding-left: 68px; padding-right: 68px; }
   .kar-steps { flex-direction: column; top: 50%; bottom: auto; right: 6px; transform: translateY(-50%); }
 }
+
+
+/* หน้าจัดลิสต์: การ์ดเพลงในคลังเมื่อเพิ่มลงลิสต์แล้ว */
+.sel-card { position: relative; border: 1px solid transparent; transition: border-color .2s ease, background .2s ease; }
+.sel-card .sel-badge { color: #00f2d1; font-weight: 700; font-size: 12px; background: #12131a; padding: 4px 8px; border-radius: 4px; border: 1px solid #333; white-space: nowrap; display: inline-flex; align-items: center; gap: 4px; }
+.sel-card.sel-added { border-color: rgba(0, 242, 209, .45); background: #17262a !important; }
+.sel-card.sel-added .sel-badge { background: #00f2d1; color: #04211d; border-color: #00f2d1; }
+.sel-card.sel-pop { animation: selPop .55s cubic-bezier(.2, .9, .3, 1.2); }
+.sel-card.sel-pop .sel-badge { animation: selBadge .55s cubic-bezier(.2, .9, .3, 1.4); }
+@keyframes selPop { 0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(0, 242, 209, .55); } 35% { transform: scale(.975); box-shadow: 0 0 0 6px rgba(0, 242, 209, .25); } 100% { transform: scale(1); box-shadow: 0 0 0 14px rgba(0, 242, 209, 0); } }
+@keyframes selBadge { 0% { transform: scale(.6); } 60% { transform: scale(1.18); } 100% { transform: scale(1); } }
+@media (prefers-reduced-motion: reduce) { .sel-card.sel-pop, .sel-card.sel-pop .sel-badge { animation: none; } }

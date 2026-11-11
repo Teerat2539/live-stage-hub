@@ -889,19 +889,30 @@
       }
 
       let html = '';
+      const addedCnt = selectorAddedCounts();   // เพลงที่ใส่ลงลิสต์ไปแล้วกี่ครั้ง (เพื่อขึ้นเครื่องหมายกำกับ)
       list.forEach(song => {
+        const n = addedCnt[song.id] || 0;
         html += `
-          <div style="background:#1e202c;padding:10px;border-radius:6px;display:flex;justify-content:space-between;align-items:center;cursor:pointer" onclick="window.addSongToSetlist('${song.id}')">
+          <div class="sel-card${n ? ' sel-added' : ''}" data-sid="${song.id}" style="background:#1e202c;padding:10px;border-radius:6px;display:flex;justify-content:space-between;align-items:center;cursor:pointer" onclick="window.addSongToSetlist('${song.id}')">
             <div>
               <b style="color:#fff;font-size:13px">${song.title}</b>
               <span style="color:#aaa;font-size:11px"> - ${song.artist || '-'}</span>
               <div style="font-size:11px;color:#00f2d1;margin-top:2px">คีย์: ${song.key || '-'} | BPM: ${song.bpm || '-'}</div>
             </div>
-            <span style="color:#00f2d1;font-weight:bold;font-size:12px;background:#12131a;padding:4px 8px;border-radius:4px;border:1px solid #333">+ เพิ่ม</span>
+            <span class="sel-badge">${selectorBadgeHtml(n)}</span>
           </div>
         `;
       });
       container.innerHTML = html;
+    }
+
+    function selectorAddedCounts() {
+      const m = {};
+      editorSongsList.forEach(it => { if (it && it.songId != null) m[it.songId] = (m[it.songId] || 0) + 1; });
+      return m;
+    }
+    function selectorBadgeHtml(n) {
+      return n ? '<svg class="ic" aria-hidden="true"><use href="#i-check"/></svg> เพิ่มแล้ว' + (n > 1 ? ' ×' + n : '') : '+ เพิ่ม';
     }
 
     window.addSongToSetlist = function(songId) {
@@ -914,6 +925,16 @@
       });
       isEditorDirty = true;
       renderEditorSongsList();
+      // เอนิเมชั่น + เครื่องหมาย "เพิ่มแล้ว" บนการ์ดเพลงในคลัง (ไม่วาดรายการใหม่ทั้งหมด จะได้ไม่เด้งตำแหน่งเลื่อน)
+      const card = document.querySelector('#selectorSongsContainer .sel-card[data-sid="' + String(songId).replace(/"/g, '') + '"]');
+      if (card) {
+        const n = selectorAddedCounts()[songId] || 1;
+        card.classList.add('sel-added');
+        card.querySelector('.sel-badge').innerHTML = selectorBadgeHtml(n);
+        card.classList.remove('sel-pop'); void card.offsetWidth; card.classList.add('sel-pop');
+        setTimeout(() => card.classList.remove('sel-pop'), 700);
+      }
+      try { if (navigator.vibrate) navigator.vibrate(12); } catch (e) {}
     };
 
     // --- Pop-ups คีย์ และ โน้ต ---
