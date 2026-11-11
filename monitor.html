@@ -70,6 +70,8 @@
     <div id="karMain" class="kar-main">
       <div id="karCur" class="kar-line cur"></div>
       <div id="karNxt" class="kar-line nxt"></div>
+      <div id="karN2" class="kar-line nxt nxt2" style="display:none"></div>
+      <div id="karN3" class="kar-line nxt nxt3" style="display:none"></div>
       <div id="karWheel" class="kw-wrap" aria-hidden="true"></div>
       <div id="karMsg" class="kar-msg"></div>
       <div id="karPause" class="kar-pause hidden">⏸ หยุดชั่วคราว · แตะเพื่อเล่นต่อ</div>
@@ -614,8 +616,8 @@
       const kClamp = (v, a, b) => Math.max(a, Math.min(b, v));
 
       function karPos(now) { return kar.N ? (kar.paused ? kClamp(kar.p0, 0, kar.N - 1) : kClamp(kar.p0 + (now - kar.t0) / 1000 * kar.speed * kar.N / kar.dur, 0, kar.N - 1)) : 0; }
-      function karMsg(t) { karWheelExit(); kar.rowsFor = null; kar.lines = []; kar.N = 0; kar.doc = null; kar.shown = -1; $k('karCur').innerHTML = ''; $k('karNxt').innerHTML = ''; $k('karSec').textContent = ''; $k('karMsg').textContent = t || ''; }
-      function karSegs(line) { return line.segs.map(g => '<span class="seg"><b>' + (g.c ? kEsc(g.c) : '&nbsp;') + '</b><span>' + kEsc(g.t || ' ') + '</span></span>').join(''); }
+      function karMsg(t) { karWheelExit(); kar.rowsFor = null; kar.lines = []; kar.N = 0; kar.doc = null; kar.shown = -1; $k('karCur').innerHTML = ''; $k('karNxt').innerHTML = ''; $k('karN2').innerHTML = ''; $k('karN3').innerHTML = ''; $k('karSec').textContent = ''; $k('karMsg').textContent = t || ''; }
+      function karSegs(line) { return line.segs.map(g => '<span class="seg' + (g.bar ? ' bar' : '') + '"><b>' + (g.c ? kEsc(g.c) : '&nbsp;') + '</b><span>' + kEsc(g.t || ' ') + '</span></span>').join(''); }
       // ย่อตัวอักษรให้พอดีหนึ่งบรรทัด (ย่อได้ถึง 60%) ถ้ายังไม่พอค่อยขึ้นบรรทัดใหม่
       // ขนาดตัวอักษรเนื้อเพลงตั้งต้น: แนวนอนอิงความสูงจอ แนวตั้งอิงความกว้างจอ
       function karBase() { const w = window.innerWidth, h = window.innerHeight; return w > h ? kClamp(Math.round(h * 0.115), 26, 54) : kClamp(Math.round(w * 0.075), 26, 64); }
@@ -631,12 +633,22 @@
       function karRender(idx, anim) {
         if (!kar.N) return;
         kar.shown = idx;
-        const cur = $k('karCur'), nxt = $k('karNxt'), kf = karBase();
-        cur.innerHTML = karSegs(kar.lines[idx]);
-        nxt.innerHTML = idx + 1 < kar.N ? karSegs(kar.lines[idx + 1]) : '';
-        karFit(cur, kf); karFit(nxt, Math.round(kf * 0.56));
+        const port = window.innerWidth <= window.innerHeight, kf = karBase();
+        const cnt = port ? 4 : 2, scale = port ? [1, 0.62, 0.54, 0.54] : [1, 0.56];   // แนวตั้งโชว์ 4 บรรทัด แนวนอน 2 บรรทัด
+        const els = [$k('karCur'), $k('karNxt'), $k('karN2'), $k('karN3')];
+        let prevSec = kar.lines[idx].sec;
+        els.forEach((el, k) => {
+          const li = k < cnt ? kar.lines[idx + k] : null;
+          if (k >= 2) el.style.display = li ? '' : 'none';
+          if (!li) { el.innerHTML = ''; el.classList.remove('inst'); return; }
+          const tag = (k > 0 && port && li.sec && li.sec !== prevSec) ? '<span class="kar-tag">' + kEsc(li.sec) + '</span>' : '';
+          prevSec = li.sec;
+          el.classList.toggle('inst', !!li.inst);
+          el.innerHTML = tag + karSegs(li);
+          karFit(el, Math.round(kf * scale[k]));
+          if (anim) { el.classList.remove('kar-in'); void el.offsetWidth; el.classList.add('kar-in'); }
+        });
         $k('karSec').textContent = kar.lines[idx].sec || '';
-        if (anim) { [cur, nxt].forEach(el => { el.classList.remove('kar-in'); void el.offsetWidth; el.classList.add('kar-in'); }); }
       }
       function karSetup(item) {
         const sn = String((item && item.set) || 'Set 1').replace(/\D/g, '') || '1';
@@ -726,7 +738,7 @@
       // ===== วงล้อ 5 บรรทัดตอนลากนิ้ว =====
       function karWheelBuild() {
         if (kar.rowsFor === kar.lines) return;
-        const w = $k('karWheel'); w.innerHTML = kar.lines.map(l => '<div class="kar-line kw">' + karSegs(l) + '</div>').join('');
+        const w = $k('karWheel'); w.innerHTML = kar.lines.map(l => '<div class="kar-line kw' + (l.inst ? ' inst' : '') + '">' + karSegs(l) + '</div>').join('');
         kar.rows = Array.prototype.slice.call(w.children); kar.rowsFor = kar.lines;
       }
       function karWheelEnter() {

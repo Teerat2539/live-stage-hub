@@ -639,6 +639,7 @@
         const out = [];
         (secs || []).forEach(sec => {
           const name = sec.name || '';
+          const instSec = !(sec.lines || []).some(x => x && x.l && String(x.l).trim());   // ท่อนที่ไม่มีเนื้อร้องเลย (Intro/Instruments)
           (sec.lines || []).forEach(ln => {
             const c = ln.c || '', l = ln.l || '';
             const toks = c.split(/[\s|]+/).filter(Boolean).filter(isChordTok), a = ln.a;
@@ -648,7 +649,7 @@
               toks.forEach((t, i) => segs.push({ c: tChord(t, n, flat), t: l.slice(a[i], i + 1 < a.length ? a[i + 1] : undefined) }));
               out.push({ sec: name, segs: segs });
             } else {
-              if (c) out.push({ sec: name, segs: tLine(c, n, flat).split(/[\s|]+/).filter(Boolean).map(t => ({ c: t, t: ' ' })) });
+              if (c) out.push({ sec: name, inst: instSec, segs: tLine(c, n, flat).replace(/\|/g, ' | ').split(/\s+/).filter(Boolean).map(t => t === '|' ? { c: '|', t: ' ', bar: true } : { c: t, t: ' ' }) });
               if (l) out.push({ sec: name, segs: [{ c: '', t: l }] });
             }
           });

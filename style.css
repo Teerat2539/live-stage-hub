@@ -2237,11 +2237,11 @@ nav button:active:not(.active) { background: var(--surface-2); }
 
 /* คาราโอเกะ: วงล้อ 5 บรรทัดตอนลากนิ้ว + พอส + แจ้งเตือนแถบล่าง */
 .kar-in { animation: karIn .22s ease-out backwards; }
-.kar-main .kar-line.cur, .kar-main .kar-line.nxt { transition: opacity .22s ease, transform .22s ease; transform-origin: left center; }
+.kar-main .kar-line.cur, .kar-main .kar-line.nxt { transition: opacity .22s ease, transform .22s ease; transform-origin: center center; }
 .kar-main.kar-wheel .kar-line.cur, .kar-main.kar-wheel .kar-line.nxt { opacity: 0; transform: scale(.9); }
 .kw-wrap { position: absolute; inset: 0; opacity: 0; pointer-events: none; transition: opacity .2s ease; }
 .kar-main.kar-wheel .kw-wrap { opacity: 1; }
-.kw-wrap .kw { position: absolute; left: 0; right: 0; top: 50%; transform-origin: left center; will-change: transform, opacity; opacity: 0; }
+.kw-wrap .kw { position: absolute; left: 0; right: 0; top: 50%; transform-origin: center center; will-change: transform, opacity; opacity: 0; }
 .kw .seg b { color: var(--dim); transition: color .12s; }
 .kw .seg span { color: var(--dim); font-weight: 600; transition: color .12s; }
 .kw.sel .seg b { color: var(--live); }
@@ -2307,4 +2307,19 @@ nav button:active:not(.active) { background: var(--surface-2); }
 @media (orientation: portrait) and (max-width: 600px) {
   .kar-bot { flex-direction: column; height: auto; gap: 8px; }
   .kar-tb, .kar-nx { flex: none !important; min-height: 52px; }
+}
+
+
+/* คาราโอเกะ: เนื้อ+คอร์ดอยู่กลางจอ (ท่อนดนตรีล้วนชิดซ้าย) + เส้นกั้นห้อง + แนวตั้ง 4 บรรทัด */
+.kar-line { text-align: center; }
+.kar-line.inst { text-align: left; }
+.kar-line .seg.bar b, .kar-line.cur .seg.bar b, .kar-line.nxt .seg.bar b, .kar-line.kw .seg.bar b, .kar-line.kw.sel .seg.bar b { color: var(--text-3); font-weight: 600; opacity: .8; }
+.kar-tag { display: block; font-size: 11px; font-weight: 800; letter-spacing: .04em; color: var(--text-3); line-height: 1.7; text-align: center; white-space: normal; }
+.kar-line.nxt2 { opacity: .78; }
+.kar-line.nxt3 { opacity: .58; }
+
+/* มอนิเตอร์แนวนอน (มือถือ): แถบความคืบหน้าเป็นแถวล่างสุดเต็มความกว้าง */
+@media (orientation: landscape) and (max-height: 640px) {
+  body.lsh-page-monitor .monitor-container { grid-template-rows: minmax(0,1fr) auto auto auto; }
+  body.lsh-page-monitor .monitor-progress-bar-container { grid-column: 1 / -1; grid-row: 4; }
 }
