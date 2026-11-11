@@ -50,8 +50,8 @@
       </div>
     </div>
 
-    <!-- 3. ความคืบหน้า (ไม่แสดงตามแบบ แต่คงไว้ให้โค้ดเดิมทำงาน) -->
-    <div class="monitor-progress-bar-container" onclick="openFullQueueModal()" style="display:none">
+    <!-- 3. ความคืบหน้าโชว์ (แถบบางชิดล่าง แตะเพื่อเปิดคิวเต็ม) -->
+    <div class="monitor-progress-bar-container" onclick="openFullQueueModal()">
       <div class="progress-caption" style="display:flex;justify-content:space-between;font-size:9px;color:#888">
         <span>สถานะความคืบหน้าโชว์</span>
         <span id="progressText">Set 1 (0/0)</span>
@@ -520,7 +520,7 @@
           let colorClass = `seg-set-${setNum}`;
           let isNewSet = (idxSeg > 0 && /^Set \d+$/.test(setName) && prevNormalSet !== null && prevNormalSet !== setName) ? ' set-start' : '';
           if (/^Set \d+$/.test(setName)) prevNormalSet = setName;
-          let isPlayedClass = (song.status === 'played') ? 'played' : '';
+          let isPlayedClass = (song.status === 'played') ? 'played' : (song.status === 'playing' ? 'now' : '');
 
           html += `<div class="progress-seg-item ${colorClass} ${isPlayedClass}${isNewSet}" style="width: ${widthPercent}%;" title="${setName}: ${song.title}"></div>`;
         });
@@ -617,6 +617,8 @@
       function karMsg(t) { karWheelExit(); kar.rowsFor = null; kar.lines = []; kar.N = 0; kar.doc = null; kar.shown = -1; $k('karCur').innerHTML = ''; $k('karNxt').innerHTML = ''; $k('karSec').textContent = ''; $k('karMsg').textContent = t || ''; }
       function karSegs(line) { return line.segs.map(g => '<span class="seg"><b>' + (g.c ? kEsc(g.c) : '&nbsp;') + '</b><span>' + kEsc(g.t || ' ') + '</span></span>').join(''); }
       // ย่อตัวอักษรให้พอดีหนึ่งบรรทัด (ย่อได้ถึง 60%) ถ้ายังไม่พอค่อยขึ้นบรรทัดใหม่
+      // ขนาดตัวอักษรเนื้อเพลงตั้งต้น: แนวนอนอิงความสูงจอ แนวตั้งอิงความกว้างจอ
+      function karBase() { const w = window.innerWidth, h = window.innerHeight; return w > h ? kClamp(Math.round(h * 0.115), 26, 54) : kClamp(Math.round(w * 0.075), 26, 64); }
       function karFit(el, px) {
         el.classList.remove('wrap'); el.style.fontSize = px + 'px';
         const cw = el.clientWidth; if (!cw) return;
@@ -629,7 +631,7 @@
       function karRender(idx, anim) {
         if (!kar.N) return;
         kar.shown = idx;
-        const cur = $k('karCur'), nxt = $k('karNxt'), kf = kClamp(Math.round(window.innerHeight * 0.115), 26, 54);
+        const cur = $k('karCur'), nxt = $k('karNxt'), kf = karBase();
         cur.innerHTML = karSegs(kar.lines[idx]);
         nxt.innerHTML = idx + 1 < kar.N ? karSegs(kar.lines[idx + 1]) : '';
         karFit(cur, kf); karFit(nxt, Math.round(kf * 0.56));
@@ -729,7 +731,7 @@
       }
       function karWheelEnter() {
         karWheelBuild();
-        const main = $k('karMain'), mh = main.clientHeight, kf = kClamp(Math.round(window.innerHeight * 0.115), 26, 54);
+        const main = $k('karMain'), mh = main.clientHeight, kf = karBase();
         const rowH = Math.max(40, Math.min(mh / 5, 66));
         kar.wl = { rowH: rowH, fs: Math.min(kf * 0.62, rowH * 0.46) };
         kar.rows.forEach(el => { el._f = 0; el._v = 0; el.style.opacity = '0'; });
@@ -784,8 +786,7 @@
           const p = currentQueue.find(i => i.status === 'playing');
           if (!kReal(p)) return;                       // ไม่มีเพลงเล่นจริง: ให้เปิดรายการคิวเต็มเหมือนเดิม
           e.stopPropagation();
-          if (window.matchMedia(MQ_LAND).matches) karOpen(p);
-          else { window.__lshExpandReq = { qid: p.id, mode: hasChordsOf(p) ? 'expand' : 'none' }; if (typeof window.setActiveNav === 'function') window.setActiveNav('search'); }
+          karOpen(p);                                  // เปิดคาราโอเกะได้ทุกแนวจอ (ไปหน้าค้นหาคอร์ดให้กดที่แถบเมนูนำทางเอง)
         });
         $k('karExit').onclick = karClose;
         $k('karSpM').onclick = () => karSpeed(-0.25); $k('karSpP').onclick = () => karSpeed(0.25);
@@ -816,7 +817,7 @@
       })();
       window.__karResize = function() {
         if (!$k('karView')) return;
-        if (kar.on && !window.matchMedia(MQ_LAND).matches) { karClose(); return; }   // หมุนกลับแนวตั้ง = ออกจากคาราโอเกะ
+        if (kar.on) { kar.rowsFor = null; if (kar.hold) karWheelExit(); }   // หมุนจอ/ปรับขนาด: สร้างวงล้อใหม่ตามขนาดจอ
         if (kar.on && kar.N && kar.shown >= 0) karRender(kar.shown, false);
       };
       if (!window.__karResizeBound) { window.__karResizeBound = true; window.addEventListener('resize', () => { if (window.__karResize) window.__karResize(); }); }

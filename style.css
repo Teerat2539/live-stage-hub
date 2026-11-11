@@ -2293,3 +2293,18 @@ nav button:active:not(.active) { background: var(--surface-2); }
 .header-line-2 { flex-wrap: wrap; max-height: 190px; }
 .header-line-2.collapsed { max-height: 0; }
 .header-line-2 > .bk-line3 { flex: 1 0 100%; }
+
+
+/* ===== มอนิเตอร์: แถบความคืบหน้าโชว์ (บาง ชิดล่าง) ===== */
+.monitor-progress-bar-container { min-height: 0 !important; height: auto !important; background: transparent !important; border: 0 !important; border-radius: 0 !important; padding: 7px 2px !important; cursor: pointer; }
+.monitor-progress-bar-container .progress-segments { height: 6px; gap: 2px; }
+.monitor-progress-bar-container .progress-seg-item { border-radius: 3px; opacity: .2; }
+.monitor-progress-bar-container .progress-seg-item.played { opacity: .6; }
+.monitor-progress-bar-container .progress-seg-item.now { opacity: 1; box-shadow: 0 0 8px 1px rgba(255,255,255,.5); filter: brightness(1.25); }
+.monitor-progress-bar-container .progress-seg-item.set-start { margin-left: 5px; }
+
+/* คาราโอเกะแนวตั้งจอแคบ (มือถือ): แถบล่างซ้อนบน-ล่าง ให้ชื่อเพลงถัดไปอ่านได้ครบ */
+@media (orientation: portrait) and (max-width: 600px) {
+  .kar-bot { flex-direction: column; height: auto; gap: 8px; }
+  .kar-tb, .kar-nx { flex: none !important; min-height: 52px; }
+}
