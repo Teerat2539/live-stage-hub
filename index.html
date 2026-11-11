@@ -388,7 +388,10 @@
 
       function sectionsHtml(secs, n, flat) {
         let h = '';
+        const n0 = n, flat0 = flat;
         (secs || []).forEach(sec => {
+          if (sec.div) { h += '<div class="ch-medley-div">' + esc(sec.div) + '</div>'; return; }   // แถบคั่นเพลงย่อยในเมดเลย์
+          n = sec._n != null ? sec._n : n0; flat = sec._n != null ? sec._f : flat0;                  // เมดเลย์: แต่ละเพลงย่อยมีคีย์ของตัวเอง
           h += '<div class="ch-sec"><div class="ch-secname">' + esc(sec.name || '') + '</div>';
           (sec.lines || []).forEach(ln => {
             const c = ln.c || '', l = ln.l || '';
@@ -634,10 +637,35 @@
         const base = r.k || s.key || '';
         return { rec: r, song: s, base: base, duration: Number(s.duration) || Number(r.d) || 0, at: function(key) { const n = shiftFor(base, key || s.key || ''); return { n: n, flat: useFlat((rootIdx(base) + n + 120) % 12, isMinor(base)), keyLabel: (rootIdx(key || s.key || '') >= 0 ? String(key || s.key).trim() : keyName(base, n)) }; } };
       }
+      // เมดเลย์: ต่อเนื้อคอร์ดของเพลงย่อยทุกเพลงเป็นเอกสารเดียว (แต่ละท่อนเลื่อนคอร์ดตามคีย์ของเพลงย่อยนั้น) + แถบคั่นเพลงย่อย  parts = [{songId,key,title?,secs:[{i,n}]}]
+      function pickSecs(secs, want) {
+        const out = [];
+        (want || []).forEach(w => {
+          let sec = secs[w.i];
+          if (!sec || (w.n && String(sec.name || '') !== String(w.n))) sec = (w.n && secs.find(x => String(x.name || '') === String(w.n))) || null;
+          if (sec) out.push(sec);
+        });
+        return out;
+      }
+      async function getMedleyDoc(parts, no) {
+        const docs = await Promise.all((parts || []).map(p => getDoc(p.songId)));
+        const s = []; let dur = 0;
+        parts.forEach((p, k) => {
+          const d = docs[k], a = d.at(p.key || ''), all = d.rec.s || [], picked = pickSecs(all, p.secs);
+          s.push({ name: '', div: (no ? no + '.' + (k + 1) + ' ' : '') + (p.title || (d.song && d.song.title) || '') + ' · คีย์ ' + (a.keyLabel || p.key || '-'), lines: [] });
+          picked.forEach(sec => s.push(Object.assign({}, sec, { _n: a.n, _f: a.flat })));
+          const tot = all.reduce((t, x) => t + ((x.lines || []).length || 1), 0) || 1, got = picked.reduce((t, x) => t + ((x.lines || []).length || 1), 0);
+          dur += (d.duration || 240) * Math.min(1, got / tot);
+        });
+        return { rec: { s: s }, song: {}, base: '', duration: Math.round(dur) || 240, medley: true, at: function() { return { n: 0, flat: false, keyLabel: 'เมดเลย์' }; } };
+      }
       // แตกเป็นรายบรรทัดสำหรับคาราโอเกะ: [{sec, segs:[{c,t}]}] คอร์ดถูกเลื่อนตามคีย์แล้ว
       function flatLines(secs, n, flat) {
         const out = [];
+        const n0 = n, flat0 = flat;
         (secs || []).forEach((sec, si) => {
+          if (sec.div) { out.push({ sec: sec.div, si: si, div: sec.div, segs: [] }); return; }   // แถบคั่นเพลงย่อยในเมดเลย์
+          n = sec._n != null ? sec._n : n0; flat = sec._n != null ? sec._f : flat0;
           const name = sec.name || '';
           const instSec = !(sec.lines || []).some(x => x && x.l && String(x.l).trim());   // ท่อนที่ไม่มีเนื้อร้องเลย (Intro/Instruments)
           (sec.lines || []).forEach(ln => {
@@ -656,7 +684,7 @@
         });
         return out;
       }
-      return { open: open, close: close, edit: openEditor, _x: { cacheGet: cacheGet, cacheSet: cacheSet, chordDb: chordDb, load: load, getDoc: getDoc, sectionsHtml: sectionsHtml, flatLines: flatLines, hasOwn: hasOwn } };
+      return { open: open, close: close, edit: openEditor, _x: { cacheGet: cacheGet, cacheSet: cacheSet, chordDb: chordDb, load: load, getDoc: getDoc, getMedleyDoc: getMedleyDoc, sectionsHtml: sectionsHtml, flatLines: flatLines, hasOwn: hasOwn } };
     })();
 
     // ===== ค้นหาคอร์ดในคลังตอนเพิ่มเพลง: ตรงเป๊ะ (ชื่อ+ศิลปิน) = เชื่อมให้อัตโนมัติ / ชื่อเพลงเหมือนแต่ศิลปินต่าง = ให้เลือกเอง =====
@@ -1205,6 +1233,7 @@
       // ความยาวเพลง (วินาที): ของเพลงนั้น → ค่าเฉลี่ยของเพลงที่มีเวลา → 4 นาที
       function durationOf(s) {
         if (!s) return durAvg;
+        if (Array.isArray(s.parts) && s.parts.length) return s.parts.reduce((t, pt) => t + (durById[pt.songId] || durAvg), 0);   // เมดเลย์: รวมความยาวเต็มของเพลงย่อย (ประมาณ ไม่ตัดตามท่อน)
         return durById[s.songId] || durByTitle[tkey(s)] || durAvg;
       }
       function notify() { const i = info(); listeners.forEach(fn => { try { fn(st, i); } catch (e) {} }); }

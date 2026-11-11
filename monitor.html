@@ -41,6 +41,7 @@
           <div class="mon-tile"><div>BPM</div><b id="mNextBpm">-</b></div>
         </div>
         <div class="mon-note" id="mNextNoteRow"><span>โน้ต</span> <span id="mNextNote"></span></div>
+        <div id="mNextMed" class="mon-medlist" onclick="event.stopPropagation()"></div>
       </div>
 
       <div class="song-box-standby" id="standbyBox">
@@ -125,6 +126,7 @@
     window.initMonitorPageModule = function() {
       let currentQueue = [];
       let lastNextSongId = null;
+      let lastMedPlayId;   // เมดเลย์ที่กำลังเล่นรอบก่อน (undefined = ยังไม่เคยประมวลผล ไม่กะพริบตอนเปิดหน้า)
 
       const sessionStr = localStorage.getItem('lsh_session');
       const session = sessionStr ? JSON.parse(sessionStr) : {};
@@ -242,6 +244,14 @@
           lastNextSongId = currentNextId;
         }
 
+        // เมดเลย์ (รายการในคิวที่มี parts): ถัดไป = ชื่อเมดเลย์+ชื่อเพลง / กำลังเล่น = กล่องใหญ่แสดงรายการเพลง-คีย์-ท่อน, เพลงถัดไปจริงย้ายลงกล่องตามด้วย
+        const isMed = (x) => !!x && Array.isArray(x.parts) && x.parts.length > 0;
+        const medPlay = isMed(playing);
+        {
+          const mid = medPlay ? String(playing.id) : null;
+          if (lastMedPlayId !== undefined && mid && mid !== lastMedPlayId) triggerNextSongFlashAlert();   // กะพริบกล่องใหญ่ 1 ครั้งตอนเมดเลย์เริ่มเล่น
+          lastMedPlayId = mid;
+        }
         const mPlayingTitle = document.getElementById('mPlayingTitle');
         const isSpecial = (x) => !!x && (x.type === 'dummy_start' || x.type === 'dummy_end');
         const plainTitle = (x) => isSpecial(x) ? lshPlain(x.title) : (x.title || '');
@@ -263,17 +273,37 @@
         const nextSetEl = document.getElementById('mNextSet');
         const tilesEl = document.getElementById('mNextTiles');
         const noteRow = document.getElementById('mNextNoteRow');
-        if (next) {
+        const medBox = document.getElementById('mNextMed'), nbadge = nextBox && nextBox.querySelector('.mon-badge');
+        if (nextBox) nextBox.classList.toggle('is-medlist', medPlay);
+        if (nbadge) nbadge.textContent = medPlay ? 'เมดเลย์' : 'ถัดไป';
+        if (medPlay) {
+          const tbEl = document.getElementById('monitorTalkbackText');
+          const fsz = tbEl ? getComputedStyle(tbEl).fontSize : '';
+          const esc2 = (t) => String(t == null ? '' : t).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+          const sig = JSON.stringify([playing.id, playing.parts, fsz]);
+          if (medBox.dataset.sig !== sig) {
+            const keepTop = medBox.scrollTop;
+            medBox.dataset.sig = sig;
+            medBox.style.fontSize = fsz || '';
+            medBox.innerHTML = playing.parts.map((pt, k) => '<div class="mm-song"><span class="mm-no">' + (k + 1) + '.</span> <b>' + esc2(pt.title) + '</b> <span class="mm-key">– ' + esc2(pt.key || '-') + '</span></div><div class="mm-secs">' + esc2((pt.secs || []).map(x => x.n).join(' › ')) + '</div>').join('');
+            medBox.scrollTop = keepTop;
+          }
+          if (nextSetEl) nextSetEl.textContent = setLabel(playing);
+          nextBox.style.setProperty('--nx', nxColor(playing));
+        } else if (medBox) { medBox.dataset.sig = ''; }
+        if (medPlay) {
+          // ไม่แตะ mNextTitle/mNextDetail (ซ่อนด้วย CSS) ปล่อยค่าเดิมไว้
+        } else if (next) {
           mNextTitle.className = 'box-title-next';
           mNextTitle.textContent = plainTitle(next);
-          const special = isSpecial(next);
-          document.getElementById('mNextDetail').innerText = special ? '' : (next.artist || '');
+          const special = isSpecial(next) || isMed(next);
+          document.getElementById('mNextDetail').innerText = isSpecial(next) ? '' : (isMed(next) ? next.parts.map(pt => pt.title).join(' · ') : (next.artist || ''));
           if (nextSetEl) nextSetEl.textContent = setLabel(next);
           if (tilesEl) tilesEl.style.display = special ? 'none' : '';
           const dash = (v) => (v && String(v).trim() && String(v).trim() !== '-') ? String(v).trim() : '-';
           document.getElementById('mNextKey').textContent = dash(next.key);
           document.getElementById('mNextBpm').textContent = dash(next.bpm);
-          const hasNote = next.note && next.note.trim() !== '' && next.note.trim() !== '-';
+          const hasNote = !isMed(next) && next.note && next.note.trim() !== '' && next.note.trim() !== '-';
           document.getElementById('mNextNote').textContent = hasNote ? next.note.trim() : '';
           if (noteRow) noteRow.style.visibility = hasNote ? 'visible' : 'hidden';
         } else {
@@ -292,14 +322,15 @@
 
         const mStandbyTitle = document.getElementById('mStandbyTitle');
         const sbBox = document.getElementById('standbyBox');
-        if (standby) {
+        const sbItem = medPlay ? next : standby;   // ระหว่างเมดเลย์เล่น: เพลงถัดไปจริงมาอยู่ในกล่องตามด้วย
+        if (sbItem) {
           mStandbyTitle.className = 'box-title-standby';
-          mStandbyTitle.innerText = plainTitle(standby);
-          document.getElementById('mStandbyArtist').innerText = isSpecial(standby) ? '' : (standby.artist || '');
-          document.getElementById('mStandbyLabel').textContent = isSpecial(standby) ? 'ตามด้วย' : 'ตามด้วย · ' + setLabel(standby);
-          const k = (standby.key && standby.key !== '-') ? standby.key : '', b = (standby.bpm && standby.bpm !== '-') ? standby.bpm : '';
-          document.getElementById('mStandbyKb').textContent = isSpecial(standby) ? '' : [k, b].filter(Boolean).join(' · ');
-          if (sbBox) sbBox.style.setProperty('--sb', isSpecial(standby) ? 'var(--line-strong)' : 'var(--set-' + setNum(standby) + ', var(--set-1))');
+          mStandbyTitle.innerText = plainTitle(sbItem);
+          document.getElementById('mStandbyArtist').innerText = (isSpecial(sbItem) || isMed(sbItem)) ? (isMed(sbItem) ? sbItem.parts.map(pt => pt.title).join(' · ') : '') : (sbItem.artist || '');
+          document.getElementById('mStandbyLabel').textContent = isSpecial(sbItem) ? (medPlay ? 'ถัดไป' : 'ตามด้วย') : (medPlay ? 'ถัดไป · ' : 'ตามด้วย · ') + setLabel(sbItem);
+          const k = (sbItem.key && sbItem.key !== '-') ? sbItem.key : '', b = (sbItem.bpm && sbItem.bpm !== '-') ? sbItem.bpm : '';
+          document.getElementById('mStandbyKb').textContent = isSpecial(sbItem) ? '' : [k, b].filter(Boolean).join(' · ');
+          if (sbBox) sbBox.style.setProperty('--sb', isSpecial(sbItem) ? 'var(--line-strong)' : 'var(--set-' + setNum(sbItem) + ', var(--set-1))');
         } else {
           mStandbyTitle.className = 'box-title-standby';
           mStandbyTitle.innerText = '-';
@@ -609,7 +640,7 @@
       };
 
       // ===== แตะการ์ด "กำลังเล่น": แนวตั้ง → หน้าค้นหาคอร์ด (ขยายเพลงนี้) / แนวนอน → คาราโอเกะ =====
-      const hasChordsOf = (x) => !!(x && x.songId && ((window.lshChordMarks && window.lshChordMarks.has(String(x.songId))) || (window.lshChordOwn && window.lshChordOwn.has(String(x.songId)))));
+      const hasChordsOf = (x) => !!(x && (Array.isArray(x.parts) && x.parts.length > 0 || x.songId && ((window.lshChordMarks && window.lshChordMarks.has(String(x.songId))) || (window.lshChordOwn && window.lshChordOwn.has(String(x.songId))))));
       const NO_CHORD_TXT = 'เพลงนี้ยังไม่มีคอร์ดในฐานข้อมูล';
       const kar = { on: false, qid: null, key: '', doc: null, lines: [], N: 0, dur: 240, speed: 1, p0: 0, t0: 0, drag: null, shown: -1, tok: 0, timer: 0, tbSig: '', paused: false, hold: false, wp: 0, v: 0, raf: 0, settle: null, rows: [], rowsFor: null, wl: null, lastTb: null, lastNx: null };
       const $k = (id) => document.getElementById(id);
@@ -643,18 +674,20 @@
       }
       function karSecBuild() {
         if (kar.secsFor === kar.lines) return kar.secs;
-        const secs = [], of = [];
+        const secs = [], of = []; let grp = 0;
         kar.lines.forEach((l, i) => {
           const key = l.si != null ? 's' + l.si : 'n' + l.sec;
           let s = secs[secs.length - 1];
-          if (!s || s.key !== key) { s = { key: key, name: l.sec || '', start: i, end: i + 1 }; secs.push(s); } else s.end = i + 1;
+          if (l.div) grp++;   // เมดเลย์: นับ "ฮุค 1/2" แยกตามเพลงย่อย
+          if (!s || s.key !== key) { s = { key: key, name: l.sec || '', g: grp, start: i, end: i + 1 }; secs.push(s); } else s.end = i + 1;
           of[i] = secs.length - 1;
         });
         const total = {}, seen = {};
-        secs.forEach(s => { total[s.name] = (total[s.name] || 0) + 1; });
+        secs.forEach(s => { const k = s.g + '|' + s.name; total[k] = (total[k] || 0) + 1; });
         secs.forEach(s => {
-          seen[s.name] = (seen[s.name] || 0) + 1;
-          s.label = (!s.name) ? '' : (/\d/.test(s.name) || total[s.name] < 2) ? s.name : s.name + ' ' + seen[s.name] + '/' + total[s.name];   // ฮุคซ้ำ = ฮุค 2/3
+          const k = s.g + '|' + s.name;
+          seen[k] = (seen[k] || 0) + 1;
+          s.label = (!s.name) ? '' : (/\d/.test(s.name) || total[k] < 2) ? s.name : s.name + ' ' + seen[k] + '/' + total[k];   // ฮุคซ้ำ = ฮุค 2/3
           s.cls = karSecClass(s.name);
         });
         kar.secs = secs; kar.secOf = of; kar.secsFor = kar.lines;
@@ -694,8 +727,9 @@
           const tag = (k > 0 && port && si !== prevSec && sl) ? '<span class="kar-tag">' + kEsc(sl) + '</span>' : '';
           prevSec = si;
           el.classList.toggle('inst', !!li.inst);
-          el.innerHTML = tag + karSegs(li);
-          karFit(el, Math.round(kf * scale[k]));
+          el.classList.toggle('kdiv', !!li.div);
+          if (li.div) { el.classList.remove('wrap'); el.innerHTML = '<span class="kar-mdiv">' + kEsc(li.div) + '</span>'; el.style.fontSize = Math.round(kf * scale[k] * 0.6) + 'px'; }   // แถบคั่นเพลงย่อยในเมดเลย์
+          else { el.innerHTML = tag + karSegs(li); karFit(el, Math.round(kf * scale[k])); }
           if (anim) { el.classList.remove('kar-in'); void el.offsetWidth; el.classList.add('kar-in'); }
         });
         $k('karSec').textContent = kar.secs[kar.secOf[idx]].label || kar.lines[idx].sec || '';
@@ -713,9 +747,11 @@
         const tok = ++kar.tok; kar.qid = String(item.id); kar.key = item.key || ''; kar.paused = false; $k('karPause').classList.add('hidden');
         karSetup(item); karMsg('');
         const X = window.lshChords && window.lshChords._x;
-        if (!item.songId || !X) { karMsg(NO_CHORD_TXT); return; }
+        const med = Array.isArray(item.parts) && item.parts.length > 0;   // เมดเลย์: ต่อคอร์ดเพลงย่อยเป็นสายเดียว มีแถบคั่นเพลง
+        if ((!item.songId && !med) || !X) { karMsg(NO_CHORD_TXT); return; }
         try {
-          const d = await X.getDoc(item.songId); if (tok !== kar.tok || !kar.on) return;
+          let no = 0; if (med) { for (const i of currentQueue) { if (!i || i.type === 'dummy_start' || i.type === 'dummy_end' || i.status === 'removed') continue; no++; if (String(i.id) === String(item.id)) break; } }
+          const d = med ? await X.getMedleyDoc(item.parts, no) : await X.getDoc(item.songId); if (tok !== kar.tok || !kar.on) return;
           kar.doc = d; karApply(d.at(item.key));
           if (!kar.N) { karMsg(NO_CHORD_TXT); return; }
           kar.dur = d.duration || (window.lshAutoAdv && window.lshAutoAdv.durationOf ? window.lshAutoAdv.durationOf(item) : 240) || 240;

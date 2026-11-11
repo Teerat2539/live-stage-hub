@@ -436,6 +436,7 @@
               set: song.set || 'Set 1',
               status: 'normal',
               type: song.type || 'normal',
+              ...(Array.isArray(song.parts) && song.parts.length ? { parts: song.parts } : {}),   // เมดเลย์: เก็บรายการเพลงย่อยไว้ด้วย
               originalIndex: idx
             };
           });
@@ -623,6 +624,11 @@
         const hasKey = song.key && song.key !== '-';
         const hasNote = song.note && String(song.note).trim() && String(song.note).trim() !== '-';
         const isNext = stateClass === 'next';
+        const isMed = Array.isArray(song.parts) && song.parts.length > 0;   // เมดเลย์ = 1 การ์ด ย้าย/ข้าม/ลบทั้งก้อน แทรกกลางไม่ได้ เปลี่ยนคีย์ไม่ได้
+        const escH = (t) => String(t == null ? '' : t).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+        if (isMed) badgeHtml = '<span class="badge-tag badge-medley">เมดเลย์</span>';
+        const medRows = isMed ? '<div class="mdl-q">' + song.parts.map((pt, k) =>
+          `<div class="mdl-q-row"><span class="mdl-q-no">${indexLabel}.${k + 1}</span><span class="mdl-q-t">${escH(pt.title)}</span><span class="mdl-q-k">${escH(pt.key || '-')}</span><div class="mdl-q-s">${escH((pt.secs || []).map(x => x.n).join(' › '))}</div></div>`).join('') + '</div>' : '';
 
         let actionsHtml = '';
         if (stateClass === 'playing') {
@@ -667,8 +673,8 @@
             <div class="q-no">${indexLabel}</div>
             <div class="u-flex1 q-body">
               ${isNext ? '<div class="q-tag">ถัดไป</div>' : ''}
-              <div class="song-title-main">${song.title}${badgeHtml}</div>
-              <div class="q-artist">${song.artist || ''}${setPill}</div>
+              <div class="song-title-main">${isMed ? escH(song.title) : song.title}${badgeHtml}</div>
+              ${isMed ? setPill + medRows : `<div class="q-artist">${song.artist || ''}${setPill}</div>`}
               ${chips}
             </div>
             ${side}

@@ -177,7 +177,7 @@
                 ${song.status === 'next' ? '<div class="q-tag">ถัดไป</div>' : ''}
                 ${song.status === 'playing' ? '<div class="q-playing" style="margin-bottom:2px"><i></i>กำลังเล่น</div>' : ''}
                 <div class="song-title-main">${song.title}</div>
-                <div class="q-artist">${song.artist || ''}${/^Set \d+$/.test(setVal) ? '' : `<span class="set-pill">${setVal}</span>`}</div>
+                <div class="q-artist">${(Array.isArray(song.parts) && song.parts.length) ? song.parts.map(pt => pt.title).join(' · ') : (song.artist || '')}${/^Set \d+$/.test(setVal) ? '' : `<span class="set-pill">${setVal}</span>`}</div>
               </div>
               <svg class="ic q-go ${window.lshChordCls && song.songId ? window.lshChordCls(song.songId) : ''}" data-chordid="${song.songId || ''}" aria-hidden="true"><use href="#i-search"/></svg>
               ${(isReqCard && qx.req.mode === 'none') || (song.status === 'playing' && qx.noteFor === String(song.id)) ? '<div class="qx-none">' + NO_CHORD_TXT + '</div>' : ''}
@@ -217,7 +217,7 @@
         if (!pl) return;
         const id = String(pl.id);
         if (qx.autoFor === id || !document.getElementById('card_' + id)) return;
-        const has = window.lshChordCls && pl.songId && window.lshChordCls(pl.songId) === 'has-chord';
+        const has = (Array.isArray(pl.parts) && pl.parts.length > 0) || (window.lshChordCls && pl.songId && window.lshChordCls(pl.songId) === 'has-chord');
         if (!has) {
           // เครื่องหมายคอร์ดอาจยังโหลดไม่เสร็จ: ลองใหม่ไม่กี่ครั้ง ถ้ายังไม่มีจริงๆ แสดงข้อความว่าไม่มีคอร์ด
           if (qx.autoTry < 4) { qx.autoTry++; setTimeout(qxAuto, 700); return; }
@@ -239,18 +239,26 @@
         document.querySelectorAll('#searchQueueContainer .q-exp').forEach(n => n.remove());
         document.querySelectorAll('#searchQueueContainer .song-card.q-open').forEach(n => { n.classList.remove('q-open'); n.style.minHeight = ''; });
       }
+      // เลขลำดับเพลงในคิว (ตรงกับหน้าคิว) ใช้ทำแถบคั่น "8.2 ชื่อเพลง"
+      function qxNo(item) {
+        let n = 0;
+        for (const i of currentQueueList) { if (!i || i.type === 'dummy_start' || i.type === 'dummy_end' || i.status === 'removed') continue; n++; if (String(i.id) === String(item.id)) return n; }
+        return 0;
+      }
       function qxFill(box, item) {
         const st = box.querySelector('.qx-status'), body = box.querySelector('.qx-body'), keyEl = box.querySelector('.qx-key');
         const X = window.lshChords && window.lshChords._x;
         const none = () => { st.textContent = NO_CHORD_TXT; st.classList.add('grey'); body.innerHTML = ''; };
-        if (!item.songId || !X) { none(); return; }
-        let p = qx.docs[item.songId];
-        if (!p) { p = qx.docs[item.songId] = X.getDoc(item.songId); p.catch(() => { delete qx.docs[item.songId]; }); }
+        const med = Array.isArray(item.parts) && item.parts.length > 0;   // เมดเลย์: ต่อคอร์ดของเพลงย่อยเป็นหน้าเดียว มีแถบคั่นเพลง
+        if ((!item.songId && !med) || !X) { none(); return; }
+        const ck = med ? 'med:' + item.id + ':' + JSON.stringify(item.parts) : item.songId;
+        let p = qx.docs[ck];
+        if (!p) { p = qx.docs[ck] = med ? X.getMedleyDoc(item.parts, qxNo(item)) : X.getDoc(item.songId); p.catch(() => { delete qx.docs[ck]; }); }
         p.then(d => {
           if (String(qx.openId) !== String(item.id) || !box.isConnected) return;
           const a = d.at(item.key);
           body.innerHTML = X.sectionsHtml(d.rec.s, a.n, a.flat);
-          st.textContent = ''; keyEl.textContent = 'คีย์ ' + a.keyLabel;
+          st.textContent = ''; if (keyEl) keyEl.textContent = 'คีย์ ' + a.keyLabel;
         }).catch(e => {
           if (String(qx.openId) !== String(item.id) || !box.isConnected) return;
           if (e && e.message === 'notfound') none(); else { st.textContent = 'โหลดคอร์ดไม่ได้ (ตรวจสอบอินเทอร์เน็ต แล้วลองใหม่)'; st.classList.add('grey'); }
@@ -270,7 +278,7 @@
           '<div class="qx-seg" data-k="cols"><button type="button" data-v="1" aria-label="1 คอลัมน์" title="1 คอลัมน์" class="' + (qx.cols2 ? '' : 'on') + '"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="3.5" width="14" height="17" rx="2.5"/><path d="M8.5 8h7M8.5 12h7M8.5 16h5"/></svg></button><button type="button" data-v="2" aria-label="2 คอลัมน์" title="2 คอลัมน์" class="' + (qx.cols2 ? 'on' : '') + '"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3.5" width="8.2" height="17" rx="2"/><rect x="12.8" y="3.5" width="8.2" height="17" rx="2"/><path d="M5.3 8h3.6M5.3 12h3.6M15.1 8h3.6M15.1 12h3.6"/></svg></button></div>' +
           '<div class="qx-seg" data-k="mode"><button type="button" data-v="c" aria-label="คอร์ด+เนื้อ" title="คอร์ด+เนื้อ" class="' + (qx.lyr ? '' : 'on') + '"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 4.5h3M12 4.5h3" stroke-width="2.4"/><path d="M4 10h16M4 15h16M4 20h10"/></svg></button><button type="button" data-v="l" aria-label="เนื้ออย่างเดียว" title="เนื้ออย่างเดียว" class="' + (qx.lyr ? 'on' : '') + '"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h11"/></svg></button></div>' +
           '<div class="qx-seg" data-k="fs"><button type="button" data-v="-">A−</button><button type="button" data-v="+">A+</button></div>' +
-          '<span class="qx-chip">' + set + (set ? ' · ' : '') + '<b class="qx-key">' + (item.key && item.key !== '-' ? 'คีย์ ' + item.key : 'คีย์ -') + '</b></span>' +
+          '<span class="qx-chip">' + set + ((Array.isArray(item.parts) && item.parts.length) ? '' : (set ? ' · ' : '') + '<b class="qx-key">' + (item.key && item.key !== '-' ? 'คีย์ ' + item.key : 'คีย์ -') + '</b>') + '</span>' +
           '</div></div>' +
           '<div class="qx-status">กำลังโหลดคอร์ด…</div><div class="ch-body qx-body"></div>';
         card.appendChild(box);
