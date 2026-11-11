@@ -32,8 +32,11 @@
           <option value="key">ตามคีย์เพลง</option>
           <option value="bpm">ตาม BPM</option>
           <option value="playCount">ตามความถี่ที่นำมาเล่น</option>
+          <option value="recent">ล่าสุดที่เพิ่ม/แก้ไข</option>
         </select>
       </div>
+
+      <div class="bk-line3"><label class="u-meta bk-nochord"><input type="checkbox" id="chkNoChord"> เฉพาะเพลงที่ยังไม่มีคอร์ด</label><button id="btnOpenBulkAdd" class="add-song-btn bk-open" title="เพิ่มหลายเพลงพร้อมกัน">+ เพิ่มหลายเพลง</button></div>
     </div>
   </div>
 
@@ -138,6 +141,10 @@
         songList = songList.filter(song => song.key && allowedKeys.has(song.key.trim().toLowerCase()));
       }
 
+      if (document.getElementById('chkNoChord') && document.getElementById('chkNoChord').checked) {
+        songList = songList.filter(song => !(song.bk || (window.lshChordOwn && window.lshChordOwn.has(String(song.id)))));
+      }
+
       if (searchText !== '') {
         let group1Prefix = [];
         let group2TitleContains = [];
@@ -175,6 +182,7 @@
         if (option === 'key') return (a.key || '').localeCompare(b.key || '');
         if (option === 'bpm') return (b.bpm || 0) - (a.bpm || 0);
         if (option === 'playCount') return (b.playCount || 0) - (a.playCount || 0);
+        if (option === 'recent') return ((b.updatedAt || 0) - (a.updatedAt || 0)) || String(b.id).localeCompare(String(a.id)); // เพลงเก่าที่ไม่มีเวลา เรียงตามรหัส (ใหม่สุดก่อน)
         return 0;
       });
     }
@@ -283,8 +291,10 @@
     populateFormKeySelect();
 
     document.getElementById('sortSelect').onchange = onSearchOrFilterChange;
+    document.getElementById('chkNoChord').onchange = onSearchOrFilterChange;
 
     document.getElementById('btnOpenAddSong').onclick = () => { lshSongKit.openForm(null); };
+    document.getElementById('btnOpenBulkAdd').onclick = () => { if (window.lshBulkAdd) window.lshBulkAdd.start(); };
   };
 
   window.initSongsPageModule();

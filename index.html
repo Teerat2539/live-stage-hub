@@ -216,7 +216,7 @@
         const bpm = parseInt($('formBpm').value, 10) || 0;
         if (!title || !artist || !key) { lshToast('กรุณากรอกชื่อเพลง ศิลปิน และเลือกคีย์หลักให้ครบถ้วน', 'warn'); return; }
         const songId = isEditing ? currentActiveSongId : generateNextSongId();
-        const songPayload = { title: title, artist: artist, key: key, bpm: bpm };
+        const songPayload = { title: title, artist: artist, key: key, bpm: bpm, updatedAt: Date.now() }; // updatedAt = เวลาที่เพิ่ม/แก้รายละเอียดเพลงล่าสุด (ใช้เรียง "ล่าสุดที่เพิ่ม/แก้ไข")
         // ความยาวเพลง (วินาที) — ฟิลด์ใหม่ songs/{id}/duration; ไม่กรอก = ไม่เก็บ (ระบบใช้ค่าเฉลี่ยแทน)
         const durSec = (parseInt($('formDurMin').value, 10) || 0) * 60 + (parseInt($('formDurSec').value, 10) || 0);
         if (durSec > 0) songPayload.duration = durSec;
@@ -396,7 +396,7 @@
             if (l && a && a.length && a.length === toks.length) {
               h += '<div class="ch-line">';
               if (a[0] > 0) h += '<span class="ch-seg"><b class="ch-c">&nbsp;</b><span class="ch-t">' + esc(l.slice(0, a[0])) + '</span></span>';
-              toks.forEach((t, i) => { h += '<span class="ch-seg"><b class="ch-c">' + esc(tChord(t, n, flat)) + '</b><span class="ch-t">' + esc(l.slice(a[i], i + 1 < a.length ? a[i + 1] : undefined)) + '</span></span>'; });
+              toks.forEach((t, i) => { h += '<span class="ch-seg"><b class="ch-c">' + esc(tChord(t, n, flat)) + '</b><span class="ch-t">' + (esc(l.slice(a[i], i + 1 < a.length ? a[i + 1] : undefined)) || '&nbsp;') + '</span></span>'; });  // คอร์ดท้ายบรรทัด/ท่อนเอื้อน ไม่มีเนื้อ: ใส่ช่องว่างให้คอร์ดอยู่แถวคอร์ดเหนือเนื้อ ไม่ตกมาแถวเดียวกับเนื้อ
               h += '</div>';
             } else {
               if (c) h += '<div class="ch-raw ch-rawc">' + esc(tLine(c, n, flat)) + '</div>';
@@ -760,7 +760,211 @@
         if (empty(song.year) && r.y) up.year = r.y; if (empty(song.genres) && r.g) up.genres = r.g;
         try { await db.ref('songs/' + songId).update(up); if (window.lshAutoAdv && window.lshAutoAdv.refreshDurations) window.lshAutoAdv.refreshDurations(); lshToast('เชื่อมคอร์ดแล้ว', 'ok'); } catch (e) { lshToast('บันทึกไม่สำเร็จ: ' + e.message, 'error'); }
       }
-      return { lookup: lookup, link: link, preload: () => { getIdx().catch(() => {}); }, _key: bkKey };
+      return { lookup: lookup, link: link, preload: () => { getIdx().catch(() => {}); }, _key: bkKey, _bulk: { getIdx: getIdx, take: take, bkNorm: bkNorm, bkKey: bkKey, esc: esc } };
+    })();
+
+    // ===== เพิ่มหลายเพลงพร้อมกัน (หน้าเพลงทั้งหมด): กรอกชื่อ(+ศิลปิน) → ถามทีละเพลงว่าตรงกับเพลงไหนในคลังคอร์ด → สรุป → บันทึกครั้งเดียว =====
+    window.lshBulkAdd = (function() {
+      const MAX = 20;
+      let busy = false;
+      const L = () => window.lshChordLookup._bulk;
+      const esc = (s) => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+      const mk = (tag, cls, html) => { const e = document.createElement(tag); if (cls) e.className = cls; if (html != null) e.innerHTML = html; return e; };
+      const mmss = (d) => d ? Math.floor(d / 60) + ':' + String(d % 60).padStart(2, '0') : '';
+      function sheet(html) { const ov = mk('div', 'bk-ov'), box = mk('div', 'bk-box', html); ov.appendChild(box); document.body.appendChild(ov); return { ov: ov, box: box, q: (s) => box.querySelector(s), close: () => ov.remove() }; }
+
+      // ขั้น 1: ตารางกรอก
+      function askRows() {
+        return new Promise(resolve => {
+          const sh = sheet('<div class="bk-h">เพิ่มหลายเพลง</div><div class="bk-s">กรอกชื่อเพลง (จำเป็น) และศิลปิน (ไม่บังคับ) ครั้งละไม่เกิน ' + MAX + ' เพลง · วางรายการหลายบรรทัดได้ (ชื่อเพลง | ศิลปิน)</div><div class="bk-rows"></div><button type="button" class="bk-addrow">+ เพิ่มแถว</button><div class="bk-cnt"></div><div class="bk-act"><button type="button" class="bk-ghost">ยกเลิก</button><button type="button" class="bk-go">ถัดไป</button></div>');
+          const list = sh.q('.bk-rows'), cnt = sh.q('.bk-cnt'), addBtn = sh.q('.bk-addrow');
+          const rowsEl = () => list.querySelectorAll('.bk-row');
+          const filled = () => Array.prototype.filter.call(rowsEl(), r => r.querySelector('.bk-t').value.trim()).length;
+          function upd() { cnt.textContent = 'กรอกแล้ว ' + filled() + ' เพลง (สูงสุด ' + MAX + ')'; addBtn.disabled = rowsEl().length >= MAX; }
+          function addRow(t, a) {
+            if (rowsEl().length >= MAX) return null;
+            const r = mk('div', 'bk-row', '<input class="bk-t" data-noclear type="text" placeholder="ชื่อเพลง *" autocomplete="off"><input class="bk-a" data-noclear type="text" placeholder="ศิลปิน (ไม่บังคับ)" autocomplete="off"><button type="button" class="bk-x" aria-label="ลบแถว">✕</button>');
+            r.querySelector('.bk-t').value = t || ''; r.querySelector('.bk-a').value = a || '';
+            r.querySelector('.bk-x').onclick = () => { r.remove(); if (!rowsEl().length) addRow(); upd(); };
+            r.addEventListener('input', upd);
+            r.addEventListener('paste', (e) => {
+              const txt = (e.clipboardData || window.clipboardData).getData('text') || '';
+              if (!/[\r\n]/.test(txt.trim())) return;
+              e.preventDefault();
+              const lines = txt.split(/\r?\n/).map(x => x.trim()).filter(Boolean); let over = 0, first = true;
+              lines.forEach(ln => {
+                const parts = ln.split(/\t| \| |\|/).map(x => x.trim()); const t2 = parts[0] || '', a2 = parts[1] || '';
+                if (first && !r.querySelector('.bk-t').value.trim()) { r.querySelector('.bk-t').value = t2; r.querySelector('.bk-a').value = a2; first = false; }
+                else if (!addRow(t2, a2)) over++;
+              });
+              if (over) lshToast('รับได้ไม่เกิน ' + MAX + ' เพลงต่อครั้ง ตัดส่วนเกิน ' + over + ' รายการออก', 'warn');
+              upd();
+            });
+            list.appendChild(r); return r;
+          }
+          addRow(); addRow(); addRow(); upd();
+          addBtn.onclick = () => { const r = addRow(); if (r) r.querySelector('.bk-t').focus(); upd(); };
+          sh.q('.bk-ghost').onclick = () => { sh.close(); resolve(null); };
+          sh.q('.bk-go').onclick = () => {
+            const out = Array.prototype.map.call(rowsEl(), r => ({ title: r.querySelector('.bk-t').value.trim(), artist: r.querySelector('.bk-a').value.trim() })).filter(x => x.title);
+            if (!out.length) { lshToast('กรุณากรอกชื่อเพลงอย่างน้อย 1 เพลง', 'warn'); return; }
+            sh.close(); resolve(out);
+          };
+          setTimeout(() => { const f = list.querySelector('.bk-t'); if (f) f.focus(); }, 80);
+        });
+      }
+
+      // ผู้สมัครจากคลังคอร์ด (สูงสุด limit รายการ) เรียงตามความใกล้เคียง
+      function findCands(ix, info, limit) {
+        const N = L().bkNorm, tq = N(info.title, true), aq = N(info.artist, true); if (!tq) return [];
+        const ek = L().bkKey(info.title, info.artist), out = [];
+        for (let i = 0; i < ix.cat.length; i++) {
+          const e = ix.cat[i]; const tt = e._t != null ? e._t : (e._t = N(e[1], true)); if (!tt) continue;
+          let sc;
+          if (tt === tq) sc = 60; else if (tt.indexOf(tq) === 0) sc = 40; else if (tt.indexOf(tq) > 0) sc = 25; else if (tt.length >= 4 && tq.length >= 4 && tq.indexOf(tt) >= 0) sc = 20; else continue;
+          if (aq) { const ta = e._a != null ? e._a : (e._a = N(e[2], true)); if (ta === aq) sc += 35; else if (ta && (ta.indexOf(aq) >= 0 || aq.indexOf(ta) >= 0)) sc += 18; }
+          if (e[0] === ek) sc += 100;
+          out.push([sc, e]);
+        }
+        out.sort((x, y) => (y[0] - x[0]) || (x[1][1].length - y[1][1].length));
+        return out.slice(0, limit).map(x => ({ e: x[1], sc: x[0] }));
+      }
+
+      // ถามเมื่อชื่อซ้ำกับเพลงที่มีในคลังเพลงของวงแล้ว → 'skip' | 'new' | 'cancel'
+      function dupDialog(r, matches, pos, total) {
+        return new Promise(resolve => {
+          const sh = sheet('<div class="bk-prog">' + pos + '/' + total + '</div><div class="bk-h">เพลงนี้มีในคลังแล้วหรือเปล่า?</div><div class="bk-s">คุณพิมพ์: <b>' + esc(r.title) + '</b>' + (r.artist ? ' — ' + esc(r.artist) : '') + '</div><div class="bk-hd">เพลงที่มีอยู่แล้ว</div>' +
+            matches.slice(0, 4).map(m => '<div class="bk-it bk-static"><b>' + esc(m.title) + '</b><span> — ' + esc(m.artist || 'ไม่ระบุศิลปิน') + '</span><i>' + (m.key && m.key !== '-' ? 'คีย์ ' + esc(m.key) : '') + '</i></div>').join('') +
+            '<button type="button" class="bk-go bk-same">ใช่ เป็นเพลงเดียวกัน (ข้ามเพลงนี้)</button><button type="button" class="bk-ghost bk-new">ไม่ใช่ สร้างเป็นเพลงใหม่</button><button type="button" class="bk-link bk-quit">ยกเลิกทั้งหมด</button>');
+          sh.q('.bk-same').onclick = () => { sh.close(); resolve('skip'); };
+          sh.q('.bk-new').onclick = () => { sh.close(); resolve('new'); };
+          sh.q('.bk-quit').onclick = () => { sh.close(); resolve('cancel'); };
+        });
+      }
+
+      // ถามว่าหมายถึงเพลงไหนในคลังคอร์ด → {e} | 'own' | 'skip' | 'cancel'
+      function candDialog(r, cands, ix, pos, total) {
+        return new Promise(resolve => {
+          const sh = sheet('<div class="bk-prog">' + pos + '/' + total + '</div><div class="bk-h">คุณหมายถึงเพลงไหน?</div><div class="bk-s">คุณพิมพ์: <b>' + esc(r.title) + '</b>' + (r.artist ? ' — ' + esc(r.artist) : '') + '</div><input class="bk-q" data-noclear type="search" placeholder="ค้นหาอื่นในฐานข้อมูล" autocomplete="off"><div class="bk-list"></div><button type="button" class="bk-ghost bk-no">ไม่ใช่เลย (ต้องเขียนคอร์ดเอง)</button><div class="bk-row2"><button type="button" class="bk-link bk-skip">ข้ามเพลงนี้ (ไม่เพิ่ม)</button><button type="button" class="bk-link bk-quit">ยกเลิกทั้งหมด</button></div>');
+          const list = sh.q('.bk-list'), q = sh.q('.bk-q');
+          function show(rows, head) {
+            list.innerHTML = (head ? '<div class="bk-hd">' + head + '</div>' : '') + (rows.length ? '' : '<div class="bk-none">ไม่พบ</div>');
+            rows.forEach(c => {
+              const e = c.e, b = mk('button', 'bk-it');
+              b.type = 'button';
+              b.innerHTML = '<b>' + esc(e[1]) + '</b><span> — ' + esc(e[2]) + '</span><i>' + (c.sc >= 100 ? '<u>ตรงเป๊ะ</u> ' : '') + (e[3] ? 'คีย์ ' + esc(e[3]) : '') + (e[4] ? ' · ' + mmss(e[4]) : '') + '</i>';
+              b.onclick = () => { sh.close(); resolve({ e: e }); };
+              list.appendChild(b);
+            });
+          }
+          show(cands, 'พบเพลงที่ใกล้เคียง เลือกอันที่ตรง');
+          let tm = 0;
+          q.oninput = () => { clearTimeout(tm); tm = setTimeout(() => {
+            const t = L().bkNorm(q.value, true); if (!t) { show(cands, 'พบเพลงที่ใกล้เคียง เลือกอันที่ตรง'); return; }
+            const rows = []; for (let i = 0; i < ix.cat.length && rows.length < 10; i++) { const e = ix.cat[i]; if (L().bkNorm(e[1], true).indexOf(t) >= 0 || L().bkNorm(e[2], true).indexOf(t) >= 0) rows.push({ e: e, sc: 0 }); }
+            show(rows, 'ผลค้นหา');
+          }, 250); };
+          sh.q('.bk-no').onclick = () => { sh.close(); resolve('own'); };
+          sh.q('.bk-skip').onclick = () => { sh.close(); resolve('skip'); };
+          sh.q('.bk-quit').onclick = () => { sh.close(); resolve('cancel'); };
+        });
+      }
+
+      // สรุปก่อนบันทึก → true = บันทึก
+      function summary(results) {
+        return new Promise(resolve => {
+          const sh = sheet('<div class="bk-h">สรุปก่อนบันทึก</div><div class="bk-s bk-sum"></div><div class="bk-sumlist"></div><div class="bk-act"><button type="button" class="bk-ghost">ยกเลิก</button><button type="button" class="bk-go bk-save">บันทึก</button></div>');
+          const listEl = sh.q('.bk-sumlist'), sumEl = sh.q('.bk-sum'), save = sh.q('.bk-save');
+          function draw() {
+            const nl = results.filter(x => x.status === 'link').length, no = results.filter(x => x.status === 'own').length, ns = results.filter(x => x.status === 'skip').length;
+            sumEl.textContent = 'เชื่อมคอร์ดจากฐานข้อมูล ' + nl + ' · ต้องเขียนคอร์ดเอง ' + no + ' · ข้าม ' + ns;
+            save.textContent = 'บันทึก ' + (nl + no) + ' เพลง'; save.disabled = (nl + no) === 0;
+            listEl.innerHTML = '';
+            results.forEach((x, i) => {
+              const row = mk('div', 'bk-sr ' + x.status);
+              let d = '';
+              if (x.status === 'link') d = '<i>เชื่อมกับ: ' + esc(x.e[1]) + ' — ' + esc(x.e[2]) + (x.e[3] ? ' · คีย์ ' + esc(x.e[3]) : '') + '</i>';
+              else if (x.status === 'own') d = '<i>ต้องเขียนคอร์ดเอง</i>';
+              else d = '<i>' + esc(x.reason || 'ข้าม') + '</i>';
+              row.innerHTML = '<div class="bk-sm"><b>' + esc(x.status === 'link' ? x.e[1] : x.title) + '</b>' + d + '</div>' + (x.status === 'skip' ? '' : '<button type="button" class="bk-x" aria-label="เอาออก">✕</button>');
+              const xb = row.querySelector('.bk-x'); if (xb) xb.onclick = () => { x.status = 'skip'; x.reason = 'เอาออกแล้ว'; draw(); };
+              listEl.appendChild(row);
+            });
+          }
+          draw();
+          sh.q('.bk-ghost').onclick = () => { sh.close(); resolve(false); };
+          save.onclick = () => { sh.close(); resolve(true); };
+        });
+      }
+
+      function nextIds(keys, n) {
+        let maxChar = 'a', maxNum = -1;
+        keys.forEach(id => { const m = id.match(/^([a-z])(\d{3})$/); if (m) { const c = m[1], num = parseInt(m[2], 10); if (c > maxChar || (c === maxChar && num > maxNum)) { maxChar = c; maxNum = num; } } });
+        const out = [];
+        for (let i = 0; i < n; i++) { maxNum++; if (maxNum > 999) { maxNum = 0; maxChar = String.fromCharCode(maxChar.charCodeAt(0) + 1); } out.push(maxChar + String(maxNum).padStart(3, '0')); }
+        return out;
+      }
+
+      async function doSave(items) {
+        const now = Date.now();
+        const payloads = await Promise.all(items.map(async (x) => {
+          if (x.status === 'link') {
+            const e = x.e, t = await L().take(e);
+            const p = { title: e[1], artist: e[2] || x.artist || '', key: (e[3] && String(e[3]).trim()) || '-', bpm: Number(t.b) || 0, bk: t.bk, updatedAt: now };
+            if (t.d) p.duration = t.d; if (t.y) p.year = t.y; if (t.g) p.genres = t.g;
+            return p;
+          }
+          return { title: x.title, artist: x.artist || '', key: '-', bpm: 0, updatedAt: now };
+        }));
+        const fresh = (await db.ref('songs').once('value')).val() || {};   // อ่านรายการล่าสุดทันทีก่อนเขียน เพื่อกันรหัสเพลงชนกับคนที่เพิ่มพร้อมกัน
+        const ids = nextIds(Object.keys(fresh), payloads.length), upd = {};
+        payloads.forEach((p, i) => { upd[ids[i]] = p; });
+        await db.ref('songs').update(upd);                                  // เขียนครั้งเดียวทั้งชุด
+        if (window.lshAutoAdv && window.lshAutoAdv.refreshDurations) window.lshAutoAdv.refreshDurations();
+      }
+
+      async function start() {
+        if (busy) return; busy = true;
+        try {
+          const rows = await askRows(); if (!rows) return;
+          let songs;
+          try { songs = (await db.ref('songs').once('value')).val() || {}; } catch (e) { lshToast('อ่านรายการเพลงไม่ได้ ตรวจสอบอินเทอร์เน็ตแล้วลองใหม่', 'error'); return; }
+          const N = L().bkNorm;
+          let ix = null;
+          try { ix = await L().getIdx(); } catch (e) { lshToast('โหลดสารบัญคอร์ดไม่ได้ เพลงทั้งหมดจะถูกเพิ่มเป็น "ต้องเขียนคอร์ดเอง"', 'warn'); }
+          const exist = Object.keys(songs).map(id => { const s = songs[id] || {}; return { id: id, title: s.title || '', artist: s.artist || '', key: s.key || '', tn: N(s.title, true), an: N(s.artist, true) }; });
+          const results = [];
+          for (let i = 0; i < rows.length; i++) {
+            const r = rows[i], tn = N(r.title, true), an = N(r.artist, true), base = { title: r.title, artist: r.artist };
+            if (!tn) { results.push(Object.assign({ status: 'skip', reason: 'ชื่อเพลงใช้ไม่ได้' }, base)); continue; }
+            // ซ้ำกับแถวก่อนหน้าในรอบเดียวกัน (ชื่อ+ศิลปินเหมือนกัน) → ข้ามเงียบๆ
+            if (results.some(x => x.status !== 'skip' && N(x.title, true) === tn && N(x.artist, true) === an)) { results.push(Object.assign({ status: 'skip', reason: 'ซ้ำกับแถวก่อนหน้า' }, base)); continue; }
+            const ms = exist.filter(m => m.tn === tn && (!an || !m.an || m.an === an || m.an.indexOf(an) >= 0 || an.indexOf(m.an) >= 0));
+            if (ms.length) {
+              const a = await dupDialog(r, ms, i + 1, rows.length);
+              if (a === 'cancel') return;
+              if (a === 'skip') { results.push(Object.assign({ status: 'skip', reason: 'ซ้ำกับเพลงในคลัง: ' + ms[0].title }, base)); continue; }
+            }
+            if (!ix) { results.push(Object.assign({ status: 'own' }, base)); continue; }
+            const cands = findCands(ix, r, 5);
+            if (!cands.length) { results.push(Object.assign({ status: 'own' }, base)); continue; }
+            if (an && cands[0].sc >= 100) { results.push(Object.assign({ status: 'link', e: cands[0].e }, base)); continue; }   // ชื่อ+ศิลปินตรงเป๊ะ เชื่อมให้เอง (เหมือนเพิ่มเพลงทีละเพลง)
+            const a = await candDialog(r, cands, ix, i + 1, rows.length);
+            if (a === 'cancel') return;
+            if (a === 'skip') results.push(Object.assign({ status: 'skip', reason: 'ข้ามเอง' }, base));
+            else if (a === 'own') results.push(Object.assign({ status: 'own' }, base));
+            else results.push(Object.assign({ status: 'link', e: a.e }, base));
+          }
+          if (!results.some(x => x.status !== 'skip')) { lshToast('ไม่มีเพลงให้เพิ่ม (ข้ามทั้งหมด)', 'info'); return; }
+          if (!(await summary(results))) return;
+          const items = results.filter(x => x.status !== 'skip');
+          try {
+            await doSave(items);
+            lshToast('เพิ่ม ' + items.length + ' เพลงแล้ว (เชื่อมคอร์ด ' + items.filter(x => x.status === 'link').length + ' · ต้องเขียนคอร์ดเอง ' + items.filter(x => x.status === 'own').length + ')', 'ok');
+          } catch (e) { lshToast('บันทึกไม่สำเร็จ ไม่มีเพลงใดถูกเพิ่ม ลองใหม่อีกครั้ง', 'error'); }
+        } finally { busy = false; }
+      }
+      return { start: start, _findCands: findCands, _nextIds: nextIds };
     })();
 
     // แถบแจ้งสั้นๆ ที่ไม่บล็อกหน้า (แทน alert) kind = 'ok' | 'warn' | 'error' | 'info'
