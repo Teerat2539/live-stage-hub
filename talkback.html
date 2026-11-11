@@ -89,6 +89,10 @@
       <input type="text" id="reqSearchInput" placeholder="พิมพ์ชื่อเพลง หรือศิลปิน...">
       <button class="btn-check" id="btnApplyReqSong"><svg class="ic ic-solo" aria-hidden="true"><use href="#i-check"/></svg></button>
     </div>
+    <div id="reqPreview" class="search-row hidden" style="align-items:stretch">
+      <div id="reqPreviewText" style="flex:1;min-width:0;display:flex;align-items:center;padding:8px 14px;background:var(--bg);border:1px solid var(--request);border-radius:var(--r-md);font-size:15px;font-weight:700;color:var(--request);overflow:hidden;text-overflow:ellipsis"></div>
+      <button class="btn-check" id="btnSendReqSong" title="ส่ง"><svg class="ic ic-solo" aria-hidden="true"><use href="#i-send"/></svg></button>
+    </div>
     <div class="db-song-list" id="reqDbList"></div>
   </div>
 </div>
@@ -246,6 +250,7 @@
       input.value = '';
       document.getElementById('reqDbList').innerHTML = ''; // เคลียร์รายการ ไม่แสดงอะไรจนกว่าจะพิมพ์
       selectedReqSongObj = null;
+      updateReqPreview();
 
       // สั่ง Auto Focus ให้พิมพ์ได้ทันทีหลังหน้าต่างสไลด์ลงมา
       setTimeout(() => {
@@ -298,9 +303,40 @@
         div.onclick = () => {
           document.getElementById('reqSearchInput').value = `${s.title} - ${s.artist}`;
           selectedReqSongObj = s;
+          updateReqPreview();
         };
         container.appendChild(div);
       });
+    }
+
+    // กล่องข้อความเตรียมส่งในหน้าต่างขอเพลง: โชว์ "ลูกค้าขอเพลง : <ข้อความในช่องค้นหา>" พร้อมปุ่มส่ง
+    function updateReqPreview() {
+      const val = document.getElementById('reqSearchInput').value.trim();
+      const box = document.getElementById('reqPreview');
+      if (!box) return;
+      box.classList.toggle('hidden', !val);
+      document.getElementById('reqPreviewText').textContent = val ? `ลูกค้าขอเพลง : ${val}` : '';
+    }
+
+    function onReqSearchInput() {
+      const input = document.getElementById('reqSearchInput');
+      // พิมพ์แก้ข้อความหลังเลือกเพลงแล้ว = ไม่ใช่เพลงที่เลือกแล้ว (กันส่งข้อมูลเพลงผิดตัว)
+      if (selectedReqSongObj && input.value.trim() !== `${selectedReqSongObj.title} - ${selectedReqSongObj.artist}`) {
+        selectedReqSongObj = null;
+      }
+      filterReqSongs();
+      updateReqPreview();
+    }
+
+    async function sendReqFromModal() {
+      const val = document.getElementById('reqSearchInput').value.trim();
+      if (!val) return;
+      setInputValue(`ลูกค้าขอเพลง : ${val}`);
+      await sendTalkback();   // ใช้เส้นทางส่งเดิมทั้งหมด (requestQueue / requestStats / สถิติร้าน)
+      document.getElementById('reqSearchInput').value = '';
+      document.getElementById('reqDbList').innerHTML = '';
+      updateReqPreview();
+      document.getElementById('requestModal').classList.add('hidden');
     }
 
     function applyReqSongToInput() {
@@ -313,6 +349,7 @@
       // 2. เคลียร์ช่องค้นหา + ปิด Modal ทันที (ยังไม่ push ลง Firebase)
       document.getElementById('reqSearchInput').value = '';
       document.getElementById('reqDbList').innerHTML = '';
+      updateReqPreview();
       document.getElementById('requestModal').classList.add('hidden');
     }
 
@@ -477,7 +514,8 @@
 
     document.getElementById('btnOpenRequest').onclick = openRequestModal;
     document.getElementById('btnCloseRequestModal').onclick = closeRequestModal;
-    document.getElementById('reqSearchInput').oninput = filterReqSongs;
+    document.getElementById('reqSearchInput').oninput = onReqSearchInput;
+    document.getElementById('btnSendReqSong').onclick = sendReqFromModal;
     document.getElementById('btnApplyReqSong').onclick = applyReqSongToInput;
 
     // ผูกฟังก์ชัน closeRequestModal แบบ global เพื่อให้ HTML inline onclick ทำงานได้
