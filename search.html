@@ -179,7 +179,7 @@
                 <div class="song-title-main">${song.title}</div>
                 <div class="q-artist">${(Array.isArray(song.parts) && song.parts.length) ? song.parts.map(pt => pt.title).join(' · ') : (song.artist || '')}${/^Set \d+$/.test(setVal) ? '' : `<span class="set-pill">${setVal}</span>`}</div>
               </div>
-              <svg class="ic q-go ${window.lshChordCls && song.songId ? window.lshChordCls(song.songId) : ''}" data-chordid="${song.songId || ''}" aria-hidden="true"><use href="#i-search"/></svg>
+              <svg class="ic q-go ${(Array.isArray(song.parts) && song.parts.length) ? 'has-chord' : (window.lshChordCls && song.songId ? window.lshChordCls(song.songId) : '')}" data-chordid="${song.songId || ''}" ${(Array.isArray(song.parts) && song.parts.length) ? 'data-medley="1"' : ''} aria-hidden="true"><use href="#i-search"/></svg>
               ${(isReqCard && qx.req.mode === 'none') || (song.status === 'playing' && qx.noteFor === String(song.id)) ? '<div class="qx-none">' + NO_CHORD_TXT + '</div>' : ''}
             </div>
           `;
