@@ -1497,6 +1497,16 @@
     </div>
   </div>
 
+  <!-- POPUP ยืนยันการลบเพลงรีเควสรายเพลง -->
+  <div id="deleteReqSongConfirmModal" class="overlay hidden" onclick="closeDeleteReqSongModal(event)">
+    <div class="box" onclick="event.stopPropagation()">
+      <h3 style="margin-bottom:10px;color:#ef4444"><svg class="ic" aria-hidden="true"><use href="#i-trash"/></svg> ลบเพลงนี้ออกจากประวัติ</h3>
+      <p id="deleteReqSongText" class="modal-desc"></p>
+      <button onclick="executeDeleteReqSong()" class="btn-danger">ยืนยันลบ</button>
+      <button onclick="closeDeleteReqSongModal()" class="btn-ghost">ยกเลิก</button>
+    </div>
+  </div>
+
   <!-- ========================================== -->
   <!-- 3. โครงสร้างหลัก (TOP HEADER + MAIN + NAV) -->
   <!-- ========================================== -->
@@ -2527,8 +2537,11 @@
                     <span style="color:#fff;font-weight:bold;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block">${song.title || 'ไม่ระบุชื่อเพลง'}${artistText}</span>
                     <div style="font-size:10px;color:#f59e0b;margin-top:2px">คีย์: ${song.key || '-'}</div>
                   </div>
-                  <div style="font-size:11px;color:#888;white-space:nowrap;background:#111319;padding:3px 6px;border-radius:4px;border:1px solid #222">
-                    <svg class="ic" aria-hidden="true"><use href="#i-calendar"/></svg> ${dateStr}
+                  <div style="display:flex;align-items:center;gap:6px;flex:none">
+                    <div style="font-size:11px;color:#888;white-space:nowrap;background:#111319;padding:3px 6px;border-radius:4px;border:1px solid #222">
+                      <svg class="ic" aria-hidden="true"><use href="#i-calendar"/></svg> ${dateStr}
+                    </div>
+                    <button type="button" data-store="${String(store.storeName).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;')}" data-id="${song.id}" data-title="${String((song.title || '') + artistText).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;')}" onclick="confirmDeleteReqSong(this)" aria-label="ลบเพลงนี้" style="background:#2a1515;border:1px solid #ef4444;color:#ef4444;width:28px;height:28px;border-radius:6px;cursor:pointer;display:flex;align-items:center;justify-content:center"><svg class="ic ic-solo" aria-hidden="true"><use href="#i-close"/></svg></button>
                   </div>
                 </div>
               `;
@@ -2557,6 +2570,36 @@
       targetRoomToDelete = storeName;
       document.getElementById('deleteRoomText').innerText = `คุณต้องการลบข้อมูลรีเควสทั้งหมดของร้าน "${storeName}" ใช่หรือไม่?`;
       document.getElementById('deleteRoomConfirmModal').classList.remove('hidden');
+    }
+
+    // ลบเพลงรีเควสรายเพลง (เฉพาะ request/{ร้าน}/{pushKey}) พร้อมถามยืนยัน
+    let targetReqSong = null;
+    function confirmDeleteReqSong(btn) {
+      targetReqSong = { store: btn.dataset.store, id: btn.dataset.id };
+      document.getElementById('deleteReqSongText').textContent = `ลบ "${btn.dataset.title}" ออกจากประวัติรีเควสของร้าน "${btn.dataset.store}" ใช่หรือไม่?`;
+      document.getElementById('deleteReqSongConfirmModal').classList.remove('hidden');
+    }
+    function closeDeleteReqSongModal(e) {
+      if (!e || e.target.id === 'deleteReqSongConfirmModal') {
+        document.getElementById('deleteReqSongConfirmModal').classList.add('hidden');
+        targetReqSong = null;
+      }
+    }
+    async function executeDeleteReqSong() {
+      if (!targetReqSong) return;
+      const t = targetReqSong;
+      const sessionStr = localStorage.getItem('lsh_session');
+      const session = sessionStr ? JSON.parse(sessionStr) : {};
+      const room = lshRoom(session);
+      if (!room) return;
+      try {
+        await db.ref(`rooms/${room}/request/${t.store}/${t.id}`).remove();
+        document.getElementById('deleteReqSongConfirmModal').classList.add('hidden');
+        targetReqSong = null;
+        openRequestHistoryModal();
+      } catch (error) {
+        lshAlert('เกิดข้อผิดพลาดในการลบเพลง: ' + error.message);
+      }
     }
 
     // ปิด Pop-up ยืนยันการลบร้าน (รองรับการแตะพื้นที่นอกกล่อง)

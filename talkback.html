@@ -251,6 +251,8 @@
       document.getElementById('reqDbList').innerHTML = ''; // เคลียร์รายการ ไม่แสดงอะไรจนกว่าจะพิมพ์
       selectedReqSongObj = null;
       updateReqPreview();
+      if (window.lshChordLookup && window.lshChordLookup.preload) window.lshChordLookup.preload();
+      loadReqSuggest();
 
       // สั่ง Auto Focus ให้พิมพ์ได้ทันทีหลังหน้าต่างสไลด์ลงมา
       setTimeout(() => {
@@ -264,16 +266,119 @@
       }
     }
 
+    const reqEsc = (v) => String(v == null ? '' : v).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    const reqLabel = (s) => (s.artist && s.artist !== '-') ? `${s.title} - ${s.artist}` : String(s.title || '');
+    let reqSearchSeq = 0;      // กันผลค้นหาคลังคอร์ดที่มาช้าทับผลใหม่
+    let reqSuggest = [];       // เพลงแนะนำจากประวัติรีเควสของร้านที่เล่นอยู่
+    let reqSuggestSeq = 0;
+
+    function pickReqSong(s) {
+      document.getElementById('reqSearchInput').value = reqLabel(s);
+      selectedReqSongObj = s;
+      updateReqPreview();
+    }
+
+    function reqItem(html, onpick) {
+      const div = document.createElement('div');
+      div.className = 'db-song-item';
+      div.innerHTML = html;
+      div.onclick = onpick;
+      return div;
+    }
+
+    function reqHead(text) {
+      const d = document.createElement('div');
+      d.style.cssText = 'font-size:11px;color:#888;padding:2px 4px;font-weight:700';
+      d.textContent = text;
+      return d;
+    }
+
+    // ชื่อร้านที่กำลังเล่น (ตัดวันที่ออกจากชื่อชุดลิสต์ — ตรรกะเดียวกับตอนบันทึกรีเควส)
+    async function getVenueName() {
+      const idSnap = await db.ref(`rooms/${selectedRoom}/queue/activeSetlistId`).once('value');
+      const id = idSnap.val();
+      if (!id || id === '-') return null;
+      try {
+        const v = (await db.ref(`rooms/${selectedRoom}/setlists/${id}/venue`).once('value')).val();
+        return v ? v.split(/[-–—]/)[0].trim() : String(id).trim();
+      } catch (e) { return String(id).trim(); }
+    }
+
+    // เพลงแนะนำ: ประวัติรีเควสของร้านนี้ เรียงตามจำนวนครั้งที่ถูกขอ (เท่ากันให้ขอล่าสุดขึ้นก่อน) สูงสุด 8
+    async function loadReqSuggest() {
+      const my = ++reqSuggestSeq;
+      reqSuggest = [];
+      try {
+        if (typeof db === 'undefined') return;
+        const venue = await getVenueName();
+        if (!venue) { if (my === reqSuggestSeq) renderReqSuggest(); return; }
+        const val = (await db.ref(`rooms/${selectedRoom}/request/${venue}`).once('value')).val() || {};
+        if (my !== reqSuggestSeq) return;
+        const N = (window.lshChordLookup && window.lshChordLookup._bulk) ? window.lshChordLookup._bulk.bkNorm : (x) => String(x || '').toLowerCase().replace(/\s+/g, '');
+        const g = new Map();
+        Object.keys(val).forEach(pk => {
+          const r = val[pk] || {};
+          if (!r.title) return;
+          const k = N(r.title, true) + '|' + N(r.artist && r.artist !== '-' ? r.artist : '', true);
+          let e = g.get(k);
+          if (!e) g.set(k, e = { title: r.title, artist: r.artist || '-', songID: r.songID || '-', count: 0, last: '' });
+          e.count++;
+          const ord = String(r.date || '') + '|' + pk;
+          if (ord > e.last) { e.last = ord; e.title = r.title; e.artist = r.artist || '-'; if (r.songID && r.songID !== '-') e.songID = r.songID; }
+        });
+        reqSuggest = [...g.values()].sort((x, y) => (y.count - x.count) || (y.last < x.last ? -1 : y.last > x.last ? 1 : 0)).slice(0, 8);
+      } catch (e) { reqSuggest = []; }
+      renderReqSuggest();
+    }
+
+    function renderReqSuggest() {
+      const container = document.getElementById('reqDbList');
+      if (!container || document.getElementById('reqSearchInput').value.trim() !== '') return;
+      container.innerHTML = '';
+      if (!reqSuggest.length) return;
+      container.appendChild(reqHead('เพลงที่ลูกค้าร้านนี้มักขอ'));
+      reqSuggest.forEach(r => {
+        const inDb = (r.songID && r.songID !== '-') ? allDbSongs.find(x => x.id === r.songID) : null;
+        const obj = inDb || { id: '-', title: r.title, artist: r.artist, key: '-', bpm: '-' };
+        container.appendChild(reqItem(`<b>${reqEsc(r.title)}</b>${(r.artist && r.artist !== '-') ? ' - ' + reqEsc(r.artist) : ''} <span class="u-meta">(ขอ ${r.count} ครั้ง)</span>`, () => pickReqSong(obj)));
+      });
+    }
+
+    // ค้นหาในคลังคอร์ด (ฐานข้อมูลรอง) เฉพาะเพลงที่ยังไม่อยู่ในรายชื่อเพลงทั้งหมด
+    async function searchChordCatalog(kw, mainSet) {
+      const L = window.lshChordLookup && window.lshChordLookup._bulk;
+      if (!L) return null;
+      const ix = await L.getIdx();
+      const N = L.bkNorm, tq = N(kw, true);
+      if (!tq) return [];
+      const have = new Set(), haveBk = new Set();
+      allDbSongs.forEach(x => { if (x.bk) haveBk.add(x.bk); have.add(N(x.title, true) + '|' + N(x.artist, true)); });
+      const pre = [], con = [], art = [];
+      for (let i = 0; i < ix.cat.length; i++) {
+        const e = ix.cat[i];
+        const tt = e._t != null ? e._t : (e._t = N(e[1], true));
+        let bucket = null;
+        if (tt && tt.indexOf(tq) === 0) bucket = pre; else if (tt && tt.indexOf(tq) > 0) bucket = con;
+        else { const ta = e._a != null ? e._a : (e._a = N(e[2], true)); if (ta && ta.indexOf(tq) >= 0) bucket = art; }
+        if (!bucket || bucket.length >= 10) continue;
+        if (haveBk.has(e[0]) || have.has(tt + '|' + (e._a != null ? e._a : (e._a = N(e[2], true))))) continue;
+        bucket.push(e);
+        if (pre.length >= 10) break;
+      }
+      return [...pre, ...con, ...art].slice(0, 10);
+    }
+
     function filterReqSongs() {
       const input = document.getElementById('reqSearchInput');
       const container = document.getElementById('reqDbList');
       if (!input || !container) return;
 
       const kw = input.value.toLowerCase().trim();
-      
-      // ถ้ายังไม่ได้พิมพ์อะไร ให้ล้างรายการซ่อนไว้
+      const my = ++reqSearchSeq;
+
+      // ยังไม่ได้พิมพ์อะไร → โชว์เพลงแนะนำจากประวัติรีเควสของร้าน
       if (kw === '') {
-        container.innerHTML = '';
+        renderReqSuggest();
         return;
       }
 
@@ -288,25 +393,32 @@
       });
       const byTitle = (x, y) => (x.title || '').localeCompare(y.title || '', 'th');
 
-      let results = [...prefixList.sort(byTitle), ...containsList.sort(byTitle), ...artistList.sort(byTitle)];
+      let results = [...prefixList.sort(byTitle), ...containsList.sort(byTitle), ...artistList.sort(byTitle)].slice(0, 12);
       container.innerHTML = '';
 
-      if (results.length === 0) {
-        container.innerHTML = '<div style="color:#666;font-size:11px;text-align:center;padding:12px">ไม่พบเพลงในระบบ (กด <svg class="ic" aria-hidden="true"><use href="#i-check"/></svg> เพื่อนำชื่อนี้ไปใส่ช่องท็อคแบค)</div>';
-        return;
-      }
-
-      results.slice(0, 15).forEach(s => {
-        const div = document.createElement('div');
-        div.className = 'db-song-item';
-        div.innerHTML = `<b>${s.title}</b> - ${s.artist} <span class="u-meta">(${s.key || '-'})</span>`;
-        div.onclick = () => {
-          document.getElementById('reqSearchInput').value = `${s.title} - ${s.artist}`;
-          selectedReqSongObj = s;
-          updateReqPreview();
-        };
-        container.appendChild(div);
+      results.forEach(s => {
+        container.appendChild(reqItem(`<b>${reqEsc(s.title)}</b> - ${reqEsc(s.artist)} <span class="u-meta">(${reqEsc(s.key || '-')})</span>`, () => pickReqSong(s)));
       });
+
+      // ต่อท้ายด้วยเพลงจากคลังคอร์ดที่ยังไม่อยู่ในรายชื่อเพลงทั้งหมด (โหลดทีหลัง ไม่บล็อกผลด้านบน)
+      const tail = document.createElement('div');
+      container.appendChild(tail);
+      const noHit = () => {
+        if (!results.length) tail.innerHTML = '<div style="color:#666;font-size:11px;text-align:center;padding:12px">ไม่พบเพลงในระบบ (พิมพ์ชื่อเองแล้วกดส่งได้เลย)</div>';
+        else tail.innerHTML = '';
+      };
+      if (!(window.lshChordLookup && window.lshChordLookup._bulk)) { noHit(); return; }
+      tail.innerHTML = '<div style="color:#666;font-size:11px;text-align:center;padding:8px">กำลังค้นหาในคลังคอร์ด...</div>';
+      searchChordCatalog(kw).then(rows => {
+        if (my !== reqSearchSeq) return;
+        if (!rows || !rows.length) { noHit(); return; }
+        tail.innerHTML = '';
+        tail.appendChild(reqHead('จากคลังคอร์ด (ยังไม่อยู่ในรายชื่อเพลงทั้งหมด)'));
+        rows.forEach(e => {
+          const obj = { id: '-', title: e[1], artist: e[2] || '-', key: e[3] || '-', bpm: e[5] || '-' };
+          tail.appendChild(reqItem(`<b>${reqEsc(e[1])}</b>${e[2] ? ' - ' + reqEsc(e[2]) : ''} <span class="u-meta">(${reqEsc(e[3] || '-')})</span>`, () => pickReqSong(obj)));
+        });
+      }).catch(() => { if (my === reqSearchSeq) noHit(); });
     }
 
     // กล่องข้อความเตรียมส่งในหน้าต่างขอเพลง: โชว์ "ลูกค้าขอเพลง : <ข้อความในช่องค้นหา>" พร้อมปุ่มส่ง
@@ -321,7 +433,7 @@
     function onReqSearchInput() {
       const input = document.getElementById('reqSearchInput');
       // พิมพ์แก้ข้อความหลังเลือกเพลงแล้ว = ไม่ใช่เพลงที่เลือกแล้ว (กันส่งข้อมูลเพลงผิดตัว)
-      if (selectedReqSongObj && input.value.trim() !== `${selectedReqSongObj.title} - ${selectedReqSongObj.artist}`) {
+      if (selectedReqSongObj && input.value.trim() !== reqLabel(selectedReqSongObj)) {
         selectedReqSongObj = null;
       }
       filterReqSongs();
@@ -333,10 +445,14 @@
       if (!val) return;
       setInputValue(`ลูกค้าขอเพลง : ${val}`);
       await sendTalkback();   // ใช้เส้นทางส่งเดิมทั้งหมด (requestQueue / requestStats / สถิติร้าน)
-      document.getElementById('reqSearchInput').value = '';
-      document.getElementById('reqDbList').innerHTML = '';
+      // ไม่ปิดหน้าต่าง: เผื่อลูกค้าเขียนมาหลายเพลง — ล้างช่องค้นหาแล้วรับเพลงถัดไปได้เลย
+      const inp = document.getElementById('reqSearchInput');
+      inp.value = '';
       updateReqPreview();
-      document.getElementById('requestModal').classList.add('hidden');
+      renderReqSuggest();
+      if (typeof lshToast === 'function') lshToast('ส่งคำขอเพลงแล้ว: ' + val, 'ok');
+      setTimeout(loadReqSuggest, 1500);   // รอให้บันทึกประวัติร้านเสร็จ แล้วอัปเดตจำนวนครั้ง
+      inp.focus();
     }
 
     function applyReqSongToInput() {
