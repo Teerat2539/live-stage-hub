@@ -123,17 +123,20 @@
     .lv-grip { flex: none; width: 22px; height: 28px; display: flex; align-items: center; justify-content: center; color: var(--text-3); touch-action: none; }
     .lv-grip svg { width: 16px; height: 22px; fill: currentColor; }
     .lv-card.locked { border-color: var(--live); }
+    .lv-card:has(> .lv-main) { flex-direction: column; align-items: stretch; gap: 0; }
+    .lv-card.edit.next, .lv-card.edit.open { border: 1.5px solid #5b7cff; border-left: 4px solid var(--c); background: #0f1424; }
     .lv-kchip { flex: none; align-self: center; padding: 0 8px; height: 24px; line-height: 22px; border: 1px solid var(--c); border-radius: 6px; font-size: 14px; color: var(--text-2); }
     .lv-lock { flex: none; width: 22px; height: 28px; display: flex; align-items: center; justify-content: center; color: var(--live); align-self: center; }
     .lv-lock svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
     .lv-card .lv-dirty { align-self: center; margin: 0; white-space: nowrap; }
     .lv-rest { flex: none; align-self: center; border: 0; background: none; font-size: 13px; font-weight: 700; padding: 6px 0 6px 6px; }
     .lv-etools button { display: flex; align-items: center; justify-content: center; gap: 6px; }
-    .lv-etools button svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
-    .lv-etools { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; width: 100%; }
-    .lv-etools button { flex: 1 1 auto; min-height: 40px; padding: 0 12px; border-radius: 10px; border: 1px solid var(--line-strong); background: var(--surface-2); color: var(--text); font-size: 14px; font-weight: 600; }
-    .lv-etools button.del { border-color: var(--danger); color: #ff8d8d; }
-    .lv-etools button.full { flex-basis: 100%; border-color: var(--next); color: var(--next); }
+    .lv-etools button svg { flex: none; width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+    .lv-etools { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; width: 100%; }
+    .lv-etools button { flex: 1 1 0; min-width: 0; height: 40px; padding: 0 6px; border-radius: 10px; border: 1px solid var(--line); background: var(--surface); color: var(--text-2); font-size: 13px; font-weight: 700; white-space: nowrap; }
+    .lv-etools button.del { color: #ff8d8d; }
+    .lv-etools button.full { flex: 1 1 100%; border-color: #7a5a1e; background: #2a2112; color: var(--next); }
+    .lv-etools select.lv-in { height: 40px; border-radius: 10px; border: 1px solid var(--line); background: var(--surface); color: var(--text-2); font-size: 13px; font-weight: 700; }
     .lv-etools button:disabled { opacity: .35; }
     .lv-sort-ghost { opacity: .4; }
     /* หน้าต่างลอย */
@@ -854,7 +857,7 @@
         return h;
       }
       const dirtyTag = (ui.dirty && base && !base.songs.some((b) => b.id === x.id)) ? '<span class="lv-dirty">เปลี่ยนแล้ว · ยังไม่ส่ง</span>' : '';
-      let h = '<div class="lv-card' + (mvAttr ? ' mv' : '') + (open ? ' open' : '') + (isIns(x) ? (x.type === 'inserted-request' ? ' req' : ' custom') : '') + '" style="--c:' + setCls(x) + '" data-id="' + esc(x.id) + '" data-a="ecard"><div class="lv-main"><span class="lv-grip">' + IC.grip + '</span>' + bodyOf(x, x.status === 'next' ? '<div class="lv-tag">ถัดไป</div>' : '') + dirtyTag + kchip(x) + '</div>';
+      let h = '<div class="lv-card edit' + (x.status === 'next' ? ' next' : '') + (mvAttr ? ' mv' : '') + (open ? ' open' : '') + (isIns(x) ? (x.type === 'inserted-request' ? ' req' : ' custom') : '') + '" style="--c:' + setCls(x) + '" data-id="' + esc(x.id) + '" data-a="ecard"><div class="lv-main"><span class="lv-grip">' + IC.grip + '</span>' + bodyOf(x) + dirtyTag + kchip(x) + '</div>';
       if (open) {
         const keys = (window.lshKeys && lshKeys.master) || [];
         h += '<div class="lv-etools" data-a="stop-prop">' + tbtn('skipto', x.id, IC.skip, 'ข้ามมาที่นี่') + tbtn('del', x.id, IC.trash, 'ลบเพลง', 'del') + tbtn('up', x.id, IC.up, 'ขึ้น') + tbtn('down', x.id, IC.chev, 'ลง') +
