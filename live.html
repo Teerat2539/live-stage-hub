@@ -160,6 +160,15 @@
     @keyframes lvDown { from { transform: translateY(-30px); opacity: 0; } }
     .lv-sheet.full { flex: 1; max-height: none; border-radius: 0; }
     .lv-sheet.tall { height: calc(100% - 56px); max-height: none; }
+    .lv-sheet.half { height: 54%; max-height: none; }
+    .lv-ov.dragging { background: transparent; pointer-events: none; }
+    .lv-ov.dragging .lv-sheet { opacity: 0; }
+    .lv-row[data-a="inspick"] { touch-action: pan-y; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
+    .lv-dghost { position: fixed; z-index: 9999; pointer-events: none; width: 300px; padding: 10px 14px; border-radius: 14px; background: rgba(60,20,50,.92); border: 1.5px solid #ff4fa8; color: #fff; box-shadow: 0 10px 28px rgba(0,0,0,.55); transform: rotate(-2deg); display: flex; flex-direction: column; gap: 2px; font-family: inherit; }
+    .lv-dghost b { font-size: 16px; } .lv-dghost span { font-size: 13px; opacity: .7; }
+    .lv-dline { position: fixed; z-index: 9998; height: 3px; border-radius: 2px; background: #ff4fa8; box-shadow: 0 0 8px #ff4fa8; pointer-events: none; }
+    .lv-dzone { position: fixed; z-index: 9997; height: 48px; border: 1.5px dashed #ff4fa8; border-radius: 12px; display: flex; align-items: center; justify-content: center; color: #ff8fc8; font-size: 14px; background: rgba(40,10,30,.7); pointer-events: none; font-family: inherit; }
+    .lv-dzone.on { background: rgba(255,79,168,.25); color: #fff; }
     .lv-sheet.pinkb { border-bottom: 2px solid var(--request); }
     .lv-sheet h4.pk { color: var(--request); }
     .lv-sin { position: relative; flex: 1; min-width: 0; display: flex; align-items: center; }
@@ -426,6 +435,8 @@
     const Q = { songs: [], rev: 0, by: '', venue: '', loaded: false };   // คิวจริงจาก Firebase
     let D = null, base = null;                 // ร่าง (โหมดจัดคิว) / ภาพคิวตอนเริ่มร่างหรือบันทึกล่าสุด
     let pending = null;                        // เลื่อนด้วยมือรอส่ง 3 วินาที {from,to,btn,timer,sending}
+    let pendReq = {};                          // คำขอที่ใส่ในร่างแล้วแต่ยังไม่บันทึก: ลบออกจาก requestStats หลังบันทึกสำเร็จเท่านั้น
+    const reqVis = () => requests.filter((r) => !pendReq[r.id]);
     let requests = [];                         // เพลงรีเควสที่ยังไม่ได้ใส่คิว (requestStats)
     let showSt = {};                           // rooms/{วง}/showTimer
     const ui = { exId: null, stripTmp: false, ctrlOpen: null, playedOpen: false, editOpen: null, banner: null, dirty: false, dirtyAt: 0, failed: false, saving: false, lastPlay: null, sumOpen: true, sumDetail: false, fs: 20, cols2: false, lyr: false, hold: 0, ov: null };
@@ -627,7 +638,7 @@
         return;
       }
       el.innerHTML = '<button type="button" class="lv-btn req" data-a="req">' + IC.inbox + 'ลูกค้าขอเพลง</button>' +
-        '<button type="button" class="lv-btn" data-a="edit">' + IC.list + 'จัดคิว' + (requests.length ? '<span class="lv-badge">' + requests.length + '</span>' : '') + '</button>';
+        '<button type="button" class="lv-btn" data-a="edit">' + IC.list + 'จัดคิว' + (reqVis().length ? '<span class="lv-badge">' + reqVis().length + '</span>' : '') + '</button>';
     }
 
     function cardInner(x, o) {
@@ -818,9 +829,9 @@
       if (!Q.songs.length) return;
       D = clone(Q.songs); base = { rev: Q.rev, songs: clone(Q.songs) }; ui.dirty = false; ui.failed = false; ui.editOpen = null; ui.banner = null; render();
     }
-    function exitEdit() { D = null; base = null; ui.dirty = false; ui.failed = false; ui.editOpen = null; clearTimeout(timers.save); closeOv(); render(); }
+    function exitEdit() { if (!ui.saving) pendReq = {}; D = null; base = null; ui.dirty = false; ui.failed = false; ui.editOpen = null; clearTimeout(timers.save); closeOv(); render(); }
     function change(nl) { if (!nl || !D) return; D = nl; ui.dirty = true; ui.failed = false; ui.dirtyAt = nowMs(); clearTimeout(timers.save); timers.save = setTimeout(() => { if (ui.dirty) save(true); }, 15000); render(); }
-    function undo() { if (!D || !base) return; D = rebase(clone(base.songs), Q.songs); ui.dirty = false; ui.failed = false; clearTimeout(timers.save); render(); }
+    function undo() { if (!D || !base) return; D = rebase(clone(base.songs), Q.songs); pendReq = {}; ui.dirty = false; ui.failed = false; clearTimeout(timers.save); render(); if (ui.ov && ui.ov.kind === 'insert') renderInsert(); }
     function remoteWhileEditing() {
       if (!base || Q.rev === base.rev) return;
       if (sigOf(Q.songs) === sigOf(base.songs)) {   // เปลี่ยนแค่สถานะการเล่น: สถานะการเล่นชนะ ลำดับตามร่าง
@@ -828,7 +839,7 @@
         D = was ? rebase(D, Q.songs) : clone(Q.songs);
         if (was) banner('ok', 'คิวถูกเลื่อนแล้ว', 'การแก้ของคุณยังอยู่ ยังไม่ได้บันทึก', 7000);
       } else {   // มีเครื่องอื่นบันทึกโครงสร้างคิวก่อน: เครื่องที่ส่งก่อนชนะ
-        const had = ui.dirty; D = clone(Q.songs); base = { rev: Q.rev, songs: clone(Q.songs) }; ui.dirty = false; clearTimeout(timers.save);
+        pendReq = {}; const had = ui.dirty; D = clone(Q.songs); base = { rev: Q.rev, songs: clone(Q.songs) }; ui.dirty = false; clearTimeout(timers.save);
         banner('warn', 'คิวถูกเปลี่ยนโดย ' + (Q.by || 'อีกเครื่อง'), had ? 'การแก้ของคุณถูกข้าม แสดงคิวปัจจุบันที่ส่งก่อนแล้ว' : '', 9000);
       }
     }
@@ -853,7 +864,7 @@
     }
     function doSave() {
       if (!qRef) return; clearTimeout(timers.save); ui.saving = true; ui.failed = false;
-      const myBase = base, myD = clone(D); let result = null;
+      const myBase = base, myD = clone(D), myPend = Object.assign({}, pendReq); let result = null;
       qRef.transaction((c) => {
         if (!c || !c.songs) return;
         const srv = toArr(c.songs), crev = Number(c.rev) || 0; let payload;
@@ -862,8 +873,9 @@
         c.songs = result; c.rev = crev + 1; c.updatedBy = me; c.updatedAt = nowMs(); return c;
       }).then((res) => {
         ui.saving = false;
-        if (res && res.committed && result) { base = { rev: lastOwnRev, songs: clone(result) }; D = clone(result); ui.dirty = false; lshToast('บันทึกแล้ว', 'ok'); }
-        else { lastOwnRev = -1; const had = ui.dirty; D = clone(Q.songs); base = { rev: Q.rev, songs: clone(Q.songs) }; ui.dirty = false; banner('warn', 'คิวถูกเปลี่ยนโดย ' + (Q.by || 'อีกเครื่อง'), had ? 'การแก้ของคุณถูกข้าม แสดงคิวปัจจุบันที่ส่งก่อนแล้ว' : '', 9000); }
+        if (res && res.committed && result) { base = { rev: lastOwnRev, songs: clone(result) }; D = clone(result); ui.dirty = false; lshToast('บันทึกแล้ว', 'ok');
+          Object.keys(myPend).forEach((rid) => { if (result.some((x) => x.id === myPend[rid])) { try { db.ref('rooms/' + room + '/requestStats/' + rid).remove(); } catch (e) {} } delete pendReq[rid]; }); }
+        else { lastOwnRev = -1; pendReq = {}; const had = ui.dirty; D = clone(Q.songs); base = { rev: Q.rev, songs: clone(Q.songs) }; ui.dirty = false; banner('warn', 'คิวถูกเปลี่ยนโดย ' + (Q.by || 'อีกเครื่อง'), had ? 'การแก้ของคุณถูกข้าม แสดงคิวปัจจุบันที่ส่งก่อนแล้ว' : '', 9000); }
         render();
       }).catch(() => { ui.saving = false; ui.failed = true; render(); });
     }
@@ -945,8 +957,8 @@
     function openInsert() {
       if (guest || !D) return;
       const keys = ((window.lshKeys && lshKeys.master) || ['C', 'D', 'E', 'F', 'G', 'A', 'B']).filter((k) => /^[A-G]$/.test(k));
-      showOv('<div class="lv-sheet tall" data-a="stop-prop"><div style="display:flex;justify-content:space-between;align-items:center"><h4 style="margin:0;font-size:18px">แทรกเพลง</h4><button type="button" class="lv-x" data-a="ovclose" aria-label="ปิด">✕</button></div>' +
-        '<div class="lv-tabs2"><button type="button" class="on" data-a="instab" data-t="songs">แทรกเพลงเอง</button><button type="button" data-a="instab" data-t="req">เพลงลูกค้าขอ<span class="lv-badge" id="lvInsBadge">' + requests.length + '</span></button></div>' +
+      showOv('<div class="lv-sheet half" data-a="stop-prop"><div style="display:flex;justify-content:space-between;align-items:center"><h4 style="margin:0;font-size:18px">แทรกเพลง</h4><button type="button" class="lv-x" data-a="ovclose" aria-label="ปิด">✕</button></div>' +
+        '<div class="lv-tabs2"><button type="button" class="on" data-a="instab" data-t="songs">แทรกเพลงเอง</button><button type="button" data-a="instab" data-t="req">เพลงลูกค้าขอ<span class="lv-badge" id="lvInsBadge">' + reqVis().length + '</span></button></div>' +
         '<div id="lvInsTop" style="display:flex;flex-direction:column;gap:10px;flex:none"><div class="lv-srow"><div class="lv-sin">' + IC.search + '<input class="lv-in" id="lvInsQ" type="search" placeholder="ค้นหาชื่อเพลง (ฐานหลัก)" autocomplete="off"></div></div>' +
         '<div class="lv-keys"><span class="l">คีย์</span><button type="button" class="on" data-a="inskey" data-k="">เดิมของเพลง</button>' + keys.map((k) => '<button type="button" data-a="inskey" data-k="' + esc(k) + '">' + esc(k) + '</button>').join('') + '</div></div>' +
         '<div class="lv-res" id="lvInsBody"></div></div>', 'top', 'insert', { tab: 'songs', q: '', k: '' });
@@ -957,9 +969,9 @@
       $('lvInsTop').classList.toggle('hidden', o.tab !== 'songs');
       document.querySelectorAll('#lvOv .lv-tabs2 > button').forEach((b) => b.classList.toggle('on', b.dataset.t === o.tab));
       document.querySelectorAll('#lvOv .lv-keys button').forEach((b) => b.classList.toggle('on', (b.dataset.k || '') === (o.k || '')));
-      const bd = $('lvInsBadge'); if (bd) { bd.textContent = requests.length; bd.style.display = requests.length ? '' : 'none'; }
+      const bd = $('lvInsBadge'); if (bd) { bd.textContent = reqVis().length; bd.style.display = reqVis().length ? '' : 'none'; }
       if (o.tab === 'req') {
-        body.innerHTML = requests.length ? requests.map((r) => '<div style="display:flex;align-items:center;gap:6px"><button type="button" class="lv-row pk" style="flex:1" data-a="inspick" data-k="request" data-s="' + jattr(r) + '"><span><b>' + esc(r.title) + '</b><br><span class="a">' + esc(r.artist && r.artist !== '-' ? r.artist : '') + '</span></span><span class="m">แตะเพื่อแทรก</span></button><button type="button" class="lv-x" data-a="reqdel" data-id="' + esc(r.id) + '" aria-label="ลบคำขอ">✕</button></div>').join('') : '<div class="lv-empty">ไม่มีคำขอเพลงที่รอจัดคิว</div>';
+        body.innerHTML = reqVis().length ? reqVis().map((r) => '<div style="display:flex;align-items:center;gap:6px"><button type="button" class="lv-row pk" style="flex:1" data-a="inspick" data-k="request" data-s="' + jattr(r) + '"><span><b>' + esc(r.title) + '</b><br><span class="a">' + esc(r.artist && r.artist !== '-' ? r.artist : '') + '</span></span><span class="m">แตะเพื่อแทรก</span></button><button type="button" class="lv-x" data-a="reqdel" data-id="' + esc(r.id) + '" aria-label="ลบคำขอ">✕</button></div>').join('') : '<div class="lv-empty">ไม่มีคำขอเพลงที่รอจัดคิว</div>';
         return;
       }
       const q = (o.q || '').toLowerCase().trim(), used = inQueue(D || Q.songs), cp = curSong();
@@ -1004,7 +1016,8 @@
       else {   // นอกโหมดจัดคิว: ส่งเข้าคิวทันที
         qRef.transaction((c) => { if (!c || !c.songs) return; const srv = toArr(c.songs), pl = playingOf(srv); const r = opInsert(srv, o, afterId || (pl && pl.id)); c.songs = clean(r); c.rev = (Number(c.rev) || 0) + 1; c.updatedBy = me; c.updatedAt = nowMs(); return c; }).then(() => lshToast('ใส่ในคิวแล้ว: ' + o.title, 'ok')).catch(() => lshToast('ใส่ในคิวไม่สำเร็จ', 'error'));
       }
-      if (reqId) { try { db.ref('rooms/' + room + '/requestStats/' + reqId).remove(); } catch (e) {} }
+      if (reqId) { if (D) { pendReq[reqId] = o.id; if (ui.ov && ui.ov.kind === 'insert') renderInsert(); renderActs(); }   // ในร่าง: รอบันทึกสำเร็จก่อนค่อยลบคำขอ
+        else { try { db.ref('rooms/' + room + '/requestStats/' + reqId).remove(); } catch (e) {} } }
     }
 
     // ===== ลูกค้าขอเพลง =====
@@ -1129,7 +1142,7 @@
         case 'ctrltog': { const ai = autoInfo(), col = ui.ctrlOpen == null ? ai.enabled : !ui.ctrlOpen; clearTimeout(timers.ctrl); if (col) { ui.ctrlOpen = true; if (ai.enabled) timers.ctrl = setTimeout(() => { ui.ctrlOpen = null; renderCtrl(); }, 15000); } else ui.ctrlOpen = ai.enabled ? null : false; renderCtrl(); return true; }
         case 'autopp': autoPP(); return true;
         case 'autosw': { const ai = window.lshAutoAdv; if (!ai || guest) return true; const i = autoInfo(); ai.setEnabled(!i.enabled); setTimeout(render, 150); return true; }
-        case 'timer': if (!guest || true) ovTimer(); return true;
+        case 'timer': if (!guest) ovTimer(); return true;
         case 'tm-toggle': { const t = window.lshShowTimer, st = t.state(); t.setConfig({ enabled: !st.enabled }); closeOv(); return true; }
         case 'tm-adj': { const t = window.lshShowTimer, st = t.state(), d = Number(el.dataset.d); t.setConfig({ durationMin: Math.max(15, Math.min(480, (Number(st.durationMin) || 90) + d)) }); setTimeout(ovTimer, 150); return true; }
         case 'tm-reset': pop('รีเซ็ตจับเวลา?', 'เริ่มนับใหม่และล้างสถานะจบโชว์', [{ t: 'รีเซ็ต', c: 'warn', fn: () => { closeOv(); window.lshShowTimer.reset(); } }, { t: 'ยกเลิก', fn: closeOv }]); return true;
@@ -1166,7 +1179,7 @@
         case 'instab': if (ui.ov && ui.ov.kind === 'insert') { ui.ov.tab = el.dataset.t; renderInsert(); } return true;
         case 'inskey': if (ui.ov && ui.ov.kind === 'insert') { ui.ov.k = el.dataset.k || ''; renderInsert(); } return true;
         case 'reshuffle': renderInsert(); return true;
-        case 'inspick': { const s = JSON.parse(el.dataset.s); chooseInsert(s, el.dataset.k === 'request' ? 'request' : 'custom', s.id, null); return true; }
+        case 'inspick': { const s = JSON.parse(el.dataset.s); chooseInsert(s, el.dataset.k === 'request' ? 'request' : 'custom', el.dataset.k === 'request' ? s.id : null, null); return true; }
         case 'reqdel': { const rid = el.dataset.id; pop('ลบคำขอนี้?', '', [{ t: 'ลบ', c: 'warn', fn: () => { try { db.ref('rooms/' + room + '/requestStats/' + rid).remove(); } catch (e) {} closeOv(); openInsert(); if (ui.ov) { ui.ov.tab = 'req'; renderInsert(); } } }, { t: 'ยกเลิก', fn: () => { closeOv(); openInsert(); } }]); return true; }
         case 'pospick': { if (!posCtx) return true; const x = posItems[Number(el.dataset.i)], c = posCtx; closeOv(); if (x) { placeSong(c.o, x.id, c.reqId); if (c.after) c.after(); } return true; }
         // ลูกค้าขอเพลง
@@ -1192,11 +1205,77 @@
     function onKey(ev) { if (ev.key === 'Enter' && ev.target && ev.target.id === 'lvReqQ') { ev.preventDefault(); act('reqok', ev.target, null, ev); } }
     root.addEventListener('click', onClick); root.addEventListener('change', onChange); root.addEventListener('input', onInput); root.addEventListener('keydown', onKey);
 
+
+    // ===== ลากเพลงจากชีตแทรก (คลัง/ลูกค้าขอ) ลงคิว: กดค้างที่แถวเพลงแล้วลากไปวางระหว่างการ์ด · ปล่อยที่กรอบล่างหรือนอกคิว = ยกเลิก =====
+    let dg = null, dgSwallow = false;
+    function dgCleanup() {
+      if (!dg) return; clearTimeout(dg.timer); clearInterval(dg.scr);
+      [dg.ghost, dg.line, dg.zone].forEach((e) => { if (e && e.parentNode) e.parentNode.removeChild(e); });
+      const ov = document.querySelector('#lvOv .lv-ov'); if (ov) ov.classList.remove('dragging');
+      dg = null;
+    }
+    function dgTarget(y) {   // หาตำแหน่งวาง: คืน {afterId, lineY} ตามเส้นกึ่งกลางของการ์ดที่ย้ายได้
+      const box = $('lvSort'); if (!box || !D) return null;
+      const kids = Array.from(box.children).filter((c) => c.classList && c.classList.contains('mv')), pl = playingOf(D);
+      let prev = pl ? pl.id : null, lineY = null;
+      for (let i = 0; i < kids.length; i++) { const r = kids[i].getBoundingClientRect(); if (y < r.top + r.height / 2) { lineY = r.top - 4; return { afterId: prev, lineY: lineY }; } prev = kids[i].dataset.id; lineY = r.bottom + 4; }
+      if (lineY === null) { const r = box.getBoundingClientRect(); lineY = r.top; }
+      return { afterId: prev, lineY: lineY };
+    }
+    function dgActivate() {
+      if (!dg || dg.active) return; dg.active = true; dgSwallow = true;
+      const ov = document.querySelector('#lvOv .lv-ov'); if (ov) ov.classList.add('dragging');
+      const g = document.createElement('div'); g.className = 'lv-dghost'; g.innerHTML = '<b>' + esc(dg.s.title) + '</b><span>' + esc(dg.s.artist && dg.s.artist !== '-' ? dg.s.artist : '') + '</span>';
+      const l = document.createElement('div'); l.className = 'lv-dline'; l.style.display = 'none';
+      const sc = $('lvScroll').getBoundingClientRect(), z = document.createElement('div'); z.className = 'lv-dzone'; z.textContent = 'ลากมาปล่อยตรงนี้เพื่อยกเลิก';
+      z.style.left = (sc.left + 16) + 'px'; z.style.width = (sc.width - 32) + 'px'; z.style.top = (sc.bottom - 76) + 'px';
+      document.body.appendChild(l); document.body.appendChild(z); document.body.appendChild(g); dg.ghost = g; dg.line = l; dg.zone = z; dg.sc = sc;
+      dg.scr = setInterval(() => { const s = $('lvScroll'); if (!s || !dg) return; const r = s.getBoundingClientRect(); if (dg.y < r.top + 80) s.scrollTop -= 14; else if (dg.y > r.bottom - 150 && dg.y < r.bottom - 80) s.scrollTop += 14; dgMove(); }, 30);
+      dgMove();
+    }
+    function dgMove() {
+      if (!dg || !dg.active) return; const x = dg.x, y = dg.y;
+      dg.ghost.style.left = (x - dg.ghost.offsetWidth / 2) + 'px'; dg.ghost.style.top = (y - 28) + 'px';
+      const sc = $('lvScroll').getBoundingClientRect(), cancel = y > sc.bottom - 80 || y < sc.top || x < sc.left || x > sc.right;
+      dg.zone.classList.toggle('on', cancel); dg.cancel = cancel;
+      if (cancel) { dg.line.style.display = 'none'; dg.t = null; return; }
+      dg.t = dgTarget(y); if (!dg.t) { dg.line.style.display = 'none'; return; }
+      dg.line.style.display = ''; dg.line.style.top = dg.t.lineY + 'px'; dg.line.style.left = (sc.left + 12) + 'px'; dg.line.style.width = (sc.width - 24) + 'px';
+    }
+    function dgDown(ev) {
+      if (!D || !ui.ov || ui.ov.kind !== 'insert' || dg || (ev.pointerType === 'mouse' && ev.button !== 0)) return;
+      const row = ev.target.closest && ev.target.closest('.lv-row[data-a="inspick"]'); if (!row) return;
+      let s; try { s = JSON.parse(row.dataset.s); } catch (e) { return; }
+      dg = { s: s, kind: row.dataset.k === 'request' ? 'request' : 'custom', x: ev.clientX, y: ev.clientY, x0: ev.clientX, y0: ev.clientY, active: false, mouse: ev.pointerType === 'mouse' };
+      dg.timer = setTimeout(() => { if (dg && !dg.active) dgActivate(); }, 320);
+    }
+    function dgMoveEv(ev) {
+      if (!dg) return; dg.x = ev.clientX; dg.y = ev.clientY;
+      if (!dg.active) { if (Math.hypot(dg.x - dg.x0, dg.y - dg.y0) > 8) { if (dg.mouse) dgActivate(); else dgCleanup(); } return; }   // นิ้ว: ขยับก่อนกดค้างครบ = กำลังเลื่อนรายการ
+      dgMove();
+    }
+    function dgUp() {
+      if (!dg) return; const d = dg; clearTimeout(d.timer);
+      if (d.active) {
+        const t = d.cancel ? null : d.t; dgCleanup(); setTimeout(() => { dgSwallow = false; }, 60);
+        if (t && D) { placeSong(songObj(d.s, d.kind), t.afterId, d.kind === 'request' ? d.s.id : null); lshToast('วางในคิวแล้ว (ยังไม่ได้บันทึก)', 'ok'); }
+        if (ui.ov && ui.ov.kind === 'insert') renderInsert();
+      } else dgCleanup();
+    }
+    const dgTouch = (ev) => { if (dg && dg.active && ev.cancelable) ev.preventDefault(); };
+    const dgCtx = (ev) => { if (dg) ev.preventDefault(); };
+    const dgSw = (ev) => { if (dgSwallow) { dgSwallow = false; ev.stopPropagation(); ev.preventDefault(); } };
+    root.addEventListener('click', dgSw, true); root.addEventListener('pointerdown', dgDown); root.addEventListener('contextmenu', dgCtx);
+    window.addEventListener('pointermove', dgMoveEv); window.addEventListener('pointerup', dgUp); window.addEventListener('pointercancel', dgCleanup);
+    document.addEventListener('touchmove', dgTouch, { passive: false });
+
     // ===== เริ่ม / ปิดหน้า =====
     window.__lv = {
       onTimer: onTimer,
       autoTick: () => { if (!disposed) { updateProg(); renderStrip(); } },
       dispose: () => {
+        try { if (pending && !pending.sending) commitPending(); if (D && ui.dirty && !ui.saving && !nextWarn()) doSave(); } catch (e) {}   // ส่งสิ่งที่ค้างก่อนออกจากหน้า
+        dgCleanup(); try { root.removeEventListener('click', dgSw, true); root.removeEventListener('pointerdown', dgDown); root.removeEventListener('contextmenu', dgCtx); window.removeEventListener('pointermove', dgMoveEv); window.removeEventListener('pointerup', dgUp); window.removeEventListener('pointercancel', dgCleanup); document.removeEventListener('touchmove', dgTouch); } catch (e) {}
         disposed = true; subs.forEach((f) => { try { f(); } catch (e) {} });
         Object.keys(timers).forEach((k) => clearTimeout(timers[k])); clearInterval(timers.tick);
         if (pending) clearTimeout(pending.timer);

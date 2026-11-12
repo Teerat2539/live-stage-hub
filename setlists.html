@@ -592,6 +592,7 @@
         updates[`rooms/${selectedRoom}/currentCue`] = null;
         updates[`rooms/${selectedRoom}/requestStats`] = null;
         updates[`rooms/${selectedRoom}/showTimer/startedAt`] = null; // รีเซ็ตตัวจับเวลาโชว์เมื่อเลือกลิสต์ใหม่
+        updates[`rooms/${selectedRoom}/showTimer/endedAt`] = null;
 
         // ส่งคำสั่งอัปเดตเข้า Firebase พร้อมกัน
         await db.ref().update(updates);

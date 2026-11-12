@@ -1848,6 +1848,7 @@
         updates[`rooms/${room}/currentCue`] = null;
         updates[`rooms/${room}/requestStats`] = null;
         updates[`rooms/${room}/showTimer/startedAt`] = null; // รีเซ็ตตัวจับเวลาโชว์
+        updates[`rooms/${room}/showTimer/endedAt`] = null;
 
         await db.ref().update(updates);
         localStorage.removeItem('lsh_queue_data');
@@ -2517,6 +2518,8 @@
         return;
       }
 
+      try { if (window.__lv && window.__lv.dispose) window.__lv.dispose(); } catch (e) {}   // ออกจากหน้า Live: หยุด listener/ตัวจับเวลาของหน้านั้น
+      window.__lv = null;
       const container = document.getElementById('mainContentArea');
       container.innerHTML = '';
       window.lshWaitPage();
