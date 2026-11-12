@@ -226,8 +226,9 @@
       // 📌 ดึงคลังเพลงจาก Firebase โหนด 'songs'
       window.initFirebaseSongListener = function() {
         if (typeof db !== 'undefined' && db && db.ref) {
-          db.ref('songs').off('value');
-          db.ref('songs').on('value', (snapshot) => {
+          // ถอดเฉพาะตัวฟังของหน้านี้เอง (เดิม off('value') ถอดตัวฟังทุกตัวของ songs รวมตัวฟังกลางที่ทำเครื่องหมายเพลงมีคอร์ด ทำให้ไอคอนคอร์ดค้างเทา)
+          if (window.__queueSongsCb) { try { db.ref('songs').off('value', window.__queueSongsCb); } catch (e) {} }
+          window.__queueSongsCb = (snapshot) => {
             window.lshReady && window.lshReady();
             const val = snapshot.val() || {};
             let loadedSongs = Object.keys(val).map(id => ({
@@ -241,7 +242,8 @@
             if (insertModal && !insertModal.classList.contains('hidden')) {
               renderSongLibrary();
             }
-          });
+          };
+          db.ref('songs').on('value', window.__queueSongsCb);
         }
       }
         
@@ -905,7 +907,8 @@
 
       window.selectInsertSong = function(songObj, insertType, reqIdToDelete = null) {
         window.pendingInsertSongObj = {
-          songId: songObj.id || songObj.songId || '',
+          // คำขอลูกค้าเก็บรหัสเพลงไว้ที่ songID ส่วน id คือรหัสของคำขอเอง (เดิมหยิบ id ผิดตัว) ; เพลงจากฐานรอง songID = '-' → ไม่มีรหัส
+          songId: insertType === 'request' ? ((songObj.songID && songObj.songID !== '-') ? songObj.songID : (songObj.songId || '')) : (songObj.id || songObj.songId || ''),
           title: songObj.title,
           artist: songObj.artist,
           key: songObj.key || '-',

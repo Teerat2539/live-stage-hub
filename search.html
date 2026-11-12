@@ -303,7 +303,7 @@
       (function bindQx() {
         const c = document.getElementById('searchQueueContainer'); if (!c) return;
         c.addEventListener('click', (e) => {
-          const g = e.target.closest && e.target.closest('.q-go.has-chord'); if (!g) return;
+          const g = e.target.closest && e.target.closest('.q-go'); if (!g) return;   // แตะแล้วลองเปิดเสมอ (ไม่รอไอคอนเขียว) ถ้าไม่มีคอร์ดจริงจะแจ้งในกล่อง
           const card = g.closest('.song-card'); if (!card) return;
           e.stopPropagation(); e.preventDefault();
           const qid = card.id.replace(/^card_/, '');

@@ -584,7 +584,7 @@
         try {
           await db.ref('songContent/' + edId).set(payload);
           cacheSet('own:' + edId, null);
-          (window.lshChordOwn = window.lshChordOwn || new Set()).add(String(edId));
+          (window.lshChordOwn = window.lshChordOwn || new Set()).add(String(edId)); try { if (window.lshChordPaint) window.lshChordPaint(); } catch (e) {}
           lshToast('บันทึกคอร์ดแล้ว', 'ok'); edClose(true);
         } catch (e) { lshToast('บันทึกไม่สำเร็จ: ' + e.message, 'error'); }
         btn.disabled = false;
@@ -627,9 +627,21 @@
         const t = (tm && !bm) ? (a + 3) % 12 : (!tm && bm) ? (a + 9) % 12 : a;   // คีย์คู่ขนาน: ไมเนอร์→เมเจอร์ +3 / เมเจอร์→ไมเนอร์ −3
         let d = (t - b + 12) % 12; if (d > 6) d -= 12; return d;
       }
+      // ข้อมูลเพลงที่แคชไว้ในเครื่อง (lsh_songs) — ใช้ก่อน เพื่อไม่ต้องรอเครือข่ายอีกรอบ
+      let songsCacheStr = null, songsCacheMap = null;
+      function cachedSong(id) {
+        try {
+          const raw = localStorage.getItem('lsh_songs') || '';
+          if (raw !== songsCacheStr) { songsCacheStr = raw; songsCacheMap = {}; (JSON.parse(raw) || []).forEach(x => { if (x && x.id != null) songsCacheMap[String(x.id)] = x; }); }
+          return (songsCacheMap || {})[String(id)] || null;
+        } catch (e) { return null; }
+      }
       async function getDoc(songId, qkey) {
-        const sn = await Promise.race([db.ref('songs/' + songId).once('value'), new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), 8000))]);
-        const s = sn.val() || {};
+        let s = cachedSong(songId);
+        if (!s || !(s.bk || hasOwn(songId))) {   // ไม่มีในแคช/ยังไม่รู้ว่ามีคอร์ด → อ่านสดจาก Firebase
+          const sn = await Promise.race([db.ref('songs/' + songId).once('value'), new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), 8000))]);
+          s = sn.val() || {};
+        }
         let r;
         if (hasOwn(songId)) r = await loadOwn(songId);
         else if (s.bk) r = await load(s.bk);
@@ -1601,15 +1613,18 @@
     const db = firebase.database();
 
     // เครื่องหมายโน้ตข้างชื่อเพลงที่มีคอร์ดแล้ว (เพลงที่มีฟิลด์ bk): ทุกหน้าเรียก lshChordIc(songId)
-    window.lshChordMarks = new Set();
-    window.lshChordOwn = new Set();
-    window.lshChordOwnRefresh = function() { try { fetch(firebaseConfig.databaseURL + '/songContent.json?shallow=true').then(r => r.ok ? r.json() : null).then(j => { if (j && typeof j === 'object') { window.lshChordOwn = new Set(Object.keys(j)); if (window.lshChordPaint) window.lshChordPaint(); } }).catch(() => {}); } catch (e) {} };
+    // จำรายชื่อเพลงที่มีคอร์ดไว้ในเครื่อง เปิดแอพรอบถัดไปไอคอนเขียวทันที ไม่ต้องรอโหลดจาก Firebase
+    const lshLoadSet = (k) => { try { return new Set(JSON.parse(localStorage.getItem(k) || '[]')); } catch (e) { return new Set(); } };
+    const lshSaveSet = (k, s) => { try { localStorage.setItem(k, JSON.stringify(Array.from(s))); } catch (e) {} };
+    window.lshChordMarks = lshLoadSet('lsh_chord_marks');
+    window.lshChordOwn = lshLoadSet('lsh_chord_own');
+    window.lshChordOwnRefresh = function() { try { fetch(firebaseConfig.databaseURL + '/songContent.json?shallow=true').then(r => r.ok ? r.json() : null).then(j => { if (j && typeof j === 'object') { window.lshChordOwn = new Set(Object.keys(j)); lshSaveSet('lsh_chord_own', window.lshChordOwn); if (window.lshChordPaint) window.lshChordPaint(); } }).catch(() => {}); } catch (e) {} };
     window.lshChordOwnRefresh();
     window.lshChordIc = function(id) { return id && (window.lshChordMarks.has(String(id)) || window.lshChordOwn.has(String(id))) ? '<svg class="ic chord-mark" role="img" aria-label="มีคอร์ด"><use href="#i-music"/></svg>' : ''; };
     window.lshChordCls = function(id) { const k = String(id || ''); return k && (window.lshChordMarks.has(k) || window.lshChordOwn.has(k)) ? 'has-chord' : ''; };
     // ไฮไลท์ตัวบอกคีย์ของเพลงที่มีคอร์ด: ทุกจุดที่มี data-chordid จะถูกอัปเดตเมื่อรายชื่อเพลงมีคอร์ดโหลดเสร็จ/เปลี่ยน
     window.lshChordPaint = function() { try { document.querySelectorAll('[data-chordid]').forEach(el => el.classList.toggle('has-chord', el.dataset.medley === '1' || !!el.dataset.chordid && lshChordCls(el.dataset.chordid) === 'has-chord')); } catch (e) {} };
-    try { db.ref('songs').on('value', snap => { const v = snap.val() || {}, s = new Set(); Object.keys(v).forEach(k => { if (v[k] && v[k].bk) s.add(k); }); window.lshChordMarks = s; window.lshChordPaint(); }); } catch (e) {}
+    try { db.ref('songs').on('value', snap => { const v = snap.val() || {}, s = new Set(); Object.keys(v).forEach(k => { if (v[k] && v[k].bk) s.add(k); }); window.lshChordMarks = s; lshSaveSet('lsh_chord_marks', s); window.lshChordPaint(); }); } catch (e) {}
 
     let selectedRoom = '';
     let targetRoomToDelete = null;
