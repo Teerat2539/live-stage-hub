@@ -138,6 +138,20 @@
     .lv-etools button.full { flex: 1 1 100%; border-color: #7a5a1e; background: #2a2112; color: var(--next); }
     .lv-etools select.lv-in { height: 40px; border-radius: 10px; border: 1px solid var(--line); background: var(--surface); color: var(--text-2); font-size: 13px; font-weight: 700; }
     .lv-etools button:disabled { opacity: .35; }
+    .lv-ov.pov { background: transparent; }
+    .lv-kpop { position: absolute; width: 236px; max-height: 56%; overflow-y: auto; padding: 10px; border-radius: 16px; background: #171b23; border: 1px solid #2a303c; box-shadow: 0 12px 30px rgba(0,0,0,.6); display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; animation: lvDown .15s var(--ease); }
+    .lv-kpop button { height: 40px; border-radius: 10px; border: 1px solid var(--line); background: var(--surface); color: var(--text-2); font-size: 15px; font-weight: 700; padding: 0; }
+    .lv-kpop button.on { background: #eef1f6; color: #0a0c10; border-color: #eef1f6; }
+    button.lv-kchip { background: none; font-family: inherit; }
+    .lv-pop.req { max-width: 342px; }
+    .lv-pop.req .s0 { font-size: 12px; color: var(--text-3); } .lv-pop.req .nm { font-size: 18px; font-weight: 700; } .lv-pop.req .ar { font-size: 13px; color: var(--text-3); }
+    .lv-pop.req .bt { margin-top: 6px; display: flex; flex-direction: column; gap: 8px; }
+    .lv-pb.pinko { height: 46px; border-color: var(--request); background: var(--request-soft); color: var(--request); }
+    .lv-pop.req .lv-pb.pink { height: 46px; }
+    .lv-pick { padding: 10px 12px; border: 1px solid var(--line); border-radius: 12px; background: #0f1218; text-align: left; color: var(--text); font-size: 15px; font-weight: 700; width: 100%; }
+    .lv-pick.cur { border: 1.5px solid var(--live); background: #0f2a26; cursor: default; }
+    .lv-pick small { display: block; font-size: 11px; font-weight: 700; color: var(--live); }
+    .lv-pline { height: 6px; margin: 0 20px; border-radius: 3px; background: var(--request); flex: none; }
     .lv-sort-ghost { opacity: .4; }
     /* หน้าต่างลอย */
     .lv-ov { position: absolute; inset: 0; z-index: 50; background: rgba(0,0,0,.66); display: flex; flex-direction: column; justify-content: flex-start; }
@@ -846,7 +860,7 @@
       }).catch(() => { ui.saving = false; ui.failed = true; render(); });
     }
 
-    const kchip = (x) => (!isMed(x) && keyOf(x)) ? '<span class="lv-kchip">' + esc(keyOf(x)) + '</span>' : '';
+    const kchip = (x, ed) => (!isMed(x) && keyOf(x)) ? (ed ? '<button type="button" class="lv-kchip" data-a="keypop" data-id="' + esc(x.id) + '" aria-label="เปลี่ยนคีย์">' + esc(keyOf(x)) + '</button>' : '<span class="lv-kchip">' + esc(keyOf(x)) + '</span>') : '';
     const bodyOf = (x, tag) => '<div class="lv-body">' + (tag || '') + '<div class="lv-title">' + esc(x.title) + '</div><div class="lv-art">' + (isMed(x) ? x.parts.map((pt) => esc(pt.title)).join(' · ') : esc(x.artist && x.artist !== '-' ? x.artist : '')) + '</div></div>';
     const tbtn = (a, id, ic, t, cls) => '<button type="button"' + (cls ? ' class="' + cls + '"' : '') + ' data-a="' + a + '" data-id="' + esc(id) + '">' + (ic || '') + t + '</button>';
     function editCard(L, x, mvAttr) {
@@ -857,11 +871,11 @@
         return h;
       }
       const dirtyTag = (ui.dirty && base && !base.songs.some((b) => b.id === x.id)) ? '<span class="lv-dirty">เปลี่ยนแล้ว · ยังไม่ส่ง</span>' : '';
-      let h = '<div class="lv-card edit' + (x.status === 'next' ? ' next' : '') + (mvAttr ? ' mv' : '') + (open ? ' open' : '') + (isIns(x) ? (x.type === 'inserted-request' ? ' req' : ' custom') : '') + '" style="--c:' + setCls(x) + '" data-id="' + esc(x.id) + '" data-a="ecard"><div class="lv-main"><span class="lv-grip">' + IC.grip + '</span>' + bodyOf(x) + dirtyTag + kchip(x) + '</div>';
+      let h = '<div class="lv-card edit' + (x.status === 'next' ? ' next' : '') + (mvAttr ? ' mv' : '') + (open ? ' open' : '') + (isIns(x) ? (x.type === 'inserted-request' ? ' req' : ' custom') : '') + '" style="--c:' + setCls(x) + '" data-id="' + esc(x.id) + '" data-a="ecard"><div class="lv-main"><span class="lv-grip">' + IC.grip + '</span>' + bodyOf(x) + dirtyTag + kchip(x, true) + '</div>';
       if (open) {
         const keys = (window.lshKeys && lshKeys.master) || [];
         h += '<div class="lv-etools" data-a="stop-prop">' + tbtn('skipto', x.id, IC.skip, 'ข้ามมาที่นี่') + tbtn('del', x.id, IC.trash, 'ลบเพลง', 'del') + tbtn('up', x.id, IC.up, 'ขึ้น') + tbtn('down', x.id, IC.chev, 'ลง') +
-          (isMed(x) ? '' : '<select class="lv-in" data-a="keysel" data-id="' + esc(x.id) + '" aria-label="เปลี่ยนคีย์" style="flex:1 1 100%;height:40px"><option value="">คีย์: ' + esc(keyOf(x) || '-') + ' (เปลี่ยน…)</option>' + keys.map((k) => '<option value="' + esc(k) + '">' + esc(k) + '</option>').join('') + '</select>') + '</div>';
+          '</div>';
       }
       return h + '</div>';
     }
@@ -922,7 +936,7 @@
     }
     function openInsert() {
       if (guest || !D) return;
-      const keys = ((window.lshKeys && lshKeys.master) || ['C', 'D', 'E', 'F', 'G', 'A', 'B']).slice(0, 12);
+      const keys = ((window.lshKeys && lshKeys.master) || ['C', 'D', 'E', 'F', 'G', 'A', 'B']).filter((k) => /^[A-G]$/.test(k));
       showOv('<div class="lv-sheet tall" data-a="stop-prop"><div style="display:flex;justify-content:space-between;align-items:center"><h4 style="margin:0;font-size:18px">แทรกเพลง</h4><button type="button" class="lv-x" data-a="ovclose" aria-label="ปิด">✕</button></div>' +
         '<div class="lv-tabs2"><button type="button" class="on" data-a="instab" data-t="songs">แทรกเพลงเอง</button><button type="button" data-a="instab" data-t="req">เพลงลูกค้าขอ<span class="lv-badge" id="lvInsBadge">' + requests.length + '</span></button></div>' +
         '<div id="lvInsTop" style="display:flex;flex-direction:column;gap:10px;flex:none"><div class="lv-srow"><div class="lv-sin">' + IC.search + '<input class="lv-in" id="lvInsQ" type="search" placeholder="ค้นหาชื่อเพลง (ฐานหลัก)" autocomplete="off"></div></div>' +
@@ -1036,17 +1050,30 @@
     }
     // เลือกเพลงที่ลูกค้าขอ → ใส่ในคิวเลย / เลือกตำแหน่ง / เก็บไว้ก่อน
     function reqPopup(s) {
-      const t = esc(s.title);
-      const rec = async (keep) => {   // บันทึกสถิติร้านเหมือนเดิม; เก็บไว้ก่อน = ลงกล่องรีเควส (ป้ายที่ปุ่มจัดคิว)
+      const rec = async (keep) => {   // บันทึกสถิติร้านเหมือนเดิม; เก็บไว้ = ลงกล่องรีเควส (ป้ายที่ปุ่มจัดคิว)
         const v = await venueName(); const sid = (s.id && s.id !== '-') ? s.id : '-';
         try { db.ref('rooms/' + room + '/request/' + v).push({ title: s.title, artist: s.artist || '-', songID: sid, date: new Date().toISOString().split('T')[0] }); } catch (e) {}
         if (keep) { try { db.ref('rooms/' + room + '/requestStats').push({ title: s.title, artist: s.artist || '-', key: s.key || '-', bpm: s.bpm || '-', songID: sid, time: nowMs() }); } catch (e) {} }
       };
-      pop('ลูกค้าขอ “' + t + '”', s.artist && s.artist !== '-' ? esc(s.artist) : '', [
-        { t: 'ใส่ในคิวเลย', c: 'pink', fn: () => { closeOv(); rec(false); placeSong(songObj(s, 'request'), null, null); } },
-        { t: 'เลือกตำแหน่ง…', fn: () => pickPos(songObj(s, 'request'), null, () => rec(false)) },
-        { t: 'เก็บไว้ก่อน (ไปที่ปุ่มจัดคิว)', fn: () => { closeOv(); rec(true); lshToast('เก็บไว้ในกล่องรีเควสแล้ว', 'ok'); } },
-        { t: 'ยกเลิก', fn: () => { closeOv(); openReq(); } }]);
+      reqCtx = { s: s, rec: rec };
+      popBtns = [{ fn: () => { closeOv(); rec(true); lshToast('ส่งเข้ากล่องลูกค้าขอเพลงแล้ว', 'ok'); } }, { fn: () => reqPickPos(s) }];
+      showOv('<div class="lv-pop req" data-a="stop-prop"><div class="s0">เพลงที่ลูกค้าขอ</div><div class="nm">' + esc(s.title) + '</div>' + (s.artist && s.artist !== '-' ? '<div class="ar">' + esc(s.artist) + '</div>' : '') +
+        '<div class="bt"><button type="button" class="lv-pb pinko" data-a="pb" data-i="0">ส่งเข้ากล่องลูกค้าขอเพลง</button><button type="button" class="lv-pb pink" data-a="pb" data-i="1">ใส่ในคิวเลย</button></div></div>', 'center', 'pop');
+    }
+    let reqCtx = null, rqItems = [];
+    function reqPickPos(s) {   // ใส่ในคิวเลย → เลือกเพลงที่จะให้เล่นก่อน เพลงที่ขอตามหลัง
+      const L = Q.songs, act = actOf(L), pi = act.findIndex((x) => x.status === 'playing');
+      const seq = act.slice(Math.max(pi, 0)).filter((x) => x.type !== 'dummy_end' && x.status !== 'removed');
+      let h = '', first = true; rqItems = [];
+      seq.forEach((x, i) => {
+        if (isBrk(x)) { h += '<div class="lv-bar" style="--c:' + setCls(x) + '"></div>'; return; }
+        if (x.type === 'dummy_start') return;
+        rqItems.push(x);
+        if (x.status === 'playing') h += '<button type="button" class="lv-pick cur" data-a="rqpos" data-i="' + (rqItems.length - 1) + '"><small>กำลังเล่น</small>' + esc(x.title) + '</button><div class="lv-pline"></div>';
+        else h += '<button type="button" class="lv-pick" data-a="rqpos" data-i="' + (rqItems.length - 1) + '">' + esc(x.title) + '</button>';
+      });
+      h += '<div class="lv-pick" style="color:var(--text-3);cursor:default">เพลงสุดท้ายของคิว</div>';
+      showOv('<div class="lv-pop" data-a="stop-prop" style="max-width:none;height:calc(100% - 190px);margin:0 16px"><h4>ใส่ “' + esc(s.title) + '” ต่อท้ายเพลงไหน</h4><div class="sub" style="font-size:12px;color:var(--text-3)">แตะเพลงที่จะให้เล่นก่อน เพลงที่ขอจะตามหลังเพลงนั้น</div><div class="lv-res" style="gap:6px">' + h + '</div></div>', 'center', 'pop');
     }
 
     // ===== ย้ายทั้งเซ็ต / เรียกคืน / เปลี่ยนคีย์ =====
@@ -1084,7 +1111,6 @@
       while (el && root.contains(el)) {
         const a = el.dataset.a, id = el.dataset.id;
         if (a === 'stop-prop') return;   // ภายในกล่องที่ไม่ให้กดทะลุ (เช่น ตัวเนื้อหาคอร์ด/พื้นของหน้าต่าง)
-        if (a === 'keysel') return;
         if (act(a, el, id, ev)) return;
         el = el.parentElement ? el.parentElement.closest('[data-a]') : null;
       }
@@ -1136,6 +1162,11 @@
         case 'reqdel': { const rid = el.dataset.id; pop('ลบคำขอนี้?', '', [{ t: 'ลบ', c: 'warn', fn: () => { try { db.ref('rooms/' + room + '/requestStats/' + rid).remove(); } catch (e) {} closeOv(); openInsert(); if (ui.ov) { ui.ov.tab = 'req'; renderInsert(); } } }, { t: 'ยกเลิก', fn: () => { closeOv(); openInsert(); } }]); return true; }
         case 'pospick': { if (!posCtx) return true; const x = posItems[Number(el.dataset.i)], c = posCtx; closeOv(); if (x) { placeSong(c.o, x.id, c.reqId); if (c.after) c.after(); } return true; }
         // ลูกค้าขอเพลง
+        case 'rqpos': { const x = rqItems[Number(el.dataset.i)]; if (!x || !reqCtx) return true; const c = reqCtx; closeOv(); c.rec(false); placeSong(songObj(c.s, 'request'), x.id, null); return true; }
+        case 'keypop': { const it = itemById(id); if (!it || !D) return true; const rr = root.getBoundingClientRect(), r = el.getBoundingClientRect(), cur = keyOf(it);
+          const keys = (window.lshKeys && lshKeys.master) || [], below = r.bottom - rr.top + 6, up = (rr.height - below) < 260;
+          showOv('<div class="lv-kpop" data-a="stop-prop" style="right:' + Math.max(8, rr.right - r.right) + 'px;' + (up ? 'bottom:' + (rr.bottom - r.top + 6) + 'px' : 'top:' + below + 'px') + '">' + keys.map((k) => '<button type="button" class="' + (k === cur ? 'on' : '') + '" data-a="keyset" data-id="' + esc(id) + '" data-k="' + esc(k) + '">' + esc(k) + '</button>').join('') + '</div>', 'pov', 'keypop'); return true; }
+        case 'keyset': { const nl = D ? opKey(D, id, el.dataset.k) : null; closeOv(); if (nl) change(nl); return true; }
         case 'reqpick': reqPopup(JSON.parse(el.dataset.s)); return true;
         case 'reqok': { const v = (($('lvReqQ') || {}).value || '').trim(); if (v) reqPopup({ id: '-', title: v, artist: '-', key: '-', bpm: '-' }); return true; }
       }
@@ -1143,7 +1174,6 @@
     }
     function onChange(ev) {
       const t = ev.target;
-      if (t && t.dataset && t.dataset.a === 'keysel') { const k = t.value; if (k && D) { const nl = opKey(D, t.dataset.id, k); if (nl) change(nl); } }
     }
     function onInput(ev) {
       const t = ev.target; if (!t || !ui.ov) return;
