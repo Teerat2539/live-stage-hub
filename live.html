@@ -503,7 +503,12 @@
       timers.tick = setInterval(tick, 1000);
     }
     function onTimer(st) { showSt = st || {}; if (!disposed) { renderStrip(); renderSummary(); } }
-    const ended = () => !!showSt.endedAt;
+    const ended = () => {   // จบโชว์จริงเท่านั้น: คิวว่าง / เริ่มรอบใหม่ (เตรียมพร้อม หรือเพลงที่เริ่มหลังเวลาจบ) ไม่นับว่าจบแล้ว
+      if (!showSt.endedAt || !Q.songs.length) return false;
+      const p = playingOf(Q.songs); if (!p || p.type === 'dummy_start') return false;
+      if (p.type !== 'dummy_end' && Number(p.startedAt) > showSt.endedAt) return false;
+      return true;
+    };
 
     // ===== คิวที่แสดงอยู่ตอนนี้ =====
     function preview() {   // คิวจริง + การเลื่อนมือที่รอส่ง (แสดงทันที)
@@ -786,7 +791,10 @@
 
     // ===== สรุปโชว์ =====
     function renderSummary() {
-      const o = $('lvOv'); if (!o || !ended() || !ui.sumOpen || D || (ui.ov && ui.ov.kind !== 'summary')) return;
+      const o = $('lvOv');
+      if (o && !ended() && o.dataset.sum) { delete o.dataset.sum; o.innerHTML = ''; ui.ov = null; ui.sumOpen = true; ui.sumDetail = false; }   // คิวถูกเคลียร์/เริ่มรอบใหม่ → ปิดหน้าสรุป
+      if (!ended()) { ui.sumOpen = true; return; }
+      if (!o || !ui.sumOpen || D || (ui.ov && ui.ov.kind !== 'summary')) return;
       const L = Q.songs, songs = L.filter((x) => isSong(x));
       const played = songs.filter((x) => x.status === 'played' || x.status === 'playing'), skipped = songs.filter((x) => x.status === 'removed' && x.rm === 'skip'), deleted = songs.filter((x) => x.status === 'removed' && x.rm !== 'skip'), notPlayed = songs.filter((x) => x.status !== 'removed' && x.status !== 'played' && x.status !== 'playing');
       const dur = showSt.startedAt ? Math.max(0, showSt.endedAt - showSt.startedAt) : 0, hh = Math.floor(dur / 3600000), mm = Math.floor(dur % 3600000 / 60000);
