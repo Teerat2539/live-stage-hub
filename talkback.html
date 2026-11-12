@@ -40,7 +40,7 @@
   <!-- 3 & 4. Action Row -->
   <div class="action-row">
     <button class="btn-action-main btn-feel" id="btnOpenFeel"><svg class="ic" aria-hidden="true"><use href="#i-sliders"/></svg> ตัดเพลง / เปลี่ยนฟีล</button>
-    <button class="btn-action-main btn-request" id="btnOpenRequest"><svg class="ic" aria-hidden="true"><use href="#i-inbox"/></svg> ลูกค้าขอเพลง</button>
+    <button class="btn-action-main btn-request" id="btnOpenRequest" hidden style="display:none" aria-hidden="true" tabindex="-1"><svg class="ic" aria-hidden="true"><use href="#i-inbox"/></svg> ลูกค้าขอเพลง</button>
   </div>
 
   <!-- 5. Chat Display Box -->
@@ -79,7 +79,8 @@
 </div>
 
 <!-- Modal: ลูกค้าขอเพลง (เพิ่ม onclick="closeRequestModal(event)" ที่คอนเทนเนอร์หลัก) -->
-<div id="requestModal" class="request-modal-container hidden" onclick="closeRequestModal(event)">
+<!-- 2.0: ย้ายการรับคำขอเพลงไปหน้า Live แล้ว (ปุ่ม/หน้าต่างนี้ซ่อนไว้ ยังไม่ลบ) -->
+<div id="requestModal" class="request-modal-container hidden" style="display:none" onclick="closeRequestModal(event)">
   <div class="request-modal-content" onclick="event.stopPropagation()">
     <div class="u-between">
       <span class="modal-title" style="margin:0;color:var(--request)"><svg class="ic" aria-hidden="true"><use href="#i-inbox"/></svg> ลูกค้าขอเพลง</span>

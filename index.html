@@ -649,6 +649,13 @@
         const base = r.k || s.key || '';
         return { rec: r, song: s, base: base, duration: Number(s.duration) || Number(r.d) || 0, at: function(key) { const n = shiftFor(base, key || s.key || ''); return { n: n, flat: useFlat((rootIdx(base) + n + 120) % 12, isMinor(base)), keyLabel: (rootIdx(key || s.key || '') >= 0 ? String(key || s.key).trim() : keyName(base, n)) }; } };
       }
+      // 2.0: เปิดคอร์ดจากรหัสคลังคอร์ด (bk) ตรงๆ — ใช้กับเพลงที่เลือกจากคลังคอร์ด/ยังไม่ผูก bk ในฐานข้อมูลหลัก (รูปแบบผลลัพธ์เหมือน getDoc)
+      async function getDocBk(bk, key, title) {
+        const r = await load(bk);
+        const s = { key: key && key !== '-' ? key : (r.k || ''), title: title || '', duration: Number(r.d) || 0 };
+        const base = r.k || s.key || '';
+        return { rec: r, song: s, base: base, duration: Number(r.d) || 0, at: function(k2) { const n = shiftFor(base, k2 || s.key || ''); return { n: n, flat: useFlat((rootIdx(base) + n + 120) % 12, isMinor(base)), keyLabel: (rootIdx(k2 || s.key || '') >= 0 ? String(k2 || s.key).trim() : keyName(base, n)) }; } };
+      }
       // เมดเลย์: ต่อเนื้อคอร์ดของเพลงย่อยทุกเพลงเป็นเอกสารเดียว (แต่ละท่อนเลื่อนคอร์ดตามคีย์ของเพลงย่อยนั้น) + แถบคั่นเพลงย่อย  parts = [{songId,key,title?,secs:[{i,n}]}]
       function pickSecs(secs, want) {
         const out = [];
@@ -696,7 +703,7 @@
         });
         return out;
       }
-      return { open: open, close: close, edit: openEditor, _x: { cacheGet: cacheGet, cacheSet: cacheSet, chordDb: chordDb, load: load, getDoc: getDoc, getMedleyDoc: getMedleyDoc, sectionsHtml: sectionsHtml, flatLines: flatLines, hasOwn: hasOwn } };
+      return { open: open, close: close, edit: openEditor, _x: { cacheGet: cacheGet, cacheSet: cacheSet, chordDb: chordDb, load: load, getDoc: getDoc, getDocBk: getDocBk, getMedleyDoc: getMedleyDoc, sectionsHtml: sectionsHtml, flatLines: flatLines, hasOwn: hasOwn } };
     })();
 
     // ===== ค้นหาคอร์ดในคลังตอนเพิ่มเพลง: ตรงเป๊ะ (ชื่อ+ศิลปิน) = เชื่อมให้อัตโนมัติ / ชื่อเพลงเหมือนแต่ศิลปินต่าง = ให้เลือกเอง =====
@@ -1148,7 +1155,7 @@
       function info() {
         const dur = Number(st.durationMin) > 0 ? Number(st.durationMin) : DEFAULT.durationMin;
         let remMs = dur * 60000;
-        if (st.startedAt) remMs = dur * 60000 - (Date.now() - st.startedAt);
+        if (st.startedAt) remMs = dur * 60000 - ((st.endedAt || Date.now()) - st.startedAt);   // จบการแสดงแล้ว = เวลาหยุดนิ่ง
         remMs = Math.max(remMs, -MAX_OVER_MIN * 60000);
         const over = remMs < 0;
         const m = over ? -Math.floor(-remMs / 60000) : Math.ceil(remMs / 60000);
@@ -1157,7 +1164,12 @@
         const sAbs = Math.abs(Math.round(remMs / 1000));
         const hms = (remMs < 0 ? '-' : '') + Math.floor(sAbs / 3600) + ':' + String(Math.floor(sAbs % 3600 / 60)).padStart(2, '0') + ':' + String(sAbs % 60).padStart(2, '0');
         const songs = Math.max(0, Math.round(Math.max(m, 0) / MIN_PER_SONG));
-        return { text, hms, over, idle: !st.startedAt, songs };
+        const ended = !!st.endedAt;
+        // 15 นาทีสุดท้าย: แทนนาฬิกาด้วย "เหลืออีก ~N เพลง" (หารด้วยความยาวเพลงเฉลี่ย ขั้นต่ำ 1)
+        const avg = (window.lshAutoAdv && window.lshAutoAdv.durationOf) ? (Number(window.lshAutoAdv.durationOf(null)) || 240) : 240;
+        const last15 = !ended && !over && remMs > 0 && remMs <= 15 * 60000;
+        const songsLeft = Math.max(1, Math.round(remMs / 1000 / avg));
+        return { text, hms, over, idle: !st.startedAt, songs, ended, last15, songsLeft, remMs };
       }
       function render() {
         const el = document.getElementById('showTimerDisplay');
@@ -1174,7 +1186,10 @@
             } else {
               el.classList.toggle('over', i.over);
               el.classList.remove('idle');
-              el.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></svg><span class="st-time">' + i.hms + '</span>';
+              el.classList.toggle('last15', !!i.last15);
+              el.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></svg><span class="st-time"' + (i.last15 ? ' style="color:#F5A524"' : '') + '>' + (i.last15 ? 'เหลืออีก ~' + i.songsLeft + ' เพลง' : i.hms) + '</span>';
+              // ติดลบถึง 30 นาที = จบการแสดงอัตโนมัติ (บันทึกเวลาจบครั้งเดียว ใครเปิดแอปอยู่ก็ทำได้)
+              if (i.over && !st.endedAt && i.remMs <= -MAX_OVER_MIN * 60000 && ref) { try { ref.child('endedAt').transaction(v => v || Date.now()); } catch (e) {} }
             }
           }
         }
@@ -1204,7 +1219,8 @@
         setConfig: (patch) => ref ? ref.update(patch) : Promise.resolve(),
         // เริ่มจับเวลา (ครั้งเดียว: ถ้ามีค่าอยู่แล้วจะไม่ทับ)
         start: () => ref ? ref.child('startedAt').transaction(v => v || Date.now()) : Promise.resolve(),
-        reset: () => ref ? ref.update({ startedAt: null }) : Promise.resolve(),
+        reset: () => ref ? ref.update({ startedAt: null, endedAt: null }) : Promise.resolve(),
+        end: () => ref ? ref.child('endedAt').transaction(v => v || Date.now()) : Promise.resolve(),
         // เรียกจากหน้าจัดคิว: เมื่อมีเพลงจริงเพลงแรกกำลังเล่น ให้เริ่มจับเวลา
         maybeStart: (queue) => {
           if (!ref || !st.enabled || st.startedAt) return;
@@ -1281,6 +1297,7 @@
           for (let k = pi + 1; k < arr.length; k++) { if (arr[k].status !== 'removed') { ni = k; break; } }
           if (ni === -1) return;
           arr[pi].status = 'played'; arr[ni].status = 'playing';
+          arr[pi].heard = true; arr[ni].startedAt = now(); delete arr[ni].playedMs; delete arr[ni].pauseFrom;
           // จัดสถานะ next/standby ใหม่ ให้เหมือนที่หน้าจัดคิวคำนวณ (หน้าอื่นอ่านสถานะจาก Firebase ตรงๆ)
           let an = false, as = false;
           for (let k = 0; k < arr.length; k++) {
@@ -1579,7 +1596,11 @@
       <span class="nav-ico"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8M12 16v4"/></svg></span>
       <span class="nav-label">Monitor</span>
     </button>
-    <button id="nav-search" onclick="setActiveNav('search')">
+    <button id="nav-live" onclick="setActiveNav('live')">
+      <span class="nav-ico"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6h11M9 12h11M9 18h11M4.5 6h.01M4.5 12h.01M4.5 18h.01"/></svg></span>
+      <span class="nav-label">Live</span>
+    </button>
+    <button id="nav-search" style="display:none" onclick="setActiveNav('search')">
       <span class="nav-ico"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="6"/><path d="M20 20l-4.2-4.2"/></svg></span>
       <span class="nav-label">Search</span>
     </button>
@@ -1587,7 +1608,7 @@
       <span class="nav-ico"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg></span>
       <span class="nav-label">TalkBack</span>
     </button>
-    <button id="nav-queue" onclick="setActiveNav('queue')">
+    <button id="nav-queue" style="display:none" onclick="setActiveNav('queue')">
       <span class="nav-ico"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6h11M9 12h11M9 18h11M4.5 6h.01M4.5 12h.01M4.5 18h.01"/></svg></span>
       <span class="nav-label">Queue</span>
     </button>
@@ -1640,7 +1661,27 @@
       }
       checkSession();
       setInterval(checkSessionExpiry, 1000);
+      lshCheckVersion();
+      document.addEventListener('visibilitychange', () => { if (!document.hidden && Date.now() - lshVerAt > 300000) lshCheckVersion(); });
     };
+
+    // ===== ตรวจเวอร์ชันแอป (2.0): เทียบเลขใน version.json บนเซิร์ฟเวอร์ กับเลขของโค้ดที่เปิดอยู่ =====
+    const LSH_APP_VER = '2.0.0';
+    let lshVerAt = 0;
+    function lshCheckVersion() {
+      lshVerAt = Date.now();
+      if (!/^(https:|http:\/\/localhost)/.test(location.protocol + '//' + location.hostname)) return;
+      fetch('version.json?t=' + Date.now(), { cache: 'no-store' }).then((r) => r.ok ? r.json() : null).then((j) => {
+        if (!j || !j.version || String(j.version) === LSH_APP_VER) return;
+        if (document.getElementById('lshVerBar')) return;
+        const b = document.createElement('div'); b.id = 'lshVerBar';
+        b.style.cssText = 'position:fixed;left:12px;right:12px;bottom:calc(84px + env(safe-area-inset-bottom,0px));z-index:9999;background:#1b2330;color:#eef1f6;border:1px solid #3a4a63;border-radius:14px;padding:12px 14px;display:flex;align-items:center;gap:10px;box-shadow:0 8px 24px rgba(0,0,0,.5);font-size:14px';
+        b.innerHTML = '<span style="flex:1">มีเวอร์ชันใหม่ (' + String(j.version).replace(/[<>&"]/g, '') + ')</span><button type="button" id="lshVerGo" style="height:40px;padding:0 16px;border:0;border-radius:10px;background:#3DDC84;color:#04210f;font-weight:700;font-size:14px">อัปเดตตอนนี้</button><button type="button" id="lshVerX" aria-label="ปิด" style="height:40px;width:40px;border:0;border-radius:10px;background:transparent;color:#9aa6b8;font-size:18px">✕</button>';
+        document.body.appendChild(b);
+        document.getElementById('lshVerX').onclick = () => b.remove();
+        document.getElementById('lshVerGo').onclick = () => { location.replace(location.pathname + '?v=' + encodeURIComponent(j.version)); };   // รีโหลดแล้วได้ไฟล์ล่าสุด (ไม่ล้างการล็อกอิน)
+      }).catch(() => {});
+    }
 
     // แจ้งเตือนเมื่อเน็ตหลุด/กลับมา (ดูจาก .info/connected ของ Firebase + เหตุการณ์ online/offline ของเบราว์เซอร์)
     function startNetWatch() {
@@ -2394,7 +2435,8 @@
 
       let lastPage = localStorage.getItem('lsh_last_page') || 'monitor';
       if (lshIsGuest(session) && ['queue', 'songs', 'setlists', 'settings'].includes(lastPage)) { lastPage = 'monitor'; localStorage.setItem('lsh_last_page', 'monitor'); }
-      const isNavPage = ['monitor', 'search', 'talkback', 'queue'].includes(lastPage);
+      if (lastPage === 'search' || lastPage === 'queue') { lastPage = 'live'; localStorage.setItem('lsh_last_page', 'live'); }
+      const isNavPage = ['monitor', 'live', 'talkback'].includes(lastPage);
   
       if (isNavPage) {
         setActiveNav(lastPage);
@@ -2442,6 +2484,7 @@
     }
 
     function setActiveNav(pageName) {
+      if (pageName === 'search' || pageName === 'queue') pageName = 'live';   // 2.0: หน้าค้นหาคอร์ด+หน้าจัดคิวรวมเป็นหน้า Live
       document.querySelectorAll('nav button').forEach(btn => btn.classList.remove('active'));
       const activeBtn = document.getElementById('nav-' + pageName);
       if (activeBtn) activeBtn.classList.add('active');
@@ -2451,6 +2494,7 @@
     }
 
     async function loadPage(pageName) {
+      if (pageName === 'search' || pageName === 'queue') pageName = 'live';
       if (window.lshWakeLock) window.lshWakeLock.sync(pageName);
       const sessionStr = localStorage.getItem('lsh_session');
       if (!sessionStr) {

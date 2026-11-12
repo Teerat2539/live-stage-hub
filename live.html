@@ -1,0 +1,1108 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Live Stage Hub - Live</title>
+  <link rel="stylesheet" href="style.css">
+  <style>
+    /* ===== หน้า Live (2.0): รวมหน้าคอร์ด + หน้าจัดคิว — ใช้ตัวแปรสีเดิมจาก style.css ===== */
+    .lv { position: relative; display: flex; flex-direction: column; flex: 1 1 auto; min-height: 0; height: 100%; color: var(--text); }
+    .lv * { box-sizing: border-box; }
+    .lv button { font-family: inherit; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+    .lv .lv-top { display: flex; gap: 10px; padding: 12px 16px 0; flex: none; }
+    .lv .lv-top .top-box { flex: 1; min-width: 0; }
+    .lv-scroll { flex: 1 1 auto; min-height: 0; overflow-y: auto; overflow-x: hidden; padding: 0 0 190px; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; }
+    /* แถบควบคุม */
+    .lv-strip { display: flex; align-items: center; gap: 8px; padding: 12px 16px 0; }
+    .lv-venue { flex: 1; min-width: 0; font-size: 19px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .lv-pp { flex: none; width: 44px; height: 44px; border-radius: 50%; border: 1.5px solid var(--live-line); background: var(--live-soft); display: flex; align-items: center; justify-content: center; padding: 0; color: var(--live); }
+    .lv-pp.paused { border-color: var(--next); background: var(--next-soft); color: var(--next); }
+    .lv-pp svg { width: 20px; height: 20px; fill: currentColor; }
+    .lv-autolbl { font-size: 12px; color: var(--text-3); line-height: 1.2; width: 54px; }
+    .lv-sw { flex: none; width: 52px; height: 30px; border-radius: 999px; padding: 3px; border: 0; background: var(--surface-3); display: flex; justify-content: flex-start; }
+    .lv-sw i { width: 24px; height: 24px; border-radius: 50%; background: var(--bg); display: block; }
+    .lv-sw[aria-checked="true"] { background: var(--live); justify-content: flex-end; }
+    .lv-tchip { flex: none; display: flex; align-items: center; gap: 6px; height: 40px; padding: 0 12px; border: 1px solid var(--line); border-radius: 999px; background: var(--surface); color: var(--text-2); font-size: 14px; font-weight: 600; }
+    .lv-tchip svg { width: 18px; height: 18px; stroke: var(--live); fill: none; stroke-width: 2; stroke-linecap: round; }
+    .lv-tchip.over { border-color: var(--danger); color: var(--danger); }
+    .lv-chev { display: flex; justify-content: center; padding-top: 6px; }
+    .lv-chev button { width: 46px; height: 22px; border-radius: 0 0 12px 12px; border: 1px solid var(--line); border-top: 0; background: var(--surface); color: var(--text-3); display: flex; align-items: center; justify-content: center; padding: 0; }
+    .lv-chev svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; }
+    /* แถวปุ่ม: ลูกค้าขอเพลง / จัดคิว */
+    .lv-acts { display: flex; align-items: center; gap: 8px; padding: 12px 16px 8px; }
+    .lv-btn { height: 38px; border-radius: 12px; border: 1px solid var(--line); background: var(--surface); color: var(--text-2); display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 14px; font-weight: 600; padding: 0 14px; position: relative; }
+    .lv-btn svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+    .lv-btn.req { flex: 1; border-color: var(--request); background: var(--request-soft); color: var(--request); font-weight: 700; }
+    .lv-btn.ins { flex: 1; background: var(--surface-3); border: 1px solid var(--text-2); color: var(--text); }
+    .lv-btn.save { background: var(--live); border-color: var(--live); color: var(--live-ink); font-weight: 700; }
+    .lv-btn.save.ring { box-shadow: 0 0 0 3px rgba(46,242,184,.55), 0 0 0 7px rgba(46,242,184,.22); animation: lvRing 1s ease-in-out infinite; }
+    .lv-btn.save.fail { background: var(--danger); border-color: var(--danger); color: #fff; }
+    @keyframes lvRing { 50% { box-shadow: 0 0 0 1px rgba(46,242,184,.2), 0 0 0 3px rgba(46,242,184,.1); } }
+    .lv-badge { position: absolute; top: -7px; right: -7px; min-width: 20px; height: 20px; padding: 0 5px; border-radius: 10px; background: var(--request); color: var(--bg); font-size: 12px; font-weight: 700; display: flex; align-items: center; justify-content: center; box-shadow: 0 0 0 3px rgba(255,95,210,.35); }
+    /* รายการ */
+    .lv-list { padding: 0 16px; display: flex; flex-direction: column; gap: 8px; }
+    .lv-played { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--text-3); padding: 2px 4px; background: none; border: 0; text-align: left; }
+    .lv-played svg { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 2.5; stroke-linecap: round; transition: transform .15s; }
+    .lv-played.open svg { transform: rotate(90deg); }
+    .lv-card { --c: var(--set-1); display: flex; align-items: flex-start; gap: 12px; padding: 12px 14px; border: 1px solid var(--line); border-left: 4px solid var(--c); border-radius: 16px; background: var(--surface); position: relative; }
+    .lv-card.next { border: 1.5px solid var(--c); background: color-mix(in srgb, var(--c) 8%, var(--surface)); }
+    .lv-card.playing { border: 1.5px solid var(--live); border-left: 4px solid var(--c); }
+    .lv-card.played { opacity: .5; }
+    .lv-card.req { --c: var(--request); } .lv-card.custom { --c: var(--custom); }
+    .lv-card.removed { border-style: dashed; opacity: .65; }
+    .lv-no { width: 18px; flex: none; color: var(--text-3); font-size: 15px; padding-top: 2px; }
+    .lv-body { flex: 1; min-width: 0; }
+    .lv-tag { font-size: 11px; font-weight: 700; color: var(--c); }
+    .lv-tag.live { color: var(--live); display: flex; align-items: center; gap: 6px; font-size: 12px; }
+    .lv-tag.live i { width: 8px; height: 8px; border-radius: 50%; background: var(--live); display: inline-block; }
+    .lv-title { font-size: 16px; font-weight: 700; word-break: break-word; }
+    .lv-art { font-size: 13px; color: var(--text-3); margin-top: 1px; }
+    .lv-key { display: inline-block; margin-left: 8px; padding: 0 6px; border: 1px solid var(--c); border-radius: 6px; font-size: 13px; color: var(--text-2); }
+    .lv-ic { flex: none; width: 36px; height: 36px; margin: -6px -6px 0 0; display: flex; align-items: center; justify-content: center; background: none; border: 0; color: var(--text-3); padding: 0; }
+    .lv-ic svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+    .lv-ic.go svg { stroke: var(--live); }
+    .lv-bar { --c: var(--set-1); height: 12px; margin: 2px 0; border-radius: 6px; background: var(--c); }
+    .lv-bar.cur { height: 20px; box-shadow: 0 0 0 3px var(--bg), 0 0 0 4.5px var(--live); }
+    .lv-bar.passed { opacity: .45; }
+    .lv-bar.nextb { height: 20px; }
+    .lv-barrow { display: flex; align-items: center; gap: 10px; padding: 6px 10px; border-radius: 16px; background: var(--surface); border: 1px solid var(--line); }
+    .lv-barrow .lv-bar { flex: 1; margin: 0; height: 10px; }
+    .lv-prog { margin-top: 8px; }
+    .lv-prog .tr { height: 6px; border-radius: 3px; background: var(--surface-3); } .lv-prog .tr i { display: block; height: 6px; border-radius: 3px; background: var(--c); width: 0; }
+    .lv-prog .tm { display: flex; justify-content: space-between; margin-top: 4px; font-size: 12px; color: var(--text-3); font-variant-numeric: tabular-nums; }
+    /* การ์ดขยาย: คอร์ด */
+    .lv-exp { flex: 0 0 100%; min-width: 0; margin: 8px -14px 0 -30px; padding-left: 30px; width: calc(100% + 44px); }
+    .lv-card .lv-main { display: flex; align-items: flex-start; gap: 12px; width: 100%; }
+    .lv-card.open { flex-direction: column; align-items: stretch; }
+    .lv-tools { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; padding: 8px 0; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); margin-top: 8px; }
+    .lv-seg { display: flex; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
+    .lv-seg button { width: 40px; height: 34px; border: 0; background: var(--surface); color: var(--text-2); font-size: 13px; font-weight: 700; display: flex; align-items: center; justify-content: center; padding: 0; }
+    .lv-seg button.on { background: var(--live); color: var(--live-ink); }
+    .lv-seg svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round; }
+    .lv-status { margin-top: 12px; font-size: 13px; color: var(--text-3); }
+    .lv-exp .ch-body { padding-top: 12px; padding-bottom: 20px; }
+    .lv-exp.lyr .ch-c, .lv-exp.lyr .ch-rawc { display: none; }
+    .lv-exp.lyr .ch-seg { display: inline; } .lv-exp.lyr .ch-t { display: inline; white-space: pre-wrap; }
+    .lv-exp.cols2 .ch-body { column-count: 2; column-gap: 24px; column-rule: 1px solid var(--line); }
+    /* ปุ่มลอยมุมขวาล่าง */
+    .lv-ctrl { position: absolute; right: 14px; bottom: 14px; display: flex; flex-direction: column; align-items: flex-end; gap: 10px; z-index: 20; }
+    .lv-ctrl .row { display: flex; align-items: center; gap: 10px; }
+    .lv-fab { width: 52px; height: 52px; border-radius: 50%; border: 1px solid var(--line-strong); background: var(--surface-2); color: var(--text); display: flex; align-items: center; justify-content: center; box-shadow: 0 6px 18px rgba(0,0,0,.5); padding: 0; }
+    .lv-fab svg { width: 22px; height: 22px; fill: currentColor; stroke: none; }
+    .lv-fab.go { background: var(--live); border-color: var(--live); color: var(--live-ink); }
+    .lv-fab.big { width: 64px; height: 64px; } .lv-fab.big svg { width: 28px; height: 28px; }
+    .lv-fab.resume { background: var(--next); border-color: var(--next); color: var(--next-ink); }
+    .lv-fab.stop { background: var(--danger); border-color: var(--danger); color: #fff; }
+    .lv-fab.ring { box-shadow: 0 0 0 3px rgba(46,242,184,.55), 0 0 0 7px rgba(46,242,184,.22); }
+    .lv-fab:disabled { opacity: .35; }
+    .lv-cap { height: 52px; padding: 0 20px; border-radius: 26px; border: 0; background: var(--warn, #F5A524); color: #1a1200; font-size: 16px; font-weight: 800; display: flex; align-items: center; gap: 8px; box-shadow: 0 6px 18px rgba(0,0,0,.5); }
+    .lv-cap svg { width: 20px; height: 20px; fill: currentColor; }
+    .lv-cap.ring { box-shadow: 0 0 0 3px rgba(255,194,51,.55), 0 0 0 7px rgba(255,194,51,.22); }
+    .lv-hold { padding: 6px 12px; border-radius: 10px; background: var(--surface-2); border: 1px solid var(--line-strong); font-size: 12px; color: var(--text-2); box-shadow: 0 6px 18px rgba(0,0,0,.5); }
+    .lv-undo { position: absolute; left: 14px; bottom: 14px; z-index: 20; height: 44px; padding: 0 16px; border-radius: 22px; border: 1px solid var(--line-strong); background: var(--surface-2); color: var(--text-2); display: flex; align-items: center; gap: 6px; font-size: 14px; font-weight: 700; box-shadow: 0 6px 18px rgba(0,0,0,.5); }
+    .lv-undo svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+    /* แบนเนอร์ */
+    .lv-banner { margin: 10px 16px 0; padding: 10px 14px; border-radius: 14px; border: 1px solid; font-size: 13px; display: flex; gap: 10px; align-items: flex-start; }
+    .lv-banner b { display: block; font-size: 14px; } .lv-banner span { color: var(--text-2); }
+    .lv-banner.ok { background: #0f2a26; border-color: var(--live); color: var(--live); }
+    .lv-banner.warn { background: #2a2112; border-color: var(--next); color: var(--next); }
+    .lv-banner.err { background: #2a1517; border-color: #ff8d8d; color: #ff8d8d; }
+    .lv-dirty { font-size: 11px; font-weight: 700; color: var(--next); background: var(--next-soft); padding: 1px 7px; border-radius: 999px; display: inline-block; margin-left: 6px; }
+    /* โหมดจัดคิว */
+    .lv-grip { flex: none; width: 22px; height: 28px; display: flex; align-items: center; justify-content: center; color: var(--text-3); touch-action: none; }
+    .lv-grip svg { width: 16px; height: 22px; fill: currentColor; }
+    .lv-card.locked { border-color: var(--live); }
+    .lv-etools { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; width: 100%; }
+    .lv-etools button { flex: 1 1 auto; min-height: 40px; padding: 0 12px; border-radius: 10px; border: 1px solid var(--line-strong); background: var(--surface-2); color: var(--text); font-size: 14px; font-weight: 600; }
+    .lv-etools button.del { border-color: var(--danger); color: #ff8d8d; }
+    .lv-etools button.full { flex-basis: 100%; border-color: var(--next); color: var(--next); }
+    .lv-etools button:disabled { opacity: .35; }
+    .lv-sort-ghost { opacity: .4; }
+    /* หน้าต่างลอย */
+    .lv-ov { position: absolute; inset: 0; z-index: 50; background: rgba(0,0,0,.66); display: flex; flex-direction: column; justify-content: flex-start; }
+    .lv-ov.center { justify-content: center; align-items: center; padding: 24px; }
+    .lv-sheet { background: var(--surface-2); border-bottom: 1px solid var(--line-strong); border-radius: 0 0 20px 20px; padding: 14px 16px 16px; max-height: 88%; display: flex; flex-direction: column; gap: 10px; box-shadow: var(--shadow-pop); animation: lvDown .22s var(--ease); }
+    @keyframes lvDown { from { transform: translateY(-30px); opacity: 0; } }
+    .lv-sheet.full { flex: 1; max-height: none; border-radius: 0; }
+    .lv-pop { width: 100%; max-width: 360px; background: var(--surface-2); border: 1px solid var(--line-strong); border-radius: 20px; padding: 18px; box-shadow: var(--shadow-pop); display: flex; flex-direction: column; gap: 10px; max-height: 86%; overflow-y: auto; }
+    .lv-pop h4 { margin: 0; font-size: 16px; }
+    .lv-pop .sub { font-size: 13px; color: var(--text-2); line-height: 1.5; }
+    .lv-pb { min-height: 44px; border-radius: 12px; border: 1px solid var(--line-strong); background: var(--surface-3); color: var(--text); font-size: 15px; font-weight: 700; padding: 0 14px; }
+    .lv-pb.live { background: var(--live); border-color: var(--live); color: var(--live-ink); }
+    .lv-pb.pink { background: var(--request); border-color: var(--request); color: #0a0c10; }
+    .lv-pb.warn { border-color: var(--next); color: var(--next); background: var(--next-soft); }
+    .lv-pb.danger { background: var(--danger); border-color: var(--danger); color: #fff; }
+    .lv-srow { display: flex; gap: 8px; }
+    .lv-in { flex: 1; min-width: 0; height: 44px; border-radius: 12px; border: 1px solid var(--line-strong); background: var(--bg); color: var(--text); padding: 0 12px; font-size: 16px; font-family: inherit; }
+    .lv-chk { flex: none; width: 48px; height: 44px; border-radius: 12px; border: 0; background: var(--request); color: #0a0c10; display: flex; align-items: center; justify-content: center; padding: 0; }
+    .lv-chk svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; }
+    .lv-res { overflow-y: auto; display: flex; flex-direction: column; gap: 6px; min-height: 0; }
+    .lv-res .hd { font-size: 11px; font-weight: 700; color: var(--text-3); padding: 2px 4px; }
+    .lv-row { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 12px; border: 1px solid var(--line); background: var(--surface); text-align: left; color: var(--text); width: 100%; }
+    .lv-row b { font-size: 15px; } .lv-row span.a { font-size: 13px; color: var(--text-3); } .lv-row .m { margin-left: auto; font-size: 12px; color: var(--text-2); white-space: nowrap; }
+    .lv-row.pk { border-color: var(--request); }
+    .lv-tabs { display: flex; gap: 6px; }
+    .lv-tabs button { flex: 1; height: 38px; border-radius: 10px; border: 1px solid var(--line); background: var(--surface); color: var(--text-2); font-weight: 700; position: relative; }
+    .lv-tabs button.on { border-color: var(--live); color: var(--live); background: var(--live-soft); }
+    .lv-grp { font-size: 11px; font-weight: 700; color: var(--live); padding: 4px 4px 0; }
+    .lv-x { margin-left: 4px; width: 32px; height: 32px; border-radius: 8px; border: 1px solid var(--line-strong); background: var(--surface-3); color: var(--text-2); font-size: 16px; padding: 0; flex: none; }
+    /* สรุปโชว์ */
+    .lv-sum { padding: 16px; display: flex; flex-direction: column; gap: 12px; }
+    .lv-sum h3 { margin: 0; font-size: 20px; }
+    .lv-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .lv-stat { border: 1px solid var(--line); border-radius: 14px; background: var(--surface); padding: 10px 12px; }
+    .lv-stat b { display: block; font-size: 22px; font-variant-numeric: tabular-nums; } .lv-stat span { font-size: 12px; color: var(--text-3); }
+    .lv-tg { font-size: 11px; font-weight: 700; padding: 1px 7px; border-radius: 999px; margin-left: 6px; }
+    .lv-tg.pl { color: var(--live); background: var(--live-soft); } .lv-tg.np { color: var(--text-3); background: var(--surface-3); } .lv-tg.sk { color: var(--next); background: var(--next-soft); } .lv-tg.dl { color: #ff8d8d; background: var(--danger-soft); }
+    .lv-empty { padding: 40px 20px; text-align: center; color: var(--text-3); }
+    .lv .hidden { display: none !important; }
+  </style>
+</head>
+<body>
+
+<div class="lv" id="lvRoot">
+  <div class="lv-top">
+    <div id="topTalkbackBox" class="top-box">
+      <div class="top-head"><span class="top-title"><i class="tb-dot-red"></i>ท็อคแบคล่าสุด</span><span id="topTalkbackSender" class="top-sender"></span></div>
+      <div id="topTalkbackText" class="top-content">สแตนบายรอคำสั่ง...</div>
+    </div>
+    <div id="topNextBox" class="top-box">
+      <span class="top-title">เพลงถัดไป</span>
+      <div id="topNextText" class="top-content">-</div>
+    </div>
+  </div>
+  <div id="lvStrip"></div>
+  <div class="lv-acts" id="lvActs"></div>
+  <div class="lv-scroll" id="lvScroll">
+    <div id="lvBanner"></div>
+    <div class="lv-list" id="lvList"><div class="lv-empty">กำลังโหลดคิวเพลง…</div></div>
+  </div>
+  <div id="lvCtrl" class="lv-ctrl"></div>
+  <div id="lvUndo"></div>
+  <div id="lvOv"></div>
+</div>
+
+<script>
+  window.initLivePageModule = function() {
+    if (window.__lv && window.__lv.dispose) { try { window.__lv.dispose(); } catch (e) {} }
+    const $ = (id) => document.getElementById(id);
+    let session = {}; try { session = JSON.parse(localStorage.getItem('lsh_session') || '{}'); } catch (e) {}
+    const room = lshRoom(session);
+    if (!room) return;
+    const guest = (typeof lshIsGuest === 'function') ? lshIsGuest(session) : (session.userType === 'guest');
+    const me = session.nickname || session.username || '';
+    const esc = (t) => String(t == null ? '' : t).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+    const jattr = (o) => esc(JSON.stringify(o));
+    const NO_CHORD_TXT = 'ยังไม่มีข้อมูลคอร์ดในฐานข้อมูล';
+    /*CORE-START*/
+    // ===== ตรรกะคิว (ไม่แตะหน้าจอ — ทดสอบแยกได้) =====
+    const SP = (x) => !!x && (x.type === 'dummy_start' || x.type === 'dummy_end');
+    const isBrk = (x) => !!x && x.type === 'break';
+    const isSong = (x) => !!x && !SP(x) && !isBrk(x);
+    const isIns = (x) => !!x && (x.type === 'inserted-custom' || x.type === 'inserted-request');
+    const isMed = (x) => !!x && Array.isArray(x.parts) && x.parts.length > 0;
+    const sn = (s) => String(s || 'Set 1').replace(/\D/g, '') || '1';
+    const toArr = (v) => { if (!v) return []; if (Array.isArray(v)) return v.filter(Boolean); return Object.keys(v).sort((a, b) => a - b).map((k) => v[k]).filter(Boolean); };
+    const clone = (l) => l.map((x) => Object.assign({}, x));
+    const clean = (l) => JSON.parse(JSON.stringify(l));
+    const actOf = (l) => l.filter((x) => x.status !== 'removed');
+    const START = () => ({ id: 'dummy_start', title: '🔴 เตรียมพร้อมสำหรับการแสดง', artist: '', status: 'playing', type: 'dummy_start' });
+    const END = () => ({ id: 'dummy_end', title: '🏁 จบการแสดง', artist: '', status: 'normal', type: 'dummy_end' });
+
+    // เติมเส้นพักคุยตรงรอยต่อเซ็ตของคิวเก่า (ที่มีแต่ป้าย Set N) — ทำครั้งเดียวเมื่อยังไม่มีเส้นเลย
+    function ensureBreaks(list) {
+      if (list.some(isBrk)) return list;
+      const out = []; let prev = null, changed = false;
+      list.forEach((x) => {
+        if (isSong(x) && x.status !== 'removed' && !isIns(x) && /^Set \d+$/.test(x.set || 'Set 1')) {
+          const s = x.set || 'Set 1';
+          if (prev !== null && s !== prev) { out.push({ id: 'brk_' + sn(s), type: 'break', title: 'พักคุย', artist: '', key: '-', bpm: '-', note: '-', set: s, status: x.status === 'played' ? 'played' : 'normal' }); changed = true; }
+          prev = s;
+        }
+        out.push(x);
+      });
+      return changed ? out : list;
+    }
+
+    // จัดคิวให้ครบองค์ประกอบ: การ์ดเริ่ม/จบ, สีเซ็ตตามเส้น, สถานะ next/standby
+    function normalize(list) {
+      const L = list.filter(Boolean);
+      if (!L.length) return L;
+      if (!L.some((x) => x.type === 'dummy_start')) { const started = L.some((x) => x.type !== 'dummy_end' && (x.status === 'playing' || x.status === 'played')); const s = START(); s.status = started ? 'played' : 'playing'; L.unshift(s); }
+      if (!L.some((x) => x.type === 'dummy_end')) L.push(END());
+      const ei = L.findIndex((x) => x.type === 'dummy_end'); if (ei !== L.length - 1) L.push(L.splice(ei, 1)[0]);
+      const si = L.findIndex((x) => x.type === 'dummy_start'); if (si > 0) L.unshift(L.splice(si, 1)[0]);
+      if (L.some((x) => isBrk(x) && x.status !== 'removed')) {   // สีเซ็ตของเพลง = เซ็ตของเส้นที่อยู่ก่อนหน้า (รีเควส/แทรกใช้สีของตัวเอง)
+        let cur = null;
+        L.forEach((x) => {
+          if (x.status === 'removed') return;
+          if (isBrk(x)) { cur = x.set || 'Set 1'; return; }
+          if (isSong(x) && !isIns(x)) { if (cur === null) cur = x.set || 'Set 1'; x.set = cur; }
+        });
+      }
+      // สถานะ next / standby (เหมือนหน้าจัดคิวเดิม)
+      const active = L.filter((x) => x.status !== 'removed' && x.status !== 'played');
+      if (active.length) {
+        if (!L.some((x) => x.status === 'playing')) {
+          L.forEach((x) => { if (x.status === 'next' || x.status === 'standby') x.status = 'normal'; });
+          active[0].status = 'playing'; if (active[1]) active[1].status = 'next'; if (active[2]) active[2].status = 'standby';
+        } else {
+          let an = false, as = false;
+          L.forEach((x) => {
+            if (x.status === 'removed' || x.status === 'played') return;
+            if (x.status === 'playing') { an = true; return; }
+            if (an) { x.status = 'next'; an = false; as = true; return; }
+            if (as) { x.status = 'standby'; as = false; return; }
+            if (x.status === 'next' || x.status === 'standby') x.status = 'normal';
+          });
+        }
+      }
+      return L;
+    }
+
+    // ลายเซ็น "โครงสร้าง" ของคิว (ลำดับ/ชนิด/คีย์/การลบ) — ไม่รวมสถานะการเล่นและการข้าม
+    const sigOf = (l) => l.map((x) => [x.id, x.type || '', x.key || '', (x.status === 'removed' && x.rm !== 'skip') ? 'r' : ''].join(':')).join('|');
+    const playingOf = (l) => l.find((x) => x.status === 'playing') || null;
+    const elapsedMs = (x, now) => (x && x.playedMs != null) ? x.playedMs : (x && x.startedAt ? Math.max(0, now - x.startedAt) : 1e12);
+
+    // เลื่อนจากเพลง fromId ไป toId (ค่าสัมบูรณ์ "จาก X ไป Y" — ถ้าคนอื่นเลื่อนไปก่อนแล้ว fromId จะไม่ใช่เพลงที่เล่นอยู่ → คืน null ไม่ทำซ้ำ)
+    function advanceTo(list, fromId, toId, now, opt) {
+      const L = clone(list), act = actOf(L);
+      const fi = act.findIndex((x) => x.id === fromId), ti = act.findIndex((x) => x.id === toId);
+      if (fi < 0 || ti < 0 || fi === ti || act[fi].status !== 'playing') return null;
+      const from = act[fi], to = act[ti];
+      if (ti > fi) {
+        for (let k = fi + 1; k < ti; k++) act[k].status = 'played';
+        from.status = 'played';
+        // เพลงที่เพิ่งเข้ามาแล้วถูกเลื่อนต่อภายใน 10 วินาที (ไม่นับช่วงพอส) และไม่เคยได้เล่นจริง = ถูกข้าม ย้ายเป็นเพลงที่ถูกข้าม
+        if (isSong(from) && !from.heard && !(opt && opt.auto) && elapsedMs(from, now) < 10000) { from.status = 'removed'; from.rm = 'skip'; from.oldStatus = 'normal'; delete from.startedAt; delete from.playedMs; }
+        else { from.heard = true; }
+      } else {
+        from.status = 'normal'; delete from.startedAt; delete from.playedMs; delete from.pauseFrom;
+        for (let k = ti + 1; k < fi; k++) act[k].status = 'normal';
+      }
+      to.status = 'playing'; to.startedAt = now; delete to.playedMs; delete to.pauseFrom;
+      return normalize(L);
+    }
+    const nextOf = (list, id) => { const a = actOf(list), i = a.findIndex((x) => x.id === id); return i >= 0 && i < a.length - 1 ? a[i + 1] : null; };
+    const prevOf = (list, id) => { const a = actOf(list), i = a.findIndex((x) => x.id === id); return i > 0 ? a[i - 1] : null; };
+    // เพลงจริงสุดท้ายในคิว (ใช้ปิดปุ่ม "ถัดไป" และขึ้นปุ่มจบการแสดง)
+    const lastReal = (list) => { const a = actOf(list).filter(isSong); return a.length ? a[a.length - 1] : null; };
+
+    // พอส/เพลย์ของหน้า Live: เก็บเวลาที่เล่นไปแล้วไว้ที่รายการ เพื่อไม่นับช่วงพอสในกฎ 10 วินาที
+    function stampPause(list, now) { const L = clone(list), p = playingOf(L); if (!p) return null; p.playedMs = (p.startedAt ? now - p.startedAt : 0); return L; }
+    function stampResume(list, now) { const L = clone(list), p = playingOf(L); if (!p) return null; p.startedAt = now - (p.playedMs || 0); delete p.playedMs; return L; }
+
+    // ===== แก้ร่างคิว (โหมดจัดคิว) =====
+    const movable = (x) => x.status !== 'removed' && x.status !== 'played' && x.status !== 'playing' && !SP(x);
+    function opMove(list, id, dir) {
+      const L = clone(list), idxs = []; L.forEach((x, i) => { if (movable(x)) idxs.push(i); });
+      const p = idxs.findIndex((i) => L[i].id === id), q = p + dir;
+      if (p < 0 || q < 0 || q >= idxs.length) return null;
+      const a = idxs[p], b = idxs[q], t = L[a]; L[a] = L[b]; L[b] = t;
+      return normalize(L);
+    }
+    function opRemove(list, id, kind) {
+      const L = clone(list), x = L.find((y) => y.id === id);
+      if (!x || x.status === 'playing' || x.status === 'played' || SP(x)) return null;
+      x.oldStatus = x.status; x.status = 'removed'; x.rm = kind || 'del'; x.oi = L.indexOf(x);
+      return normalize(L);
+    }
+    function opRestore(list, id) {
+      let L = clone(list); const x = L.find((y) => y.id === id);
+      if (!x || x.status !== 'removed') return null;
+      x.status = 'normal'; delete x.rm; delete x.oldStatus;
+      const pi = L.findIndex((y) => y.status === 'playing'), xi = L.indexOf(x);
+      if (pi >= 0 && xi < pi) { L.splice(xi, 1); L.splice(L.findIndex((y) => y.status === 'playing') + 1, 0, x); }   // ตำแหน่งเดิมผ่านไปแล้ว = เล่นต่อจากเพลงปัจจุบัน
+      delete x.oi;
+      return normalize(L);
+    }
+    // ข้ามมาที่นี่: ลบ(ข้าม)รายการทั้งหมดระหว่างเพลงที่กำลังเล่นกับรายการที่เลือก
+    function opSkipTo(list, id) {
+      const L = clone(list), act = actOf(L), pi = act.findIndex((x) => x.status === 'playing'), ti = act.findIndex((x) => x.id === id);
+      if (pi < 0 || ti <= pi + 1) return null;
+      for (let k = pi + 1; k < ti; k++) { if (SP(act[k])) continue; act[k].oldStatus = act[k].status; act[k].status = 'removed'; act[k].rm = 'skip'; act[k].oi = L.indexOf(act[k]); }
+      return normalize(L);
+    }
+    // แบ่งเป็นเซ็ต: คืน [{id, items:[...]}] เฉพาะส่วนหลังเพลงที่กำลังเล่น (id 'CUR' = ส่วนที่เหลือของเซ็ตปัจจุบัน)
+    function setBlocks(list) {
+      const pi = list.findIndex((x) => x.status === 'playing'), blocks = [{ id: 'CUR', items: [] }];
+      list.forEach((x, i) => {
+        if (i <= pi || SP(x)) return;
+        if (isBrk(x) && x.status !== 'removed') { blocks.push({ id: x.id, items: [x] }); return; }
+        blocks[blocks.length - 1].items.push(x);
+      });
+      return blocks;
+    }
+    function opMoveSet(list, brkId, afterId) {
+      const L = clone(list), pi = L.findIndex((x) => x.status === 'playing'), bl = setBlocks(L);
+      const src = bl.find((b) => b.id === brkId), dst = bl.find((b) => b.id === afterId);
+      if (!src || !dst || src === dst || src.id === 'CUR') return null;
+      const head = L.slice(0, pi + 1), tail = L.filter((x, i) => i > pi && SP(x));
+      const order = bl.filter((b) => b !== src); order.splice(order.indexOf(dst) + 1, 0, src);
+      const out = head.concat(...order.map((b) => b.items)).concat(tail);
+      return normalize(out);
+    }
+    function opInsert(list, song, afterId) {
+      const L = clone(list); let at = L.findIndex((x) => x.id === afterId); if (at < 0) at = L.findIndex((x) => x.status === 'playing');
+      if (at < 0) at = L.length - 2;
+      L.splice(at + 1, 0, song);
+      return normalize(L);
+    }
+    function opKey(list, id, key) { const L = clone(list), x = L.find((y) => y.id === id); if (!x || isMed(x)) return null; x.key = key; return normalize(L); }
+
+    // ร่างที่ค้างอยู่ + คิวจริงที่เปลี่ยนสถานะการเล่นไปก่อน → สถานะการเล่นชนะ ลำดับตามร่าง
+    // (เช่น ร่าง 1 4 2 5 3 แล้วมีคนกดเล่นเพลง 2 → 2 ขึ้นเล่น เหลือ 4 5 3 ตามร่าง)
+    function rebase(draft, server) {
+      const sm = new Map(server.map((x) => [x.id, x]));
+      const win = (s) => s && (s.status === 'played' || s.status === 'playing' || (s.status === 'removed' && s.rm === 'skip'));
+      const D = clone(draft).map((x) => { const s = sm.get(x.id); if (win(s)) { x.status = s.status; x.rm = s.rm; ['startedAt', 'playedMs', 'pauseFrom', 'heard'].forEach((k) => { if (s[k] !== undefined) x[k] = s[k]; else delete x[k]; }); } else if (s && s.status !== 'removed' && x.status !== 'removed') x.status = 'normal'; return x; });
+      const dm = new Map(D.map((x) => [x.id, x]));
+      const played = server.filter((x) => x.status === 'played').map((x) => dm.get(x.id)).filter(Boolean);
+      const pl = server.find((x) => x.status === 'playing'), plx = pl ? dm.get(pl.id) : null;
+      const used = new Set(played.concat(plx ? [plx] : []).map((x) => x.id));
+      const rest = D.filter((x) => !used.has(x.id) && !(x.type === 'dummy_end'));
+      const end = D.filter((x) => x.type === 'dummy_end');
+      return normalize(played.concat(plx ? [plx] : [], rest, end));
+    }
+    /*CORE-END*/
+
+    // ===== สถานะของหน้า =====
+    const Q = { songs: [], rev: 0, by: '', venue: '', loaded: false };   // คิวจริงจาก Firebase
+    let D = null, base = null;                 // ร่าง (โหมดจัดคิว) / ภาพคิวตอนเริ่มร่างหรือบันทึกล่าสุด
+    let pending = null;                        // เลื่อนด้วยมือรอส่ง 3 วินาที {from,to,btn,timer,sending}
+    let requests = [];                         // เพลงรีเควสที่ยังไม่ได้ใส่คิว (requestStats)
+    let showSt = {};                           // rooms/{วง}/showTimer
+    const ui = { exId: null, stripClosed: false, playedOpen: false, editOpen: null, banner: null, dirty: false, dirtyAt: 0, failed: false, saving: false, lastPlay: null, sumOpen: true, sumDetail: false, fs: 20, cols2: false, lyr: false, hold: 0, ov: null };
+    try { ui.fs = parseInt(localStorage.getItem('lsh_chord_fs'), 10) || 20; ui.lyr = localStorage.getItem('lsh_chord_lyr') === '1'; ui.cols2 = localStorage.getItem('lsh_chord_cols') === '2'; } catch (e) {}
+    const lsSave = (k, v) => { try { localStorage.setItem(k, v); } catch (e) {} };
+    const timers = { save: 0, hold: 0, tick: 0, banner: 0, mv: 0 };
+    const qRef = (typeof db !== 'undefined' && db && db.ref) ? db.ref('rooms/' + room + '/queue') : null;
+    const subs = [];
+    let disposed = false, lastOwnRev = -1;
+    const nowMs = () => Date.now();
+
+    const IC = {
+      play: '<svg viewBox="0 0 24 24"><path d="M7 4.5v15l13-7.5z"/></svg>',
+      pause: '<svg viewBox="0 0 24 24"><rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/></svg>',
+      next: '<svg viewBox="0 0 24 24"><path d="M6 5v14l10-7z"/><rect x="17" y="5" width="2.5" height="14" rx="1"/></svg>',
+      prev: '<svg viewBox="0 0 24 24"><path d="M18 5v14L8 12z"/><rect x="4.5" y="5" width="2.5" height="14" rx="1"/></svg>',
+      stop: '<svg viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="2"/></svg>',
+      copy: '<svg viewBox="0 0 24 24"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V6a2 2 0 012-2h9"/></svg>',
+      search: '<svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5"/><path d="M20 20l-4.2-4.2"/></svg>',
+      clock: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>',
+      inbox: '<svg viewBox="0 0 24 24"><path d="M3 13l3-8h12l3 8v6H3v-6zM3 13h5l1 3h6l1-3h5"/></svg>',
+      list: '<svg viewBox="0 0 24 24"><path d="M9 6h12M9 12h12M9 18h12M4 6h.01M4 12h.01M4 18h.01"/></svg>',
+      plus: '<svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>',
+      check: '<svg viewBox="0 0 24 24"><path d="M5 12l5 5 9-10"/></svg>',
+      undo: '<svg viewBox="0 0 24 24"><path d="M9 14L4 9l5-5M4 9h10a6 6 0 010 12h-3"/></svg>',
+      chev: '<svg viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg>',
+      right: '<svg viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg>',
+      cols1: '<svg viewBox="0 0 24 24"><rect x="6" y="4" width="12" height="16" rx="2"/></svg>',
+      cols2: '<svg viewBox="0 0 24 24"><rect x="3.5" y="4" width="7.5" height="16" rx="2"/><rect x="13" y="4" width="7.5" height="16" rx="2"/></svg>',
+      chords: '<svg viewBox="0 0 24 24"><path d="M4 7h16M4 12h10M4 17h13"/></svg>',
+      lyrics: '<svg viewBox="0 0 24 24"><path d="M4 9h16M4 14h12M4 19h14"/></svg>',
+      grip: '<svg viewBox="0 0 18 24"><circle cx="5" cy="6" r="1.8"/><circle cx="13" cy="6" r="1.8"/><circle cx="5" cy="12" r="1.8"/><circle cx="13" cy="12" r="1.8"/><circle cx="5" cy="18" r="1.8"/><circle cx="13" cy="18" r="1.8"/></svg>'
+    };
+
+    // ===== Firebase: คิว / รีเควส / เวลาโชว์ =====
+    function onQueue(snap) {
+      if (disposed) return;
+      const v = snap.val() || {};
+      let songs = toArr(v.songs);
+      Q.rev = Number(v.rev) || 0; Q.by = v.updatedBy || ''; Q.venue = v.venue || '';
+      // คิวเก่าที่มีแต่ป้าย Set N: เติมเส้นพักคุยให้ (ครั้งเดียว) — ทำเมื่อไม่ได้อยู่ในโหมดจัดคิว
+      const withBrk = songs.length ? ensureBreaks(songs) : songs;
+      if (withBrk !== songs && !guest && !D && qRef) migrateBreaks();
+      Q.songs = songs.length ? normalize(clone(withBrk)) : [];
+      Q.loaded = true;
+      window.lshReady && window.lshReady();
+      if (Q.rev === lastOwnRev && D) { /* ของเครื่องนี้เอง */ }
+      else if (D) remoteWhileEditing();
+      onPlayChange();
+      if (!guest && window.lshShowTimer && window.lshShowTimer.maybeStart) { try { window.lshShowTimer.maybeStart(Q.songs); } catch (e) {} }
+      render();
+    }
+    function migrateBreaks() {
+      if (window.__lvMigrating) return; window.__lvMigrating = true;
+      qRef.transaction((cur) => {
+        if (!cur || !cur.songs) return;
+        const srv = toArr(cur.songs), nb = ensureBreaks(srv); if (nb === srv) return;
+        cur.songs = clean(normalize(clone(nb))); cur.rev = (Number(cur.rev) || 0) + 1; cur.updatedBy = 'ระบบ (เติมเส้นพักคุย)'; cur.updatedAt = nowMs(); return cur;
+      }).catch(() => {}).then(() => { window.__lvMigrating = false; });
+    }
+    function bind() {
+      if (!qRef) return;
+      qRef.on('value', onQueue); subs.push(() => qRef.off('value', onQueue));
+      const rs = db.ref('rooms/' + room + '/requestStats'), rcb = (s) => { const v = s.val() || {}; requests = Object.keys(v).map((id) => Object.assign({ id: id }, v[id])); if (!disposed) renderActs(); if (ui.ov && ui.ov.kind === 'insert') renderInsert(); };
+      rs.on('value', rcb); subs.push(() => rs.off('value', rcb));
+      if (window.lshBindTopTalkback) window.lshBindTopTalkback(room, $('topTalkbackText'), $('topTalkbackSender'));
+      if (window.lshShowTimer) { try { showSt = window.lshShowTimer.state() || {}; } catch (e) {} if (!window.__lvTimerBound) { window.__lvTimerBound = true; window.lshShowTimer.onChange((st) => { if (window.__lv && window.__lv.onTimer) window.__lv.onTimer(st); }); } }
+      if (window.lshAutoAdv && !window.__lvAutoBound) { window.__lvAutoBound = true; window.lshAutoAdv.onChange(() => { if (window.__lv && window.__lv.autoTick) window.__lv.autoTick(); }); }
+      timers.tick = setInterval(tick, 1000);
+    }
+    function onTimer(st) { showSt = st || {}; if (!disposed) { renderStrip(); renderSummary(); } }
+    const ended = () => !!showSt.endedAt;
+
+    // ===== คิวที่แสดงอยู่ตอนนี้ =====
+    function preview() {   // คิวจริง + การเลื่อนมือที่รอส่ง (แสดงทันที)
+      if (pending) { const r = advanceTo(Q.songs, pending.from, pending.to, nowMs()); if (r) return r; }
+      return Q.songs;
+    }
+    const cur = () => D || preview();
+    const numberOf = (list, id) => { let n = 0; for (const x of list) { if (x.status === 'removed') continue; if (isSong(x)) n++; if (x.id === id) return n; } return 0; };
+    const setCls = (x) => isBrk(x) || !isIns(x) ? 'var(--set-' + sn(x.set) + ', var(--set-1))' : (x.type === 'inserted-request' ? 'var(--request)' : 'var(--custom)');
+    const keyOf = (x) => (x.key && x.key !== '-') ? x.key : '';
+    function onPlayChange() {
+      const p = playingOf(Q.songs), id = p ? p.id : null;
+      if (id !== ui.lastPlay) { ui.lastPlay = id; ui.exId = null; if (!D) setTimeout(() => { const el = document.querySelector('#lvList .lv-card.playing, #lvList .lv-bar.cur'); if (el && el.scrollIntoView) el.scrollIntoView({ block: 'start', behavior: 'smooth' }); }, 80); prefetch(); }
+    }
+
+    // ===== คอร์ด: โหลดล่วงหน้า (เพลงที่เล่น + ถัดไป ~3) / คลังหลักและคลังรอง =====
+    const docs = {};
+    async function bkFor(item) {
+      if (item.chordId) return item.chordId;
+      const L = window.lshChordLookup && window.lshChordLookup._bulk; if (!L) return null;
+      try { const ix = await L.getIdx(); const e = ix.byKey.get(L.bkKey(item.title, item.artist)); return e ? e[0] : null; } catch (e) { return null; }
+    }
+    function docFor(item) {
+      const X = window.lshChords && window.lshChords._x; if (!X) return Promise.reject(new Error('nox'));
+      const ck = isMed(item) ? 'med:' + item.id + ':' + JSON.stringify(item.parts) : (item.songId ? 'id:' + item.songId : 'bk:' + (item.chordId || item.title + '|' + item.artist));
+      let p = docs[ck];
+      if (!p) {
+        p = docs[ck] = (async () => {
+          if (isMed(item)) return X.getMedleyDoc(item.parts, numberOf(Q.songs, item.id));
+          if (item.songId) { try { return await X.getDoc(item.songId); } catch (e) { if (!e || e.message !== 'notfound') throw e; } }
+          const bk = await bkFor(item);   // เพลงจากคลังรอง/เพลงที่ยังไม่ผูกคอร์ด: ใช้รหัสคลังคอร์ด หรือชื่อ+ศิลปินตรงเป๊ะ
+          if (bk) return X.getDocBk(bk, item.key, item.title);
+          throw new Error('notfound');
+        })();
+        p.catch((e) => { if (!e || e.message !== 'notfound') delete docs[ck]; });
+      }
+      return p;
+    }
+    function prefetch() {
+      const a = actOf(Q.songs); const pi = a.findIndex((x) => x.status === 'playing'); if (pi < 0) return;
+      let n = 0;
+      for (let i = pi; i < a.length && n < 4; i++) { if (isSong(a[i])) { n++; docFor(a[i]).catch(() => {}); } }
+    }
+    function fillChords(box, item) {
+      const st = box.querySelector('.lv-status'), body = box.querySelector('.ch-body'), X = window.lshChords && window.lshChords._x;
+      const none = () => { st.textContent = NO_CHORD_TXT; body.innerHTML = ''; };
+      if (!X || (!item.songId && !isMed(item) && !item.chordId && !item.title)) { none(); return; }
+      docFor(item).then((d) => {
+        if (!box.isConnected) return;
+        const a = d.at(item.key); body.innerHTML = X.sectionsHtml(d.rec.s, a.n, a.flat); st.textContent = '';
+      }).catch((e) => { if (!box.isConnected) return; if (e && e.message === 'notfound') none(); else st.textContent = 'โหลดคอร์ดไม่ได้ (ตรวจสอบอินเทอร์เน็ต แล้วลองใหม่)'; });
+    }
+
+    // ===== ค้นหาเพลงบนเว็บ / คัดลอกชื่อ (ใช้ค่าตั้งค่าการค้นหารายบุคคลเดิม) =====
+    let searchPrefs = { suffix: 'คอร์ด', includeArtist: true, copy: true, copyMode: 'title', copySuffix: false };
+    try { if (session.username) db.ref('users/' + session.username + '/searchPrefs').once('value').then((sn2) => { if (sn2.val()) searchPrefs = Object.assign(searchPrefs, sn2.val()); }).catch(() => {}); } catch (e) {}
+    function copyText(t) {
+      try { if (navigator.clipboard && navigator.clipboard.writeText) return navigator.clipboard.writeText(t); } catch (e) {}
+      return new Promise((res, rej) => { try { const a = document.createElement('textarea'); a.value = t; a.style.cssText = 'position:fixed;opacity:0'; document.body.appendChild(a); a.select(); const ok = document.execCommand('copy'); a.remove(); ok ? res() : rej(); } catch (e) { rej(e); } });
+    }
+    function copyOf(item) {
+      const title = item.title || '', artist = item.artist && item.artist !== '-' ? item.artist : '';
+      let t = (searchPrefs.copyMode === 'both' && artist) ? title + ' ' + artist : title;
+      if (searchPrefs.copySuffix === true && searchPrefs.suffix) t += ' ' + searchPrefs.suffix;
+      copyText(t).then(() => lshToast('คัดลอก “' + t + '” แล้ว', 'ok')).catch(() => lshToast('คัดลอกอัตโนมัติไม่ได้ในเครื่องนี้', 'warn'));
+    }
+    function googleOf(item) {
+      const kw = ((searchPrefs.includeArtist === false || !item.artist || item.artist === '-') ? item.title : item.title + ' ' + item.artist);
+      window.open('https://www.google.com/search?q=' + encodeURIComponent((kw + ' ' + (searchPrefs.suffix === undefined ? 'คอร์ด' : searchPrefs.suffix)).trim()), '_blank');
+    }
+    const itemById = (id) => (cur().find((x) => String(x.id) === String(id))) || null;
+
+    // ===== วาดหน้า =====
+    function render() {
+      if (disposed || !$('lvList')) return;
+      const sc = $('lvScroll'), top = sc ? sc.scrollTop : 0;
+      renderTop(); renderStrip(); renderBanner(); renderActs(); renderList(); renderCtrl(); renderUndo(); renderSummary();
+      if (sc) sc.scrollTop = top;
+    }
+    function renderTop() {
+      const L = cur(), nx = L.find((x) => x.status === 'next'), box = $('topNextBox'), t = $('topNextText');
+      if (!t) return;
+      t.innerText = nx ? (isBrk(nx) ? 'พักคุย' : SP(nx) ? lshPlain(nx.title) : nx.title) : 'จบการแสดง';
+      if (box) box.style.borderLeft = '4px solid ' + (nx && !SP(nx) ? setCls(nx) : 'var(--line-strong)');
+      if (window.lshWatch) window.lshWatch(t, 'next');
+    }
+    function renderBanner() {
+      const el = $('lvBanner'); if (!el) return; const b = ui.banner;
+      el.innerHTML = b ? '<div class="lv-banner ' + b.k + '"><div><b>' + esc(b.t) + '</b><span>' + esc(b.s || '') + '</span></div></div>' : '';
+    }
+    function banner(k, t, s, ms) { ui.banner = { k: k, t: t, s: s }; renderBanner(); clearTimeout(timers.banner); if (ms) timers.banner = setTimeout(() => { ui.banner = null; renderBanner(); }, ms); }
+    function autoInfo() { return (window.lshAutoAdv && window.lshAutoAdv.info) ? window.lshAutoAdv.info() : { enabled: false, paused: false, counting: false }; }
+    function renderStrip() {
+      const el = $('lvStrip'); if (!el) return;
+      const L = cur(), pl = playingOf(L), prep = !!(pl && pl.type === 'dummy_start');
+      if (!L.length) { el.innerHTML = ''; return; }
+      const ai = autoInfo(), t = window.lshShowTimer, ti = t ? t.info() : { text: '', over: false }, st = t ? t.state() : { enabled: false };
+      if (ui.stripClosed && !guest) { el.innerHTML = '<div class="lv-chev"><button type="button" aria-label="เปิดแถบควบคุม" data-a="strip">' + IC.chev + '</button></div>'; return; }
+      const venue = '<div class="lv-venue">' + esc(Q.venue || 'ลิสต์เพลง') + '</div>';
+      if (guest) { el.innerHTML = '<div class="lv-strip">' + venue + '</div>'; return; }
+      const chipTxt = prep ? (st.enabled ? ti.text : 'ปิด') : '';
+      el.innerHTML = '<div class="lv-strip">' + venue +
+        (ai.enabled ? '<button type="button" class="lv-pp' + (ai.paused ? ' paused' : '') + '" data-a="autopp" aria-label="' + (ai.paused ? 'เล่นต่อ' : 'พอส') + '">' + (ai.paused ? IC.play : IC.pause) + '</button>' : '') +
+        '<span class="lv-autolbl">เลื่อน<br>อัตโนมัติ</span><button type="button" class="lv-sw" role="switch" aria-checked="' + (ai.enabled ? 'true' : 'false') + '" data-a="autosw" aria-label="เลื่อนอัตโนมัติ"><i></i></button>' +
+        (ended() ? '<button type="button" class="lv-tchip" data-a="sum"><span>สรุปโชว์</span></button>' : '') + '<button type="button" class="lv-tchip' + (st.enabled && ti.over ? ' over' : '') + '" data-a="timer" aria-label="ตั้งเวลาโชว์">' + IC.clock + (chipTxt ? '<span>' + esc(chipTxt) + '</span>' : '') + '</button></div>' +
+        '<div class="lv-chev"><button type="button" aria-label="ย่อแถบควบคุม" data-a="strip" style="transform:rotate(180deg)">' + IC.chev + '</button></div>';
+    }
+    function renderActs() {
+      const el = $('lvActs'); if (!el) return;
+      if (guest || !cur().length) { el.innerHTML = ''; return; }
+      if (D) {
+        el.innerHTML = '<button type="button" class="lv-btn ins" data-a="insert">' + IC.plus + 'แทรกเพลง</button>' +
+          (ui.dirty || ui.failed ? '<button type="button" class="lv-btn save' + (ui.failed ? ' fail' : '') + '" data-a="save" id="lvSaveBtn">' + IC.check + (ui.failed ? 'ส่งไม่สำเร็จ · ลองใหม่' : 'บันทึก') + '</button>'
+            : '<button type="button" class="lv-btn" data-a="exitedit">' + IC.chords + 'คอร์ด</button>');
+        return;
+      }
+      el.innerHTML = '<button type="button" class="lv-btn req" data-a="req">' + IC.inbox + 'ลูกค้าขอเพลง</button>' +
+        '<button type="button" class="lv-btn" data-a="edit">' + IC.list + 'จัดคิว' + (requests.length ? '<span class="lv-badge">' + requests.length + '</span>' : '') + '</button>';
+    }
+
+    function cardInner(x, o) {
+      const no = isSong(x) ? '<span class="lv-no">' + (o.no || '') + '</span>' : '';
+      const tags = (o.tag ? '<div class="lv-tag' + (o.live ? ' live' : '') + '">' + (o.live ? '<i></i>' : '') + esc(o.tag) + '</div>' : '');
+      const sub = isMed(x) ? x.parts.map((pt) => esc(pt.title)).join(' · ') : esc(x.artist && x.artist !== '-' ? x.artist : '');
+      const key = (!isMed(x) && keyOf(x)) ? '<span class="lv-key">' + esc(keyOf(x)) + '</span>' : '';
+      return no + '<div class="lv-body">' + tags + '<div class="lv-title">' + esc(x.title) + '</div><div class="lv-art">' + sub + key + '</div></div>';
+    }
+    function renderList() {
+      const el = $('lvList'); if (!el) return;
+      const L = cur();
+      if (!L.length) { el.innerHTML = '<div class="lv-empty">ยังไม่มีคิวเพลง<br>เลือกลิสต์ที่หน้า “แฟ้มลิสต์เพลง” แล้วกด Play</div>'; return; }
+      if (D) { renderEditList(el, L); return; }
+      const act = actOf(L), pl = playingOf(L), prep = !!(pl && pl.type === 'dummy_start');
+      const played = act.filter((x) => x.status === 'played' && isSong(x));
+      let h = '';
+      if (played.length) {
+        h += '<button type="button" class="lv-played' + (ui.playedOpen ? ' open' : '') + '" data-a="played">' + IC.right + 'เล่นไปแล้ว ' + played.length + ' เพลง</button>';
+        if (ui.playedOpen) played.forEach((x) => { h += '<div class="lv-card played" style="--c:' + setCls(x) + '">' + cardInner(x, { no: numberOf(L, x.id) }) + '</div>'; });
+      }
+      const exId = expandedId(L);
+      act.forEach((x) => {
+        if (x.status === 'played' || x.type === 'dummy_start' || x.type === 'dummy_end') return;
+        if (isBrk(x)) { h += '<div class="lv-bar' + (x.status === 'playing' ? ' cur' : '') + '" style="--c:' + setCls(x) + '" aria-label="พักคุย"></div>'; return; }
+        const playing = x.status === 'playing', open = String(x.id) === String(exId), next = x.status === 'next';
+        h += songCard(L, x, { playing: playing, next: next, open: open });
+      });
+      el.innerHTML = h;
+      const box = el.querySelector('.lv-card.open .lv-exp'); if (box) { const it = itemById(exId); if (it) fillChords(box, it); }
+      if (prep) { /* เตรียมพร้อม: การ์ดแรกเป็น "ถัดไป" */ }
+      updateProg();
+    }
+    function expandedId(L) {
+      if (ui.exId === 'none') return null;
+      if (ui.exId && L.some((x) => String(x.id) === String(ui.exId) && x.status !== 'removed')) return ui.exId;
+      const p = playingOf(L); return p && isSong(p) ? p.id : null;
+    }
+    function songCard(L, x, o) {
+      const no = numberOf(L, x.id), cls = 'lv-card' + (o.playing ? ' playing' : '') + (o.next ? ' next' : '') + (isIns(x) ? (x.type === 'inserted-request' ? ' req' : ' custom') : '') + (o.open ? ' open' : '');
+      const tag = o.playing ? 'กำลังเล่น' : (o.next ? 'ถัดไป' : (x.type === 'inserted-request' ? 'รีเควส' : x.type === 'inserted-custom' ? 'แทรก' : ''));
+      const icon = o.open ? '<button type="button" class="lv-ic go" data-a="google" data-id="' + esc(x.id) + '" aria-label="ค้นหาบนเว็บ">' + IC.search + '</button>' : '<button type="button" class="lv-ic" data-a="copy" data-id="' + esc(x.id) + '" aria-label="คัดลอกชื่อเพลง">' + IC.copy + '</button>';
+      let h = '<div class="' + cls + '" style="--c:' + setCls(x) + '" data-a="card" data-id="' + esc(x.id) + '"><div class="lv-main">' + cardInner(x, { no: no, tag: tag, live: o.playing }) + icon + '</div>';
+      if (o.playing) h += '<div class="lv-prog" id="lvProg" style="display:none"><div class="tr"><i></i></div><div class="tm"><span class="qe">0:00</span><span class="qd">0:00</span></div></div>';
+      if (o.open) h += '<div class="lv-exp' + (ui.lyr ? ' lyr' : '') + (ui.cols2 ? ' cols2' : '') + '" data-a="stop-prop"><div class="lv-tools">' +
+        '<div class="lv-seg" data-k="cols"><button type="button" data-v="1" class="' + (ui.cols2 ? '' : 'on') + '" aria-label="1 คอลัมน์">' + IC.cols1 + '</button><button type="button" data-v="2" class="' + (ui.cols2 ? 'on' : '') + '" aria-label="2 คอลัมน์">' + IC.cols2 + '</button></div>' +
+        '<div class="lv-seg" data-k="mode"><button type="button" data-v="c" class="' + (ui.lyr ? '' : 'on') + '" aria-label="คอร์ด+เนื้อ">' + IC.chords + '</button><button type="button" data-v="l" class="' + (ui.lyr ? 'on' : '') + '" aria-label="เฉพาะเนื้อ">' + IC.lyrics + '</button></div>' +
+        '<div class="lv-seg" data-k="fs"><button type="button" data-v="-">A−</button><button type="button" data-v="+">A+</button></div></div>' +
+        '<div class="lv-status">กำลังโหลดคอร์ด…</div><div class="ch-body" style="font-size:' + ui.fs + 'px"></div></div>';
+      return h + '</div>';
+    }
+    function updateProg() {
+      const pg = $('lvProg'); if (!pg) return; const i = autoInfo();
+      if (!i.counting || !i.totalSec) { pg.style.display = 'none'; return; }
+      const f = (s) => Math.floor(s / 60) + ':' + String(Math.floor(s % 60)).padStart(2, '0');
+      pg.style.display = ''; pg.querySelector('i').style.width = Math.min(100, i.elapsedSec / i.totalSec * 100).toFixed(1) + '%'; pg.querySelector('.qe').textContent = f(i.elapsedSec); pg.querySelector('.qd').textContent = f(i.totalSec);
+    }
+
+    // ===== วาดซ้ำเฉพาะเมื่อ HTML เปลี่ยน (กันปุ่มกระพริบ/คลิกหลุดตอนตัวจับเวลาขยับทุกวินาที) =====
+    const lastHtml = {};
+    function setHtml(el, key, html) { if (!el) return; if (lastHtml[key] === html && el.innerHTML !== '') return; lastHtml[key] = html; el.innerHTML = html; }
+
+    // ===== ปุ่มลอยมุมขวาล่าง + เลื่อนด้วยมือรอ 3 วินาที =====
+    function renderCtrl() {
+      const el = $('lvCtrl'); if (!el) return;
+      if (guest || D || !Q.loaded || !Q.songs.length || ended()) { setHtml(el, 'ctrl', ''); return; }
+      const L = preview(), pl = playingOf(L); if (!pl) { setHtml(el, 'ctrl', ''); return; }
+      const hold = pending && !pending.sending ? Math.max(1, Math.ceil((pending.at + 3000 - nowMs()) / 1000)) : 0, ring = pending ? ' ring' : '';
+      const lbl = pending ? '<div class="lv-hold">ส่งใน ' + hold + '… · แตะก่อนหน้าเพื่อแก้</div>' : '', ai = autoInfo();
+      let h = lbl;
+      if (pl.type === 'dummy_start') h += '<div class="row"><button type="button" class="lv-fab go big' + ring + '" data-a="next" aria-label="เริ่มการแสดง">' + IC.play + '</button></div>';
+      else if (isBrk(pl)) h += '<div class="row"><button type="button" class="lv-fab" data-a="prev" aria-label="ก่อนหน้า">' + IC.prev + '</button><button type="button" class="lv-cap' + ring + '" data-a="next">' + IC.pause + 'ไปเซ็ต ' + sn((nextOf(L, pl.id) || pl).set) + '</button></div>';
+      else {
+        const lr = lastReal(L), isLast = !!(lr && lr.id === pl.id);
+        h += '<div class="row"><button type="button" class="lv-fab" data-a="prev" aria-label="ก่อนหน้า">' + IC.prev + '</button>' +
+          (ai.enabled && ai.paused ? '<button type="button" class="lv-fab resume" data-a="autopp" aria-label="เล่นต่อ">' + IC.pause + '</button>' : '') +
+          (isLast ? '<button type="button" class="lv-fab stop" data-a="stop" aria-label="จบการแสดง">' + IC.stop + '</button>' : '<button type="button" class="lv-fab go big' + ring + '" data-a="next" aria-label="เพลงถัดไป">' + IC.next + '</button>') + '</div>';
+      }
+      setHtml(el, 'ctrl', h);
+    }
+    function targetOf(dir) {
+      const L = preview(), p = playingOf(L); if (!p) return null;
+      const n = dir > 0 ? nextOf(L, p.id) : prevOf(L, p.id);
+      if (!n || (dir > 0 && n.type === 'dummy_end')) return null;
+      return n.id;
+    }
+    function press(dir) {
+      if (guest || D || ended() || (pending && pending.sending)) return;
+      const t = targetOf(dir); if (!t) return;
+      const from = pending ? pending.from : (playingOf(Q.songs) || {}).id; if (!from) return;
+      if (pending) clearTimeout(pending.timer);
+      if (t === from) { pending = null; render(); return; }
+      pending = { from: from, to: t, btn: dir > 0 ? 'next' : 'prev', at: nowMs(), sending: false, timer: 0 };
+      pending.timer = setTimeout(commitPending, 3000);
+      render();
+    }
+    function commitMove(from, to, opt) {
+      return new Promise((resolve) => {
+        if (!qRef) { resolve(false); return; }
+        qRef.transaction((c) => {
+          if (!c || !c.songs) return;
+          const r = advanceTo(toArr(c.songs), from, to, nowMs(), opt); if (!r) return;
+          c.songs = clean(r); c.rev = (Number(c.rev) || 0) + 1; c.updatedBy = me; c.updatedAt = nowMs(); return c;
+        }).then((res) => resolve(!!(res && res.committed))).catch(() => resolve(false));
+      });
+    }
+    function commitPending() {
+      const p = pending; if (!p || p.sending) return; p.sending = true; clearTimeout(p.timer);
+      commitMove(p.from, p.to).then((ok) => { pending = null; if (!ok) lshToast('คิวถูกเลื่อนไปแล้วจากเครื่องอื่น', 'warn'); render(); });
+    }
+    function flushPending() { return new Promise((res) => { if (!pending || pending.sending) { res(); return; } const p = pending; p.sending = true; clearTimeout(p.timer); commitMove(p.from, p.to).then(() => { pending = null; res(); }); }); }
+    function stampCommit(kind) {
+      return new Promise((res) => { if (!qRef) { res(); return; } qRef.transaction((c) => { if (!c || !c.songs) return; const r = (kind === 'pause' ? stampPause : stampResume)(toArr(c.songs), nowMs()); if (!r) return; c.songs = clean(r); return c; }).then(() => res()).catch(() => res()); });
+    }
+    async function autoPP() {
+      const a = window.lshAutoAdv, i = autoInfo(); if (!a || !i.enabled) return;
+      if (i.paused) { await stampCommit('resume'); a.resume(); } else { await stampCommit('pause'); a.pause(); }
+    }
+    async function doStop() {
+      closeOv(); await flushPending();
+      const p = playingOf(Q.songs); if (!p || p.type === 'dummy_end') return;
+      const en = Q.songs.find((x) => x.type === 'dummy_end'); if (!en) return;
+      const ok = await commitMove(p.id, en.id, { auto: true });
+      if (ok && window.lshShowTimer && window.lshShowTimer.end) window.lshShowTimer.end();
+      ui.sumOpen = true; render();
+    }
+
+    // ===== ตัวจับเวลาทุกวินาที: นับถอยหลังรอส่ง / ปุ่มบันทึกกระพริบ / แถบเวลาเพลง =====
+    function tick() {
+      if (disposed) return;
+      if (pending && !pending.sending) renderCtrl();
+      updateProg();
+      if (D && ui.dirty) { const b = $('lvSaveBtn'); if (b) b.classList.toggle('ring', nowMs() - ui.dirtyAt >= 10000); }
+    }
+    window.__lvAutoTick = () => { if (!disposed) { updateProg(); renderStrip(); } };
+
+    // ===== หน้าต่างลอย =====
+    function closeOv() { ui.ov = null; clearTimeout(timers.mv); const o = $('lvOv'); if (o) o.innerHTML = ''; }
+    function showOv(html, cls, kind, data) { ui.ov = Object.assign({ kind: kind || 'pop' }, data || {}); const o = $('lvOv'); if (o) o.innerHTML = '<div class="lv-ov ' + (cls || 'center') + '" data-a="ovbg">' + html + '</div>'; }
+    function pop(title, sub, btns, extra) {
+      const bs = btns.map((b, i) => '<button type="button" class="lv-pb ' + (b.c || '') + '" data-a="pb" data-i="' + i + '">' + b.t + '</button>').join('');
+      popBtns = btns;
+      showOv('<div class="lv-pop" data-a="stop-prop"><h4>' + title + '</h4>' + (sub ? '<div class="sub">' + sub + '</div>' : '') + (extra || '') + bs + '</div>', 'center', 'pop');
+    }
+    let popBtns = [];
+
+    // ===== ตัวจับเวลาโชว์ (ใช้ตัวเดิมของแอป) =====
+    function ovTimer() {
+      const t = window.lshShowTimer; if (!t) return;
+      const st = t.state(), i = t.info(), dur = Number(st.durationMin) || 90;
+      showOv('<div class="lv-pop" data-a="stop-prop"><h4>เวลาโชว์</h4>' +
+        '<button type="button" class="lv-pb ' + (st.enabled ? '' : 'live') + '" data-a="tm-toggle">' + (st.enabled ? 'ปิดตัวจับเวลา' : 'เปิดตัวจับเวลา') + '</button>' +
+        '<div style="display:flex;gap:6px;align-items:center;justify-content:center"><button type="button" class="lv-pb" data-a="tm-adj" data-d="-15">-15</button><button type="button" class="lv-pb" data-a="tm-adj" data-d="-5">-5</button><b style="min-width:64px;text-align:center;font-size:20px">' + Math.floor(dur / 60) + ':' + String(dur % 60).padStart(2, '0') + '</b><button type="button" class="lv-pb" data-a="tm-adj" data-d="5">+5</button><button type="button" class="lv-pb" data-a="tm-adj" data-d="15">+15</button></div>' +
+        '<div class="sub">' + (!st.enabled ? 'ปิดอยู่ — ไม่แสดงเวลาที่แถบด้านบน' : (st.startedAt ? 'กำลังนับ: เหลือ ' + esc(i.text) : 'ยังไม่เริ่ม (เริ่มเมื่อกดเริ่มการแสดง)')) + '</div>' +
+        '<button type="button" class="lv-pb warn" data-a="tm-reset">รีเซ็ตจับเวลา (เริ่มนับใหม่)</button><button type="button" class="lv-pb" data-a="ovclose">ปิด</button></div>', 'center', 'timer');
+    }
+
+    // ===== สรุปโชว์ =====
+    function renderSummary() {
+      const o = $('lvOv'); if (!o || !ended() || !ui.sumOpen || D || (ui.ov && ui.ov.kind !== 'summary')) return;
+      const L = Q.songs, songs = L.filter((x) => isSong(x));
+      const played = songs.filter((x) => x.status === 'played' || x.status === 'playing'), skipped = songs.filter((x) => x.status === 'removed' && x.rm === 'skip'), deleted = songs.filter((x) => x.status === 'removed' && x.rm !== 'skip'), notPlayed = songs.filter((x) => x.status !== 'removed' && x.status !== 'played' && x.status !== 'playing');
+      const dur = showSt.startedAt ? Math.max(0, showSt.endedAt - showSt.startedAt) : 0, hh = Math.floor(dur / 3600000), mm = Math.floor(dur % 3600000 / 60000);
+      let h = '<div class="lv-sheet full" data-a="stop-prop" style="overflow-y:auto"><div class="lv-sum"><h3>สรุปการแสดง</h3>' +
+        '<div class="lv-stats"><div class="lv-stat"><b>' + (showSt.startedAt ? hh + ':' + String(mm).padStart(2, '0') : '-') + '</b><span>ความยาวโชว์ (ชม.:นาที)</span></div><div class="lv-stat"><b>' + played.length + '</b><span>เพลงที่เล่น</span></div><div class="lv-stat"><b>' + notPlayed.length + '</b><span>ไม่ได้เล่น</span></div><div class="lv-stat"><b>' + (skipped.length + deleted.length) + '</b><span>ข้าม ' + skipped.length + ' · ลบ ' + deleted.length + '</span></div></div>';
+      if (ui.sumDetail) {
+        h += '<div class="lv-res">';
+        L.forEach((x) => { if (!isSong(x)) return; const tg = x.status === 'removed' ? (x.rm === 'skip' ? '<span class="lv-tg sk">ข้าม</span>' : '<span class="lv-tg dl">ลบ</span>') : (x.status === 'played' || x.status === 'playing' ? '<span class="lv-tg pl">เล่นแล้ว</span>' : '<span class="lv-tg np">ไม่ได้เล่น</span>'); h += '<div class="lv-row"><b>' + esc(x.title) + '</b><span class="a">' + esc(x.artist && x.artist !== '-' ? x.artist : '') + '</span>' + tg + '</div>'; });
+        h += '</div>';
+      }
+      h += '<button type="button" class="lv-pb" data-a="sum-detail">' + (ui.sumDetail ? 'ซ่อนรายละเอียด' : 'ดูรายละเอียด') + '</button><button type="button" class="lv-pb live" data-a="sum-close">ปิด</button></div></div>';
+      const key = 'sum' + h; if (o.dataset.sum === key) return; o.dataset.sum = key;
+      o.innerHTML = '<div class="lv-ov" style="justify-content:flex-start">' + h + '</div>'; ui.ov = { kind: 'summary' };
+    }
+    function closeSummary() { ui.sumOpen = false; const o = $('lvOv'); if (o) { o.innerHTML = ''; delete o.dataset.sum; } ui.ov = null; renderStrip(); }
+
+    // ===== โหมดจัดคิว =====
+    function renderUndo() { const el = $('lvUndo'); setHtml(el, 'undo', D && ui.dirty ? '<button type="button" class="lv-undo" data-a="undo">' + IC.undo + 'เลิกทำ</button>' : ''); }
+    async function enterEdit() {
+      if (guest || ended()) return; await flushPending();
+      if (!Q.songs.length) return;
+      D = clone(Q.songs); base = { rev: Q.rev, songs: clone(Q.songs) }; ui.dirty = false; ui.failed = false; ui.editOpen = null; ui.banner = null; render();
+    }
+    function exitEdit() { D = null; base = null; ui.dirty = false; ui.failed = false; ui.editOpen = null; clearTimeout(timers.save); closeOv(); render(); }
+    function change(nl) { if (!nl || !D) return; D = nl; ui.dirty = true; ui.failed = false; ui.dirtyAt = nowMs(); clearTimeout(timers.save); timers.save = setTimeout(() => { if (ui.dirty) save(true); }, 15000); render(); }
+    function undo() { if (!D || !base) return; D = rebase(clone(base.songs), Q.songs); ui.dirty = false; ui.failed = false; clearTimeout(timers.save); render(); }
+    function remoteWhileEditing() {
+      if (!base || Q.rev === base.rev) return;
+      if (sigOf(Q.songs) === sigOf(base.songs)) {   // เปลี่ยนแค่สถานะการเล่น: สถานะการเล่นชนะ ลำดับตามร่าง
+        const was = ui.dirty; base = { rev: Q.rev, songs: clone(Q.songs) };
+        D = was ? rebase(D, Q.songs) : clone(Q.songs);
+        if (was) banner('ok', 'คิวถูกเลื่อนแล้ว', 'การแก้ของคุณยังอยู่ ยังไม่ได้บันทึก', 7000);
+      } else {   // มีเครื่องอื่นบันทึกโครงสร้างคิวก่อน: เครื่องที่ส่งก่อนชนะ
+        const had = ui.dirty; D = clone(Q.songs); base = { rev: Q.rev, songs: clone(Q.songs) }; ui.dirty = false; clearTimeout(timers.save);
+        banner('warn', 'คิวถูกเปลี่ยนโดย ' + (Q.by || 'อีกเครื่อง'), had ? 'การแก้ของคุณถูกข้าม แสดงคิวปัจจุบันที่ส่งก่อนแล้ว' : '', 9000);
+      }
+    }
+    function nextWarn() {   // แก้แล้ว "เพลงถัดไป" เปลี่ยน ขณะเพลงที่เล่นเหลือไม่ถึง 45 วินาที
+      const nb = base.songs.find((x) => x.status === 'next'), nd = normalize(clone(D)).find((x) => x.status === 'next');
+      if (!nb || !nd || nb.id === nd.id) return null;
+      const p = playingOf(Q.songs); if (!p || !isSong(p)) return null;
+      const a = autoInfo(), dur = (window.lshAutoAdv && window.lshAutoAdv.durationOf ? window.lshAutoAdv.durationOf(p) : 240) * 1000;
+      const remain = (a.counting && a.remainSec != null) ? a.remainSec * 1000 : dur - elapsedMs(p, nowMs());
+      if (remain >= 45000) return null;
+      return { from: nb.title, to: nd.title, sec: Math.max(0, Math.round(remain / 1000)) };
+    }
+    async function save(auto) {
+      if (!D || ui.saving || (!ui.dirty && !ui.failed)) return;
+      const w = nextWarn();
+      if (w) {
+        if (auto) { banner('warn', 'การแก้นี้เปลี่ยนเพลงถัดไปใกล้จบเพลง', 'กดบันทึกเพื่อยืนยัน (ยังไม่ได้ส่ง)', 10000); return; }
+        pop('เปลี่ยนเพลงถัดไปใกล้จบเพลง', 'จาก <b>' + esc(w.from) + '</b><br>เป็น <b>' + esc(w.to) + '</b><br><span style="color:var(--text-3)">เหลือเวลาเพลงนี้ ' + Math.floor(w.sec / 60) + ':' + String(w.sec % 60).padStart(2, '0') + ' คนในวงอาจเตรียมไม่ทัน</span>', [{ t: 'ยืนยันบันทึก', c: 'live', fn: () => { closeOv(); doSave(); } }, { t: 'ยกเลิก', fn: closeOv }]);
+        return;
+      }
+      doSave();
+    }
+    function doSave() {
+      if (!qRef) return; clearTimeout(timers.save); ui.saving = true; ui.failed = false;
+      const myBase = base, myD = clone(D); let result = null;
+      qRef.transaction((c) => {
+        if (!c || !c.songs) return;
+        const srv = toArr(c.songs), crev = Number(c.rev) || 0; let payload;
+        if (crev === myBase.rev) payload = myD; else if (sigOf(srv) === sigOf(myBase.songs)) payload = rebase(myD, srv); else return;   // ชน: ยกเลิก
+        result = clean(normalize(payload)); lastOwnRev = crev + 1;
+        c.songs = result; c.rev = crev + 1; c.updatedBy = me; c.updatedAt = nowMs(); return c;
+      }).then((res) => {
+        ui.saving = false;
+        if (res && res.committed && result) { base = { rev: lastOwnRev, songs: clone(result) }; D = clone(result); ui.dirty = false; lshToast('บันทึกแล้ว', 'ok'); }
+        else { lastOwnRev = -1; const had = ui.dirty; D = clone(Q.songs); base = { rev: Q.rev, songs: clone(Q.songs) }; ui.dirty = false; banner('warn', 'คิวถูกเปลี่ยนโดย ' + (Q.by || 'อีกเครื่อง'), had ? 'การแก้ของคุณถูกข้าม แสดงคิวปัจจุบันที่ส่งก่อนแล้ว' : '', 9000); }
+        render();
+      }).catch(() => { ui.saving = false; ui.failed = true; render(); });
+    }
+
+    function editCard(L, x, mvAttr) {
+      const open = ui.editOpen === x.id;
+      if (isBrk(x)) {
+        let h = '<div class="lv-barrow' + (mvAttr ? ' mv' : '') + '" data-id="' + esc(x.id) + '" data-a="ecard"><span class="lv-grip">' + IC.grip + '</span><div class="lv-bar" style="--c:' + setCls(x) + '"></div></div>';
+        if (open) h += '<div class="lv-etools" data-a="stop-prop"><button data-a="skipto" data-id="' + esc(x.id) + '">ข้ามมาที่นี่</button><button class="del" data-a="del" data-id="' + esc(x.id) + '">ลบเส้น</button><button data-a="up" data-id="' + esc(x.id) + '">ขึ้น</button><button data-a="down" data-id="' + esc(x.id) + '">ลง</button><button class="full" data-a="moveset" data-id="' + esc(x.id) + '">ย้ายทั้งเซ็ต</button></div>';
+        return h;
+      }
+      const dirtyTag = (ui.dirty && base && !base.songs.some((b) => b.id === x.id)) ? '<span class="lv-dirty">เปลี่ยนแล้ว · ยังไม่ส่ง</span>' : '';
+      let h = '<div class="lv-card' + (mvAttr ? ' mv' : '') + (open ? ' open' : '') + (isIns(x) ? (x.type === 'inserted-request' ? ' req' : ' custom') : '') + '" style="--c:' + setCls(x) + '" data-id="' + esc(x.id) + '" data-a="ecard"><div class="lv-main"><span class="lv-grip">' + IC.grip + '</span>' + cardInner(x, { no: numberOf(L, x.id), tag: x.status === 'next' ? 'ถัดไป' : '' }) + dirtyTag + '</div>';
+      if (open) {
+        const keys = (window.lshKeys && lshKeys.master) || [];
+        h += '<div class="lv-etools" data-a="stop-prop"><button data-a="skipto" data-id="' + esc(x.id) + '">ข้ามมาที่นี่</button><button class="del" data-a="del" data-id="' + esc(x.id) + '">ลบเพลง</button><button data-a="up" data-id="' + esc(x.id) + '">ขึ้น</button><button data-a="down" data-id="' + esc(x.id) + '">ลง</button>' +
+          (isMed(x) ? '' : '<select class="lv-in" data-a="keysel" data-id="' + esc(x.id) + '" aria-label="เปลี่ยนคีย์" style="flex:1 1 100%;height:40px"><option value="">คีย์: ' + esc(keyOf(x) || '-') + ' (เปลี่ยน…)</option>' + keys.map((k) => '<option value="' + esc(k) + '">' + esc(k) + '</option>').join('') + '</select>') + '</div>';
+      }
+      return h + '</div>';
+    }
+    function renderEditList(el, L) {
+      const act = actOf(L), pl = playingOf(L), prep = !!(pl && pl.type === 'dummy_start');
+      let h = '';
+      if (prep) { const f = act.find((x) => isSong(x)); h += '<div class="lv-barrow"><div class="lv-bar" style="--c:' + (f ? 'var(--set-' + sn(f.set) + ')' : 'var(--set-1)') + '"></div></div>'; }   // เส้นนำหน้าเซ็ตแรก: แสดงเฉพาะหน้าจัดคิว
+      const played = act.filter((x) => x.status === 'played' && isSong(x));
+      if (played.length) h += '<button type="button" class="lv-played' + (ui.playedOpen ? ' open' : '') + '" data-a="played">' + IC.right + 'เล่นไปแล้ว ' + played.length + ' เพลง</button>' + (ui.playedOpen ? played.map((x) => '<div class="lv-card played" style="--c:' + setCls(x) + '">' + cardInner(x, { no: numberOf(L, x.id) }) + '</div>').join('') : '');
+      if (pl && isSong(pl)) h += '<div class="lv-card locked playing" style="--c:' + setCls(pl) + '"><div class="lv-main">' + cardInner(pl, { no: numberOf(L, pl.id), tag: 'กำลังเล่น · ล็อค', live: true }) + '</div></div>';
+      else if (pl && isBrk(pl)) h += '<div class="lv-bar cur" style="--c:' + setCls(pl) + '"></div>';
+      h += '<div id="lvSort" style="display:flex;flex-direction:column;gap:8px">';
+      L.forEach((x) => { if (x.status === 'removed' || x.status === 'played' || x.status === 'playing' || SP(x)) return; h += editCard(L, x, true); });
+      h += '</div>';
+      const rem = L.filter((x) => x.status === 'removed' && (isSong(x) || isBrk(x)));
+      if (rem.length) {
+        h += '<div class="lv-grp" style="color:var(--text-3)">เพลงที่ถูกข้าม / ลบ</div>';
+        rem.forEach((x) => { h += '<div class="lv-card removed" style="--c:' + setCls(x) + '"><div class="lv-main">' + cardInner(x, { no: '', tag: x.rm === 'skip' ? 'ข้าม' : 'ลบ' }) + '<button type="button" class="lv-ic" style="width:auto;padding:0 10px;color:var(--live);font-size:13px;font-weight:700" data-a="restore" data-id="' + esc(x.id) + '">เรียกคืน</button></div></div>'; });
+      }
+      el.innerHTML = h;
+      const box = $('lvSort');
+      if (box && window.lshDnD) window.lshDnD.make(box, { handle: '.lv-grip', draggable: '.mv', delay: 0, ghostClass: 'lv-sort-ghost', onEnd: () => {
+        const order = Array.from(box.children).filter((c) => c.dataset && c.dataset.id && c.classList.contains('mv')).map((c) => c.dataset.id);
+        applyOrder(order);
+      } });
+    }
+    function applyOrder(order) {   // ลำดับใหม่ของรายการที่ย้ายได้ → ใส่กลับช่องเดิมในคิว
+      if (!D) return;
+      const L = clone(D), slots = []; L.forEach((x, i) => { if (movable(x)) slots.push(i); });
+      const byId = new Map(L.map((x) => [x.id, x])), out = L.slice();
+      const seq = order.map((id) => byId.get(id)).filter(Boolean); if (seq.length !== slots.length) { render(); return; }
+      slots.forEach((si, k) => { out[si] = seq[k]; });
+      if (out.every((x, i) => x.id === D[i].id)) { render(); return; }
+      change(normalize(out));
+    }
+
+    // ===== คลังเพลง / แทรกเพลง / รีเควส =====
+    const lib = () => { try { return JSON.parse(localStorage.getItem('lsh_songs')) || []; } catch (e) { return []; } };
+    const metaOf = (s) => [s.key && s.key !== '-' ? s.key : '', s.bpm && s.bpm !== '-' ? s.bpm : ''].filter(Boolean).join(' · ');
+    const inQueue = (L) => new Set(actOf(L).map((x) => String(x.songId || x.title)));
+    const rows = (arr, act) => arr.map((s) => '<button type="button" class="lv-row" data-a="' + act + '" data-s="' + jattr(s) + '"><span><b>' + esc(s.title) + '</b><br><span class="a">' + esc(s.artist && s.artist !== '-' ? s.artist : '') + '</span></span><span class="m">' + esc(metaOf(s)) + '</span></button>').join('');
+    const shuffle = (a) => { const r = a.slice(); for (let i = r.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); const t = r[i]; r[i] = r[j]; r[j] = t; } return r; };
+    function suggest() {   // เพลงแนะนำอัจฉริยะ: 2 คีย์เดียว+BPM ใกล้ / 2 คีย์เดียว / 2 BPM ใกล้ (อิงเพลงที่กำลังเล่น)
+      const L = D || Q.songs, used = inQueue(L), all = lib().filter((s) => !used.has(String(s.id || s.title))), p = playingOf(L);
+      if (!p || !isSong(p) || !keyOf(p)) return [{ h: 'สุ่มจากคลัง', a: shuffle(all).slice(0, 6) }];
+      const ks = (window.lshKeys && lshKeys.allowed) ? lshKeys.allowed(p.key) : new Set([String(p.key).toLowerCase()]), tb = p.bpm && p.bpm !== '-' ? parseFloat(p.bpm) : null;
+      let both = [], kk = [], bb = [];
+      all.forEach((s) => { const k = ks.has(String(s.key || '').trim().toLowerCase()), b = tb !== null && s.bpm && s.bpm !== '-' && Math.abs(parseFloat(s.bpm) - tb) <= 10; if (k && b) both.push(s); else if (k) kk.push(s); else if (b) bb.push(s); });
+      both = shuffle(both).slice(0, 2); kk = shuffle(kk).slice(0, 2); bb = shuffle(bb).slice(0, 2);
+      const g = [{ h: 'คีย์เดียวกัน · BPM ใกล้กัน', a: both }, { h: 'คีย์เดียวกัน', a: kk }, { h: 'BPM ใกล้กัน', a: bb }].filter((x) => x.a.length);
+      const got = new Set(both.concat(kk, bb).map((s) => s.id || s.title)); const fill = shuffle(all.filter((s) => !got.has(s.id || s.title))).slice(0, Math.max(0, 6 - got.size));
+      if (fill.length) g.push({ h: 'เพลงอื่น', a: fill });
+      return g;
+    }
+    function openInsert() {
+      if (guest || !D) return;
+      showOv('<div class="lv-sheet full" data-a="stop-prop"><div style="display:flex;justify-content:space-between;align-items:center"><h4 style="margin:0;font-size:18px">แทรกเพลง</h4><button type="button" class="lv-x" data-a="ovclose" aria-label="ปิด">✕</button></div>' +
+        '<div class="lv-tabs"><button type="button" class="on" data-a="instab" data-t="songs">เพลง</button><button type="button" data-a="instab" data-t="req" style="position:relative">รีเควส' + (requests.length ? '<span class="lv-badge" id="lvInsBadge">' + requests.length + '</span>' : '') + '</button></div>' +
+        '<div class="lv-srow" id="lvInsSearch"><input class="lv-in" id="lvInsQ" type="search" placeholder="พิมพ์ชื่อเพลงหรือศิลปิน…" autocomplete="off"></div><div class="lv-res" id="lvInsBody"></div></div>', 'top', 'insert', { tab: 'songs', q: '' });
+      $('lvOv').firstChild.style.justifyContent = 'flex-start';
+      renderInsert();
+    }
+    function renderInsert() {
+      const o = ui.ov; if (!o || o.kind !== 'insert') return; const body = $('lvInsBody'); if (!body) return;
+      $('lvInsSearch').classList.toggle('hidden', o.tab !== 'songs');
+      document.querySelectorAll('#lvOv .lv-tabs button').forEach((b) => b.classList.toggle('on', b.dataset.t === o.tab));
+      const bd = $('lvInsBadge'); if (bd) { bd.textContent = requests.length; bd.style.display = requests.length ? '' : 'none'; }
+      if (o.tab === 'req') {
+        body.innerHTML = requests.length ? requests.map((r) => '<div style="display:flex;align-items:center"><button type="button" class="lv-row pk" style="flex:1" data-a="inspick" data-k="request" data-s="' + jattr(r) + '"><span><b>' + esc(r.title) + '</b><br><span class="a">' + esc(r.artist && r.artist !== '-' ? r.artist : '') + '</span></span><span class="m">แตะเพื่อแทรก</span></button><button type="button" class="lv-x" data-a="reqdel" data-id="' + esc(r.id) + '" aria-label="ลบคำขอ">✕</button></div>').join('') : '<div class="lv-empty">ไม่มีคำขอเพลงที่รอจัดคิว</div>';
+        return;
+      }
+      const q = (o.q || '').toLowerCase().trim(), used = inQueue(D || Q.songs);
+      if (!q) { const g = suggest(); body.innerHTML = g.map((x) => '<div class="lv-grp">' + x.h + '</div>' + rows(x.a, 'inspick')).join('') + '<button type="button" class="lv-pb" data-a="reshuffle">สุ่มใหม่</button>'; return; }
+      const all = lib().filter((s) => !used.has(String(s.id || s.title))), p1 = [], p2 = [], p3 = [];
+      all.forEach((s) => { const t = (s.title || '').toLowerCase(), a = (s.artist || '').toLowerCase(); if (t.startsWith(q)) p1.push(s); else if (t.includes(q)) p2.push(s); else if (a.includes(q)) p3.push(s); });
+      const by = (x, y) => (x.title || '').localeCompare(y.title || '', 'th'), res = [].concat(p1.sort(by), p2.sort(by), p3.sort(by)).slice(0, 30);
+      body.innerHTML = res.length ? rows(res, 'inspick') : '<div class="lv-empty">ไม่พบเพลงในคลัง</div>';
+    }
+    function songObj(s, kind) {   // แปลงเพลงจากคลัง/คำขอ/คลังคอร์ด เป็นรายการในคิว
+      const fromReq = kind === 'request';
+      const sid = fromReq ? ((s.songID && s.songID !== '-') ? s.songID : (s.songId || '')) : (s.id && s.id !== '-' ? s.id : (s.songId || ''));
+      const o = { id: 'ins_' + nowMs() + '_' + Math.floor(Math.random() * 1000), songId: sid || '', title: s.title, artist: s.artist || '-', key: s.key || '-', bpm: s.bpm || '-', note: s.note || '-', set: kind === 'custom' ? 'Set เพลงแทรก' : 'Set รีเควส', status: 'normal', type: kind === 'custom' ? 'inserted-custom' : 'inserted-request' };
+      if (s.chordId) o.chordId = s.chordId;   // เพลงจากคลังคอร์ด (ฐานข้อมูลรอง): เก็บรหัสคลังไว้โหลดคอร์ดได้เร็วและครบ
+      return o;
+    }
+    // เลือกเพลงแล้ว → เล่นต่อจากเพลงที่กำลังเล่น / เลือกตำแหน่ง
+    function chooseInsert(s, kind, reqId, after) {
+      const o = songObj(s, kind);
+      pop(kind === 'request' ? 'ใส่เพลงขอ “' + esc(s.title) + '”' : 'แทรก “' + esc(s.title) + '”', '', [
+        { t: 'เล่นต่อจากเพลงที่กำลังเล่น', c: kind === 'request' ? 'pink' : 'live', fn: () => { closeOv(); placeSong(o, null, reqId); if (after) after(); } },
+        { t: 'เลือกตำแหน่ง…', fn: () => pickPos(o, reqId, after) },
+        { t: 'ยกเลิก', fn: closeOv }]);
+    }
+    function pickPos(o, reqId, after) {
+      const L = D || Q.songs, items = L.filter((x) => (x.status === 'playing' || movable(x)) && !SP(x) && !isBrk(x));
+      const list = items.map((x, i) => '<button type="button" class="lv-row" data-a="pospick" data-i="' + i + '"><span><b>' + esc(x.title) + '</b><br><span class="a">' + esc(x.artist && x.artist !== '-' ? x.artist : '') + '</span></span><span class="m">' + (x.status === 'playing' ? 'กำลังเล่น' : '') + '</span></button>').join('');
+      posItems = items; posCtx = { o: o, reqId: reqId, after: after };
+      showOv('<div class="lv-pop" data-a="stop-prop"><h4>วางต่อท้ายเพลงใด?</h4><div class="lv-res">' + list + '</div><button type="button" class="lv-pb" data-a="ovclose">ยกเลิก</button></div>', 'center', 'pos');
+    }
+    let posItems = [], posCtx = null;
+    function placeSong(o, afterId, reqId) {
+      if (D) { const nl = opInsert(D, o, afterId || (playingOf(D) || {}).id); change(nl); }
+      else {   // นอกโหมดจัดคิว: ส่งเข้าคิวทันที
+        qRef.transaction((c) => { if (!c || !c.songs) return; const srv = toArr(c.songs), pl = playingOf(srv); const r = opInsert(srv, o, afterId || (pl && pl.id)); c.songs = clean(r); c.rev = (Number(c.rev) || 0) + 1; c.updatedBy = me; c.updatedAt = nowMs(); return c; }).then(() => lshToast('ใส่ในคิวแล้ว: ' + o.title, 'ok')).catch(() => lshToast('ใส่ในคิวไม่สำเร็จ', 'error'));
+      }
+      if (reqId) { try { db.ref('rooms/' + room + '/requestStats/' + reqId).remove(); } catch (e) {} }
+    }
+
+    // ===== ลูกค้าขอเพลง =====
+    async function venueName() {
+      try {
+        const id = (await db.ref('rooms/' + room + '/queue/activeSetlistId').once('value')).val(); if (!id || id === '-') return 'ร้านทั่วไป';
+        const v = (await db.ref('rooms/' + room + '/setlists/' + id + '/venue').once('value')).val();
+        return v ? v.split(/[-–—]/)[0].trim() : String(id).trim();
+      } catch (e) { return 'ร้านทั่วไป'; }
+    }
+    let reqHist = [], reqSeq = 0;
+    async function loadHist() {
+      try {
+        const v = await venueName(); const val = (await db.ref('rooms/' + room + '/request/' + v).once('value')).val() || {};
+        const N = (window.lshChordLookup && window.lshChordLookup._bulk) ? window.lshChordLookup._bulk.bkNorm : (x) => String(x || '').toLowerCase().replace(/\s+/g, '');
+        const g = new Map();
+        Object.keys(val).forEach((pk) => { const r = val[pk] || {}; if (!r.title) return; const k = N(r.title, true) + '|' + N(r.artist && r.artist !== '-' ? r.artist : '', true); let e = g.get(k); if (!e) g.set(k, e = { title: r.title, artist: r.artist || '-', songID: r.songID || '-', count: 0, last: '' }); e.count++; const ord = String(r.date || '') + '|' + pk; if (ord > e.last) e.last = ord; });
+        reqHist = [...g.values()].sort((x, y) => (y.count - x.count) || (y.last < x.last ? -1 : 1)).slice(0, 8);
+      } catch (e) { reqHist = []; }
+      if (ui.ov && ui.ov.kind === 'req') renderReqBody();
+    }
+    function openReq() {
+      if (guest || D) return;
+      showOv('<div class="lv-sheet" data-a="stop-prop"><div style="display:flex;justify-content:space-between;align-items:center"><h4 style="margin:0;font-size:18px;color:var(--request)">ลูกค้าขอเพลง</h4><button type="button" class="lv-x" data-a="ovclose" aria-label="ปิด">✕</button></div>' +
+        '<div class="lv-srow"><input class="lv-in" id="lvReqQ" type="search" placeholder="พิมพ์ชื่อเพลง หรือศิลปิน…" autocomplete="off"><button type="button" class="lv-chk" data-a="reqok" aria-label="ใช้ข้อความนี้">' + IC.check + '</button></div><div class="lv-res" id="lvReqBody"></div></div>', 'top', 'req', { q: '' });
+      $('lvOv').firstChild.style.justifyContent = 'flex-start';
+      if (window.lshChordLookup && window.lshChordLookup.preload) window.lshChordLookup.preload();
+      renderReqBody(); loadHist(); setTimeout(() => { const i = $('lvReqQ'); if (i) i.focus(); }, 120);
+    }
+    async function catalogSearch(kw) {
+      const L = window.lshChordLookup && window.lshChordLookup._bulk; if (!L) return null;
+      const ix = await L.getIdx(), N = L.bkNorm, tq = N(kw, true); if (!tq) return [];
+      const have = new Set(), haveBk = new Set(); lib().forEach((x) => { if (x.bk) haveBk.add(x.bk); have.add(N(x.title, true) + '|' + N(x.artist, true)); });
+      const pre = [], con = [], art = [];
+      for (let i = 0; i < ix.cat.length; i++) {
+        const e = ix.cat[i], tt = e._t != null ? e._t : (e._t = N(e[1], true)); let b = null;
+        if (tt && tt.indexOf(tq) === 0) b = pre; else if (tt && tt.indexOf(tq) > 0) b = con; else { const ta = e._a != null ? e._a : (e._a = N(e[2], true)); if (ta && ta.indexOf(tq) >= 0) b = art; }
+        if (!b || b.length >= 10) continue; if (haveBk.has(e[0]) || have.has(tt + '|' + (e._a != null ? e._a : (e._a = N(e[2], true))))) continue; b.push(e); if (pre.length >= 10) break;
+      }
+      return [].concat(pre, con, art).slice(0, 10);
+    }
+    function renderReqBody() {
+      const body = $('lvReqBody'); if (!body) return; const q = ((ui.ov && ui.ov.q) || '').toLowerCase().trim(), my = ++reqSeq;
+      if (!q) { body.innerHTML = reqHist.length ? '<div class="hd">เพลงที่ลูกค้าร้านนี้มักขอ</div>' + reqHist.map((r) => '<button type="button" class="lv-row" data-a="reqpick" data-s="' + jattr({ id: (r.songID && r.songID !== '-') ? r.songID : '-', title: r.title, artist: r.artist, key: '-', bpm: '-' }) + '"><span><b>' + esc(r.title) + '</b><br><span class="a">' + esc(r.artist && r.artist !== '-' ? r.artist : '') + '</span></span><span class="m">ขอ ' + r.count + ' ครั้ง</span></button>').join('') : '<div class="lv-empty">พิมพ์ชื่อเพลงที่ลูกค้าขอ แล้วแตะเพลง หรือกดปุ่มถูกเพื่อใช้ข้อความที่พิมพ์</div>'; return; }
+      const p1 = [], p2 = [], p3 = []; lib().forEach((s) => { const t = (s.title || '').toLowerCase(), a = (s.artist || '').toLowerCase(); if (t.startsWith(q)) p1.push(s); else if (t.includes(q)) p2.push(s); else if (a.includes(q)) p3.push(s); });
+      const by = (x, y) => (x.title || '').localeCompare(y.title || '', 'th'), res = [].concat(p1.sort(by), p2.sort(by), p3.sort(by)).slice(0, 12);
+      body.innerHTML = rows(res, 'reqpick').replace(/class="lv-row"/g, 'class="lv-row"') + '<div id="lvReqCat"></div>';
+      catalogSearch(q).then((cs) => {
+        if (my !== reqSeq || !$('lvReqCat')) return; if (!cs || !cs.length) { if (!res.length) $('lvReqCat').innerHTML = '<div class="lv-empty">ไม่พบเพลงในระบบ พิมพ์ชื่อเองแล้วกดปุ่มถูกได้เลย</div>'; return; }
+        $('lvReqCat').innerHTML = '<div class="hd">จากคลังคอร์ด (ยังไม่อยู่ในรายชื่อเพลงทั้งหมด)</div>' + cs.map((e) => '<button type="button" class="lv-row" data-a="reqpick" data-s="' + jattr({ id: '-', title: e[1], artist: e[2] || '-', key: e[3] || '-', bpm: e[5] || '-', chordId: e[0] }) + '"><span><b>' + esc(e[1]) + '</b><br><span class="a">' + esc(e[2] || '') + '</span></span><span class="m">' + esc(e[3] || '') + '</span></button>').join('');
+      }).catch(() => {});
+    }
+    // เลือกเพลงที่ลูกค้าขอ → ใส่ในคิวเลย / เลือกตำแหน่ง / เก็บไว้ก่อน
+    function reqPopup(s) {
+      const t = esc(s.title);
+      const rec = async (keep) => {   // บันทึกสถิติร้านเหมือนเดิม; เก็บไว้ก่อน = ลงกล่องรีเควส (ป้ายที่ปุ่มจัดคิว)
+        const v = await venueName(); const sid = (s.id && s.id !== '-') ? s.id : '-';
+        try { db.ref('rooms/' + room + '/request/' + v).push({ title: s.title, artist: s.artist || '-', songID: sid, date: new Date().toISOString().split('T')[0] }); } catch (e) {}
+        if (keep) { try { db.ref('rooms/' + room + '/requestStats').push({ title: s.title, artist: s.artist || '-', key: s.key || '-', bpm: s.bpm || '-', songID: sid, time: nowMs() }); } catch (e) {} }
+      };
+      pop('ลูกค้าขอ “' + t + '”', s.artist && s.artist !== '-' ? esc(s.artist) : '', [
+        { t: 'ใส่ในคิวเลย', c: 'pink', fn: () => { closeOv(); rec(false); placeSong(songObj(s, 'request'), null, null); } },
+        { t: 'เลือกตำแหน่ง…', fn: () => pickPos(songObj(s, 'request'), null, () => rec(false)) },
+        { t: 'เก็บไว้ก่อน (ไปที่ปุ่มจัดคิว)', fn: () => { closeOv(); rec(true); lshToast('เก็บไว้ในกล่องรีเควสแล้ว', 'ok'); } },
+        { t: 'ยกเลิก', fn: () => { closeOv(); openReq(); } }]);
+    }
+
+    // ===== ย้ายทั้งเซ็ต / เรียกคืน / เปลี่ยนคีย์ =====
+    function openMoveSet(brkId) {
+      if (!D) return;
+      const bl = setBlocks(D), src = bl.find((b) => b.id === brkId); if (!src) return;
+      const lab = (b) => b.id === 'CUR' ? 'ต่อจากเพลงที่กำลังเล่น (เซ็ตปัจจุบัน)' : 'หลังเซ็ต ' + sn(b.items[0].set);
+      const dsts = bl.filter((b) => b !== src);
+      if (!dsts.length) { lshToast('ไม่มีที่ให้ย้าย', 'warn'); return; }
+      popBtns = dsts.map((b) => ({ t: lab(b), fn: () => { closeOv(); const nl = opMoveSet(D, brkId, b.id); if (nl) change(nl); else lshToast('ย้ายไม่ได้', 'warn'); } }));
+      popBtns.push({ t: 'ยกเลิก', fn: closeOv });
+      showOv('<div class="lv-pop" data-a="stop-prop"><h4>ย้ายเซ็ต ' + sn(src.items[0].set) + ' ไปไว้…</h4><div class="sub">แตะเพื่อย้าย · ปิดเองใน 5 วินาที</div>' +
+        popBtns.map((b, i) => '<button type="button" class="lv-pb" data-a="pb" data-i="' + i + '">' + esc(b.t) + '</button>').join('') + '</div>', 'center', 'pop');
+      clearTimeout(timers.mv); timers.mv = setTimeout(closeOv, 5000);
+    }
+    function removeItem(id, kind) {
+      if (!D) return; const nl = opRemove(D, id, kind || 'del'); if (nl) { if (ui.editOpen === id) ui.editOpen = null; change(nl); }
+    }
+    function toggleSeg(btn) {
+      const k = btn.parentNode.dataset.k, v = btn.dataset.v;
+      if (k === 'cols') { ui.cols2 = v === '2'; lsSave('lsh_chord_cols', v); }
+      else if (k === 'mode') { ui.lyr = v === 'l'; lsSave('lsh_chord_lyr', ui.lyr ? '1' : '0'); }
+      else if (k === 'fs') { ui.fs = Math.max(12, Math.min(40, ui.fs + (v === '+' ? 2 : -2))); lsSave('lsh_chord_fs', String(ui.fs)); }
+      const exp = btn.closest('.lv-exp'); if (!exp) return;
+      exp.classList.toggle('lyr', ui.lyr); exp.classList.toggle('cols2', ui.cols2);
+      const bd = exp.querySelector('.ch-body'); if (bd) bd.style.fontSize = ui.fs + 'px';
+      exp.querySelectorAll('.lv-seg').forEach((sg) => { const kk = sg.dataset.k; sg.querySelectorAll('button').forEach((b) => { if (kk === 'cols') b.classList.toggle('on', (b.dataset.v === '2') === ui.cols2); else if (kk === 'mode') b.classList.toggle('on', (b.dataset.v === 'l') === ui.lyr); }); });
+    }
+
+    // ===== รับการกด/เปลี่ยนค่าทั้งหมดผ่านตัวกลางตัวเดียว =====
+    const root = $('lvRoot');
+    function onClick(ev) {
+      const seg = ev.target.closest && ev.target.closest('.lv-seg button'); if (seg && root.contains(seg)) { ev.stopPropagation(); toggleSeg(seg); return; }
+      let el = ev.target.closest ? ev.target.closest('[data-a]') : null;
+      while (el && root.contains(el)) {
+        const a = el.dataset.a, id = el.dataset.id;
+        if (a === 'stop-prop') return;   // ภายในกล่องที่ไม่ให้กดทะลุ (เช่น ตัวเนื้อหาคอร์ด/พื้นของหน้าต่าง)
+        if (a === 'keysel') return;
+        if (act(a, el, id, ev)) return;
+        el = el.parentElement ? el.parentElement.closest('[data-a]') : null;
+      }
+    }
+    function act(a, el, id, ev) {
+      switch (a) {
+        case 'strip': ui.stripClosed = !ui.stripClosed; renderStrip(); return true;
+        case 'autopp': autoPP(); return true;
+        case 'autosw': { const ai = window.lshAutoAdv; if (!ai || guest) return true; const i = autoInfo(); ai.setEnabled(!i.enabled); setTimeout(render, 150); return true; }
+        case 'timer': if (!guest || true) ovTimer(); return true;
+        case 'tm-toggle': { const t = window.lshShowTimer, st = t.state(); t.setConfig({ enabled: !st.enabled }); closeOv(); return true; }
+        case 'tm-adj': { const t = window.lshShowTimer, st = t.state(), d = Number(el.dataset.d); t.setConfig({ durationMin: Math.max(15, Math.min(480, (Number(st.durationMin) || 90) + d)) }); setTimeout(ovTimer, 150); return true; }
+        case 'tm-reset': pop('รีเซ็ตจับเวลา?', 'เริ่มนับใหม่และล้างสถานะจบโชว์', [{ t: 'รีเซ็ต', c: 'warn', fn: () => { closeOv(); window.lshShowTimer.reset(); } }, { t: 'ยกเลิก', fn: closeOv }]); return true;
+        case 'req': openReq(); return true;
+        case 'edit': enterEdit(); return true;
+        case 'exitedit': exitEdit(); return true;
+        case 'save': save(false); return true;
+        case 'undo': undo(); return true;
+        case 'insert': openInsert(); return true;
+        case 'played': ui.playedOpen = !ui.playedOpen; renderList(); return true;
+        case 'next': if (!guest) press(1); return true;
+        case 'prev': if (!guest) press(-1); return true;
+        case 'stop': if (guest) return true; pop('จบการแสดง?', 'จะส่งเพลงสุดท้ายเป็น “จบ” ทันที และหยุดนับเวลา', [{ t: 'จบการแสดง', c: 'warn', fn: doStop }, { t: 'ยกเลิก', fn: closeOv }]); return true;
+        case 'pb': { const b = popBtns[Number(el.dataset.i)]; if (b && b.fn) b.fn(); return true; }
+        case 'ovclose': closeOv(); return true;
+        case 'ovbg': if (ev.target === el) { if (ui.ov && ui.ov.kind === 'summary') closeSummary(); else closeOv(); } return true;
+        case 'sum-detail': ui.sumDetail = !ui.sumDetail; { const o = $('lvOv'); if (o) delete o.dataset.sum; } renderSummary(); return true;
+        case 'sum-close': closeSummary(); return true;
+        case 'sum': ui.sumOpen = true; renderSummary(); return true;
+        case 'card': {   // เปิดการ์ดเดียวต่อครั้ง; แตะตัวเปิดซ้ำ = ย่อ
+          const L = cur(), open = expandedId(L), it = itemById(id); if (!it) return true;
+          ui.exId = String(open) === String(id) ? 'none' : id; renderList(); return true;
+        }
+        case 'copy': { const it = itemById(id); if (it) copyOf(it); return true; }
+        case 'google': { const it = itemById(id); if (it) googleOf(it); return true; }
+        case 'ecard': ui.editOpen = ui.editOpen === id ? null : id; renderList(); return true;
+        case 'up': if (D) { const nl = opMove(D, id, -1); if (nl) change(nl); } return true;
+        case 'down': if (D) { const nl = opMove(D, id, 1); if (nl) change(nl); } return true;
+        case 'del': removeItem(id, 'del'); return true;
+        case 'skipto': if (D) { const nl = opSkipTo(D, id); if (nl) change(nl); else lshToast('เพลงนี้ถัดจากเพลงที่เล่นอยู่แล้ว', 'warn'); } return true;
+        case 'moveset': openMoveSet(id); return true;
+        case 'restore': if (D) { const nl = opRestore(D, id); if (nl) change(nl); } return true;
+        // แทรกเพลง
+        case 'instab': if (ui.ov && ui.ov.kind === 'insert') { ui.ov.tab = el.dataset.t; renderInsert(); } return true;
+        case 'reshuffle': renderInsert(); return true;
+        case 'inspick': { const s = JSON.parse(el.dataset.s); chooseInsert(s, el.dataset.k === 'request' ? 'request' : 'custom', s.id, null); return true; }
+        case 'reqdel': { const rid = el.dataset.id; pop('ลบคำขอนี้?', '', [{ t: 'ลบ', c: 'warn', fn: () => { try { db.ref('rooms/' + room + '/requestStats/' + rid).remove(); } catch (e) {} closeOv(); openInsert(); if (ui.ov) { ui.ov.tab = 'req'; renderInsert(); } } }, { t: 'ยกเลิก', fn: () => { closeOv(); openInsert(); } }]); return true; }
+        case 'pospick': { if (!posCtx) return true; const x = posItems[Number(el.dataset.i)], c = posCtx; closeOv(); if (x) { placeSong(c.o, x.id, c.reqId); if (c.after) c.after(); } return true; }
+        // ลูกค้าขอเพลง
+        case 'reqpick': reqPopup(JSON.parse(el.dataset.s)); return true;
+        case 'reqok': { const v = (($('lvReqQ') || {}).value || '').trim(); if (v) reqPopup({ id: '-', title: v, artist: '-', key: '-', bpm: '-' }); return true; }
+      }
+      return false;
+    }
+    function onChange(ev) {
+      const t = ev.target;
+      if (t && t.dataset && t.dataset.a === 'keysel') { const k = t.value; if (k && D) { const nl = opKey(D, t.dataset.id, k); if (nl) change(nl); } }
+    }
+    function onInput(ev) {
+      const t = ev.target; if (!t || !ui.ov) return;
+      if (t.id === 'lvInsQ' && ui.ov.kind === 'insert') { ui.ov.q = t.value; renderInsert(); }
+      else if (t.id === 'lvReqQ' && ui.ov.kind === 'req') { ui.ov.q = t.value; clearTimeout(timers.rq); timers.rq = setTimeout(renderReqBody, 120); }
+    }
+    function onKey(ev) { if (ev.key === 'Enter' && ev.target && ev.target.id === 'lvReqQ') { ev.preventDefault(); act('reqok', ev.target, null, ev); } }
+    root.addEventListener('click', onClick); root.addEventListener('change', onChange); root.addEventListener('input', onInput); root.addEventListener('keydown', onKey);
+
+    // ===== เริ่ม / ปิดหน้า =====
+    window.__lv = {
+      onTimer: onTimer,
+      autoTick: () => { if (!disposed) { updateProg(); renderStrip(); } },
+      dispose: () => {
+        disposed = true; subs.forEach((f) => { try { f(); } catch (e) {} });
+        Object.keys(timers).forEach((k) => clearTimeout(timers[k])); clearInterval(timers.tick);
+        if (pending) clearTimeout(pending.timer);
+        try { root.removeEventListener('click', onClick); root.removeEventListener('change', onChange); root.removeEventListener('input', onInput); root.removeEventListener('keydown', onKey); } catch (e) {}
+        window.__lv = null;
+      }
+    };
+    // ปุ่ม "สรุปโชว์" ที่แถบเมื่อจบแล้ว ใช้ data-a="sum" ผ่านตัวกลางเดียวกัน
+    // รับคำขอจากหน้ามอนิเตอร์: เปิดการ์ดเพลงที่ระบุ
+    const rq = window.__lshExpandReq; window.__lshExpandReq = null;
+    if (rq && rq.qid) { ui.exId = rq.mode === 'none' ? 'none' : rq.qid; }
+    bind();
+    render();
+  };
+  window.initLivePageModule();
+</script>
+</body>
+</html>
