@@ -331,6 +331,7 @@
           localStorage.setItem('lsh_active_setlist_id', fb.activeSetlistId);
           localStorage.setItem('lsh_queue_setlist_id', fb.activeSetlistId);
         }
+        window.queueRev = Number(fb && fb.rev) || 0;   // เลขรุ่นของคิวล่าสุดที่รับมา (ใช้ตอนเขียนรุ่นถัดไป)
         localStorage.setItem('lsh_queue_data', JSON.stringify(window.queueData));
       }
 
@@ -504,11 +505,17 @@
             // และตัดค่า undefined ออก (Firebase ปฏิเสธ undefined) โดยลำดับอาร์เรย์คงเดิม
             const writeAt = Date.now();
             window.lastQueueWriteAt = writeAt;
+            // rev = เลขรุ่นของคิว (+1 ทุกครั้งที่เขียน) / updatedBy = ชื่อผู้ส่ง (Nickname ในตั้งค่า → ไม่มีใช้ Username)
+            let by = ''; try { by = session.nickname || session.username || ''; } catch (e) {}
+            const nextRev = (Number(window.queueRev) || 0) + 1;
             await db.ref(`rooms/${selectedRoom}/queue`).update({
               activeSetlistId: activeSetlistId,
               songs: JSON.parse(JSON.stringify(window.queueData)),
-              updatedAt: writeAt
+              updatedAt: writeAt,
+              rev: nextRev,
+              updatedBy: by
             });
+            window.queueRev = nextRev;
           }
         } catch (e) {
           console.error('เกิดข้อผิดพลาดในการซิงค์คิวลง Firebase:', e);
@@ -562,7 +569,12 @@
         orderedFlow.forEach((song) => {
           if (song.status === 'played' && !window.qPlayedOpen && playedReal > 0) { if (song.type !== 'dummy_start' && song.type !== 'dummy_end') realSongIndex++; return; }
           if (song.type === 'dummy_start' && song.status === 'played' && playedReal === 0) return;
-          if (song.type === 'dummy_start' || song.type === 'dummy_end') {
+          if (song.type === 'break') {   // พักคุย: แถบสีตามเซ็ต ไม่นับเป็นลำดับเพลง (หน้าจัดคิวแบบเต็มมาในขั้นถัดไป)
+            const bn = String(song.set || 'Set 1').replace(/\D/g, '') || '1';
+            const bs = song.status === 'playing' ? 'border:2px solid var(--set-' + bn + ');' : song.status === 'played' ? 'opacity:.5;' : '';
+            html += `<div class="special-card" style="border-left:6px solid var(--set-${bn}, var(--set-1));${bs}">พักคุย${song.status === 'playing' ? ' (กำลังพัก)' : ''}</div>`;
+            if (/^Set \d+$/.test(song.set || '')) prevNormalSet = song.set;
+          } else if (song.type === 'dummy_start' || song.type === 'dummy_end') {
             let stateLabel = '';
             let highlightStyle = '';
 

@@ -126,6 +126,7 @@
     window.initMonitorPageModule = function() {
       let currentQueue = [];
       let lastNextSongId = null;
+      let lastBrkPlayId;   // พักคุยที่กำลังเล่นรอบก่อน (undefined = ยังไม่เคยประมวลผล ไม่กะพริบตอนเปิดหน้า)
       let lastMedPlayId;   // เมดเลย์ที่กำลังเล่นรอบก่อน (undefined = ยังไม่เคยประมวลผล ไม่กะพริบตอนเปิดหน้า)
 
       const sessionStr = localStorage.getItem('lsh_session');
@@ -150,14 +151,23 @@
       function initMonitorQueueListener() {
         if (typeof db !== 'undefined' && db && db.ref) {
           db.ref(`rooms/${selectedRoom}/queue/songs`).off('value');
-          db.ref(`rooms/${selectedRoom}/queue/songs`).on('value', (snapshot) => {
-            const val = snapshot.val();
+          // 🕐 หน่วง 1 วินาที: คิวที่เปลี่ยนรัวๆ (กำลังจัด/ลากสลับ) จะแสดงเฉพาะผลสุดท้าย — ครั้งแรกที่เปิดหน้าแสดงทันที, รอสูงสุด 3 วินาทีแล้วแสดงเลย
+          let settleTimer = null, settleSince = 0, firstQueue = true;
+          const showQueue = (val) => {
             if (val && Array.isArray(val)) {
               processQueueData(val);
             } else {
               let localQueue = JSON.parse(localStorage.getItem('lsh_queue_data')) || [];
               processQueueData(localQueue);
             }
+          };
+          db.ref(`rooms/${selectedRoom}/queue/songs`).on('value', (snapshot) => {
+            const val = snapshot.val();
+            if (firstQueue) { firstQueue = false; showQueue(val); return; }
+            if (!settleSince) settleSince = Date.now();
+            clearTimeout(settleTimer);
+            const wait = Math.max(0, Math.min(1000, 3000 - (Date.now() - settleSince)));
+            settleTimer = setTimeout(() => { settleSince = 0; settleTimer = null; showQueue(val); }, wait);
           });
         } else {
           let localQueue = JSON.parse(localStorage.getItem('lsh_queue_data')) || [];
@@ -252,10 +262,16 @@
           if (lastMedPlayId !== undefined && mid && mid !== lastMedPlayId) triggerNextSongFlashAlert();   // กะพริบกล่องใหญ่ 1 ครั้งตอนเมดเลย์เริ่มเล่น
           lastMedPlayId = mid;
         }
+        {
+          const bid = playing && playing.type === 'break' ? String(playing.id) : null;
+          if (lastBrkPlayId !== undefined && bid && bid !== lastBrkPlayId) triggerNextSongFlashAlert();   // กะพริบ 1 ครั้งตอนเริ่มพักคุย
+          lastBrkPlayId = bid;
+        }
         const mPlayingTitle = document.getElementById('mPlayingTitle');
         const isSpecial = (x) => !!x && (x.type === 'dummy_start' || x.type === 'dummy_end');
-        const plainTitle = (x) => isSpecial(x) ? lshPlain(x.title) : (x.title || '');
-        const setLabel = (x) => (!x || isSpecial(x)) ? '' : String(x.set || 'Set 1').toUpperCase();
+        const isBrk = (x) => !!x && x.type === 'break';   // พักคุย: ใช้สีของเซ็ต ไม่แสดงศิลปิน/คีย์/BPM
+        const plainTitle = (x) => isBrk(x) ? 'พักคุย' : isSpecial(x) ? lshPlain(x.title) : (x.title || '');
+        const setLabel = (x) => (!x || isSpecial(x) || isBrk(x)) ? '' : String(x.set || 'Set 1').toUpperCase();
         const setNum = (x) => String((x && x.set) || 'Set 1').replace(/\D/g, '') || '1';
         if (playing) {
           mPlayingTitle.className = 'box-title-playing';
@@ -296,8 +312,8 @@
         } else if (next) {
           mNextTitle.className = 'box-title-next';
           mNextTitle.textContent = plainTitle(next);
-          const special = isSpecial(next) || isMed(next);
-          document.getElementById('mNextDetail').innerText = isSpecial(next) ? '' : (isMed(next) ? next.parts.map(pt => pt.title).join(' · ') : (next.artist || ''));
+          const special = isSpecial(next) || isMed(next) || isBrk(next);
+          document.getElementById('mNextDetail').innerText = (isSpecial(next) || isBrk(next)) ? '' : (isMed(next) ? next.parts.map(pt => pt.title).join(' · ') : (next.artist || ''));
           if (nextSetEl) nextSetEl.textContent = setLabel(next);
           if (tilesEl) tilesEl.style.display = special ? 'none' : '';
           const dash = (v) => (v && String(v).trim() && String(v).trim() !== '-') ? String(v).trim() : '-';
@@ -326,10 +342,10 @@
         if (sbItem) {
           mStandbyTitle.className = 'box-title-standby';
           mStandbyTitle.innerText = plainTitle(sbItem);
-          document.getElementById('mStandbyArtist').innerText = (isSpecial(sbItem) || isMed(sbItem)) ? (isMed(sbItem) ? sbItem.parts.map(pt => pt.title).join(' · ') : '') : (sbItem.artist || '');
-          document.getElementById('mStandbyLabel').textContent = isSpecial(sbItem) ? (medPlay ? 'ถัดไป' : 'ตามด้วย') : (medPlay ? 'ถัดไป · ' : 'ตามด้วย · ') + setLabel(sbItem);
+          document.getElementById('mStandbyArtist').innerText = (isSpecial(sbItem) || isBrk(sbItem) || isMed(sbItem)) ? (isMed(sbItem) ? sbItem.parts.map(pt => pt.title).join(' · ') : '') : (sbItem.artist || '');
+          document.getElementById('mStandbyLabel').textContent = (isSpecial(sbItem) || isBrk(sbItem)) ? (medPlay ? 'ถัดไป' : 'ตามด้วย') : (medPlay ? 'ถัดไป · ' : 'ตามด้วย · ') + setLabel(sbItem);
           const k = (sbItem.key && sbItem.key !== '-') ? sbItem.key : '', b = (sbItem.bpm && sbItem.bpm !== '-') ? sbItem.bpm : '';
-          document.getElementById('mStandbyKb').textContent = isSpecial(sbItem) ? '' : [k, b].filter(Boolean).join(' · ');
+          document.getElementById('mStandbyKb').textContent = (isSpecial(sbItem) || isBrk(sbItem)) ? '' : [k, b].filter(Boolean).join(' · ');
           if (sbBox) sbBox.style.setProperty('--sb', isSpecial(sbItem) ? 'var(--line-strong)' : 'var(--set-' + setNum(sbItem) + ', var(--set-1))');
         } else {
           mStandbyTitle.className = 'box-title-standby';
@@ -538,7 +554,7 @@
         const container = document.getElementById('progressSegmentsContainer');
         if (!container) return;
 
-        let realSongs = queueData.filter(i => i.type !== 'dummy_start' && i.type !== 'dummy_end' && i.status !== 'removed');
+        let realSongs = queueData.filter(i => i.type !== 'dummy_start' && i.type !== 'dummy_end' && i.type !== 'break' && i.status !== 'removed');
         if (realSongs.length === 0) {
           container.innerHTML = '';
           return;
@@ -589,6 +605,12 @@
         let prevNormalSet = null;
         currentQueue.forEach((song) => {
           if (song.type === 'dummy_start' || song.type === 'dummy_end' || song.status === 'removed') return;
+          if (song.type === 'break') {   // พักคุย = เส้นคั่นสีตามเซ็ต (ใช้ข้อความเดียวกันทุกเซ็ต)
+            const bn = String(song.set || 'Set 1').replace(/\D/g, '') || '1';
+            html += `<div class="set-divider sd-${bn}"><span>พักคุย</span></div>`;
+            prevNormalSet = song.set || 'Set 1';
+            return;
+          }
           if (/^Set \d+$/.test(song.set || 'Set 1')) {
             let cur = song.set || 'Set 1';
             if (prevNormalSet !== null && prevNormalSet !== cur) html += `<div class="set-divider sd-${cur.replace('Set ', '')}"><span>${cur.toUpperCase()}</span></div>`;
@@ -645,7 +667,7 @@
       const kar = { on: false, qid: null, key: '', doc: null, lines: [], N: 0, dur: 240, speed: 1, p0: 0, t0: 0, drag: null, shown: -1, tok: 0, timer: 0, tbSig: '', paused: false, hold: false, wp: 0, v: 0, raf: 0, settle: null, rows: [], rowsFor: null, wl: null, lastTb: null, lastNx: null };
       const $k = (id) => document.getElementById(id);
       const kEsc = (t) => String(t == null ? '' : t).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
-      const kReal = (x) => !!x && x.type !== 'dummy_start' && x.type !== 'dummy_end';
+      const kReal = (x) => !!x && x.type !== 'dummy_start' && x.type !== 'dummy_end' && x.type !== 'break';
       const kClamp = (v, a, b) => Math.max(a, Math.min(b, v));
 
       function karPos(now) { return kar.N ? (kar.paused ? kClamp(kar.p0, 0, kar.N - 1) : kClamp(kar.p0 + (now - kar.t0) / 1000 * kar.speed * kar.N / kar.dur, 0, kar.N - 1)) : 0; }
@@ -750,7 +772,7 @@
         const med = Array.isArray(item.parts) && item.parts.length > 0;   // เมดเลย์: ต่อคอร์ดเพลงย่อยเป็นสายเดียว มีแถบคั่นเพลง
         if ((!item.songId && !med) || !X) { karMsg(NO_CHORD_TXT); return; }
         try {
-          let no = 0; if (med) { for (const i of currentQueue) { if (!i || i.type === 'dummy_start' || i.type === 'dummy_end' || i.status === 'removed') continue; no++; if (String(i.id) === String(item.id)) break; } }
+          let no = 0; if (med) { for (const i of currentQueue) { if (!i || i.type === 'dummy_start' || i.type === 'dummy_end' || i.type === 'break' || i.status === 'removed') continue; no++; if (String(i.id) === String(item.id)) break; } }
           const d = med ? await X.getMedleyDoc(item.parts, no) : await X.getDoc(item.songId); if (tok !== kar.tok || !kar.on) return;
           kar.doc = d; karApply(d.at(item.key));
           if (!kar.N) { karMsg(NO_CHORD_TXT); return; }
@@ -773,7 +795,7 @@
           $k('karTbMeta').textContent = 'ท็อคแบค · ' + ((sd ? sd.textContent : '').replace(/^\s*-\s*/, '').trim() || '-') + ' · ' + (tm ? tm.textContent : '');
         }
         const nx = currentQueue.find(i => i.status === 'next');
-        const nk = nx ? ((isSpecialK(nx) ? lshPlain(nx.title) : (nx.title || ''))) : 'ไม่มีเพลงถัดไป';
+        const nk = nx ? (nx.type === 'break' ? 'พักคุย' : (isSpecialK(nx) ? lshPlain(nx.title) : (nx.title || ''))) : 'ไม่มีเพลงถัดไป';
         if (kar.lastNx !== null && kar.lastNx !== nk) karAttn('next'); // เพลงถัดไปเปลี่ยน
         kar.lastNx = nk;
         $k('karNxTitle').textContent = nk;
@@ -787,7 +809,7 @@
         clearTimeout(bar._attnTimer); delete bar.dataset.attn; void bar.offsetWidth; bar.dataset.attn = kind;
         bar._attnTimer = setTimeout(() => { delete bar.dataset.attn; }, 3000);
       }
-      function isSpecialK(x) { return !!x && (x.type === 'dummy_start' || x.type === 'dummy_end'); }
+      function isSpecialK(x) { return !!x && (x.type === 'dummy_start' || x.type === 'dummy_end' || x.type === 'break'); }
       function karTick() {
         if (!$k('karView')) { clearInterval(kar.timer); kar.timer = 0; return; }
         if (!kar.on) return;
@@ -809,7 +831,7 @@
       // เพลงที่กำลังเล่นเปลี่ยน (หรือคีย์ในคิวเปลี่ยน) ขณะเปิดคาราโอเกะอยู่
       function karSync(playing) {
         if (!kar.on || !$k('karView')) return;
-        if (!kReal(playing)) { kar.tok++; kar.qid = null; karSetup(null); karMsg('ยังไม่มีเพลงที่กำลังเล่น'); return; }
+        if (!kReal(playing)) { kar.tok++; kar.qid = null; karSetup(null); karMsg(playing && playing.type === 'break' ? 'พักคุย' : 'ยังไม่มีเพลงที่กำลังเล่น'); return; }
         if (String(playing.id) !== kar.qid) { karLoad(playing); return; }
         karSetup(playing);
         if ((playing.key || '') !== kar.key && kar.doc) {

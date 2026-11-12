@@ -1208,7 +1208,7 @@
         // เรียกจากหน้าจัดคิว: เมื่อมีเพลงจริงเพลงแรกกำลังเล่น ให้เริ่มจับเวลา
         maybeStart: (queue) => {
           if (!ref || !st.enabled || st.startedAt) return;
-          if ((queue || []).some(s => s && s.status === 'playing' && s.type !== 'dummy_start' && s.type !== 'dummy_end')) window.lshShowTimer.start();
+          if ((queue || []).some(s => s && s.status === 'playing' && s.type !== 'dummy_start' && s.type !== 'dummy_end' && s.type !== 'break')) window.lshShowTimer.start();
         }
       };
     })();
@@ -1225,7 +1225,7 @@
       let starting = null, advancing = false;
       const listeners = [];
       const now = () => Date.now() + offset;
-      const isReal = (s) => !!s && s.type !== 'dummy_start' && s.type !== 'dummy_end';
+      const isReal = (s) => !!s && s.type !== 'dummy_start' && s.type !== 'dummy_end' && s.type !== 'break';   // พักคุยไม่นับเวลา/ไม่เลื่อนเอง (ต้องกดไปต่อเอง)
       const playing = () => songs.find(s => s && s.status === 'playing') || null;
       const tkey = (s) => String(s.title || '').trim().toLowerCase() + '|' + String(s.artist || '').trim().toLowerCase();
       // ฟังคลังเพลงแบบสด: แก้ความยาวเพลงจากเครื่องไหน เครื่องอื่นก็ได้ค่าใหม่ทันที (เดิมโหลดครั้งเดียว ทำให้เครื่องอื่นยังใช้ 4 นาที)
@@ -1292,6 +1292,7 @@
             if (it.status === 'next' || it.status === 'standby') it.status = 'normal';
           }
           cur.songs = arr; cur.updatedAt = Date.now();
+          cur.rev = (Number(cur.rev) || 0) + 1; cur.updatedBy = 'เลื่อนอัตโนมัติ';
           return cur;
         }).catch(() => {}).then(() => { advancing = false; });
       }
