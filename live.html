@@ -1164,7 +1164,8 @@
         // ลูกค้าขอเพลง
         case 'rqpos': { const x = rqItems[Number(el.dataset.i)]; if (!x || !reqCtx) return true; const c = reqCtx; closeOv(); c.rec(false); placeSong(songObj(c.s, 'request'), x.id, null); return true; }
         case 'keypop': { const it = itemById(id); if (!it || !D) return true; const rr = root.getBoundingClientRect(), r = el.getBoundingClientRect(), cur = keyOf(it);
-          const keys = (window.lshKeys && lshKeys.master) || [], below = r.bottom - rr.top + 6, up = (rr.height - below) < 260;
+          const all = (window.lshKeys && lshKeys.master) || [], minor = /m$/.test(cur || ''), base = minor ? ['Cm', 'C#m', 'Dm', 'D#m', 'Em', 'Fm', 'F#m', 'Gm', 'G#m', 'Am', 'A#m', 'Bm'] : ['C', 'Db', 'D', 'Eb', 'E', 'F', 'F#', 'G', 'Ab', 'A', 'Bb', 'B'], sw = { 'C#': 'Db', 'Gb': 'F#' };
+          const keys = base.map((k) => (cur && sw[cur] === k) ? cur : k).filter((k) => !all.length || all.indexOf(k) >= 0), below = r.bottom - rr.top + 6, up = (rr.height - below) < 260;
           showOv('<div class="lv-kpop" data-a="stop-prop" style="right:' + Math.max(8, rr.right - r.right) + 'px;' + (up ? 'bottom:' + (rr.bottom - r.top + 6) + 'px' : 'top:' + below + 'px') + '">' + keys.map((k) => '<button type="button" class="' + (k === cur ? 'on' : '') + '" data-a="keyset" data-id="' + esc(id) + '" data-k="' + esc(k) + '">' + esc(k) + '</button>').join('') + '</div>', 'pov', 'keypop'); return true; }
         case 'keyset': { const nl = D ? opKey(D, id, el.dataset.k) : null; closeOv(); if (nl) change(nl); return true; }
         case 'reqpick': reqPopup(JSON.parse(el.dataset.s)); return true;
