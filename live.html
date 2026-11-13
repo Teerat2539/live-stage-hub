@@ -50,6 +50,7 @@
     .lv-sbar button svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; }
     /* ===== แนวนอน (หน้าจอสูง ≤ 640px): ดูคอร์ดอย่างเดียว ===== */
     .lv-land { display: none; }
+    .lv-ntag, .lv-nkey { display: none; }
     @media (orientation: landscape) and (max-height: 640px) {
       body.lsh-page-live { display: grid !important; grid-template-columns: 64px minmax(0,1fr); grid-template-rows: auto auto 1fr auto; height: 100dvh; }
       body.lsh-page-live > header { display: contents; }
@@ -64,9 +65,18 @@
       body.lsh-page-live .header-right { grid-column: 1; grid-row: 4; flex-direction: column; gap: 6px; padding: 6px 0 10px; background: var(--bg); justify-content: center; }
       body.lsh-page-live #pingBadge { font-size: 10px; }
       body.lsh-page-live > main { grid-column: 2; grid-row: 1 / -1; min-height: 0; border-left: 1px solid var(--line); }
-      .lv .lv-top, .lv #lvStrip, .lv #lvActs, .lv #lvScroll, .lv #lvCtrl, .lv #lvUndo { display: none !important; }
+      .lv #lvStrip, .lv #lvActs, .lv #lvScroll, .lv #lvCtrl, .lv #lvUndo { display: none !important; }
       .lv { height: 100%; }
-      .lv-land { display: flex; position: relative; height: 100%; min-height: 0; }
+      .lv-land { display: flex; position: relative; flex: 1 1 0; height: auto; min-height: 0; }
+      /* แถบล่าง: ท็อคแบคล่าสุด + เพลงถัดไป (ใช้กล่องเดิมของแนวตั้ง) */
+      .lv .lv-top { order: 9; padding: 6px 12px 10px; gap: 10px; }
+      .lv .lv-top .top-box { display: flex; flex-direction: column; justify-content: center; min-height: 52px; padding: 6px 12px; border-radius: 14px; }
+      .lv .lv-top #topTalkbackBox { flex: 1.6; }
+      .lv .lv-top #topNextBox { flex: 1; flex-direction: row; align-items: center; gap: 10px; border: 1.5px solid var(--nxc, var(--set-1)) !important; border-left-width: 1.5px !important; }
+      .lv .lv-top #topNextBox .top-title { display: none; }
+      .lv-ntag { display: inline-block !important; flex: none; padding: 3px 9px; border-radius: 999px; background: color-mix(in srgb, var(--nxc, var(--set-1)) 20%, transparent); color: var(--text); font-size: 12px; font-weight: 700; white-space: nowrap; }
+      .lv-nkey { display: inline-block !important; flex: none; margin-left: auto; font-size: 15px; font-weight: 700; color: var(--text-2); }
+      .lv .lv-top #topNextBox .top-content { flex: 1; min-width: 0; color: var(--text); }
       .lv-lseg { flex: none; width: 34px; margin: 0; padding: 12px 10px; border: 0; background: transparent; display: flex; flex-direction: column; gap: 3px; cursor: pointer; }
       .lv-lsg { flex: 1 1 0; min-height: 3px; border-radius: 4px; background: var(--c); display: block; }
       .lv-lsg.done { opacity: .35; }
@@ -296,7 +306,9 @@
     </div>
     <div id="topNextBox" class="top-box">
       <span class="top-title">เพลงถัดไป</span>
+      <span class="lv-ntag" id="topNextTag"></span>
       <div id="topNextText" class="top-content">-</div>
+      <span class="lv-nkey" id="topNextKey"></span>
     </div>
   </div>
   <div id="lvStrip"></div>
@@ -684,6 +696,11 @@
       if (!t) return;
       t.innerText = nx ? (isBrk(nx) ? 'พักคุย' : SP(nx) ? lshPlain(nx.title) : nx.title) : 'จบการแสดง';
       if (box) box.style.borderLeft = '4px solid #5b7cff';
+      // แนวนอน (แถบล่าง): ป้าย "ถัดไป · SET n" + คีย์ + สีกรอบตามเซ็ต (ซ่อนในแนวตั้ง)
+      const tg = $('topNextTag'), ky = $('topNextKey');
+      if (tg) tg.textContent = nx ? (isBrk(nx) ? 'ถัดไป' : 'ถัดไป · SET ' + sn(nx.set)) : 'ถัดไป';
+      if (ky) ky.textContent = (nx && !isMed(nx) && !isBrk(nx) && keyOf(nx)) ? keyOf(nx) : '';
+      if (box) box.style.setProperty('--nxc', nx && !isBrk(nx) ? setCls(nx) : 'var(--set-1)');
       if (window.lshWatch) window.lshWatch(t, 'next');
     }
     function renderBanner() {
