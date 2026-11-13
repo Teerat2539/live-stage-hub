@@ -102,6 +102,66 @@
       match: function(songKey, sel) { return !!songKey && this.allowed(sel).has(String(songKey).trim().toLowerCase()); }
     };
 
+
+    // ======================================================================
+    // 2.0: ป๊อปโอเวอร์เปลี่ยนคีย์ (ใช้ร่วมกันหน้าจัดคิวและหน้าจัดลิสต์) — ตารางเรียง -5…+6 นับจากคีย์ต้นฉบับ (ฐานข้อมูลรอง)
+    //  ต้นฉบับ = rec.k ของคลังคอร์ด · วง = คีย์ในคลังเพลงหลัก (lsh_songs) · เลือก = คีย์ในคิว/ลิสต์ตอนนี้
+    //  ไม่มีค่าไหนก็ไม่แสดงค่านั้น · มีแต่คีย์วงให้นับเลขจากคีย์วง · ไม่มีทั้งคู่ไม่แสดงเลข
+    // ======================================================================
+    window.lshKeyPick = (function() {
+      const MAJ = ['C', 'Db', 'D', 'Eb', 'E', 'F', 'Gb', 'G', 'Ab', 'A', 'Bb', 'B'], MIN = ['Cm', 'C#m', 'Dm', 'Ebm', 'Em', 'Fm', 'F#m', 'Gm', 'G#m', 'Am', 'Bbm', 'Bm'];
+      const clean = (k) => { k = String(k == null ? '' : k).trim(); return k === '-' ? '' : k; };
+      const pc = (n) => { const m = /^([A-G])([#b]?)/.exec(n || ''); if (!m) return -1; let i = { C: 0, D: 2, E: 4, F: 5, G: 7, A: 9, B: 11 }[m[1]]; if (m[2] === '#') i++; else if (m[2] === 'b') i--; return (i + 12) % 12; };
+      const minor = (k) => /^[A-G][#b]?m(?!aj)/.test(k || '');
+      const same = (a, b) => !!a && !!b && pc(a) === pc(b) && minor(a) === minor(b);
+      const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+      const oc = {};
+      const ckey = (it) => it && (it.chordId ? 'bk:' + it.chordId : (it.songId ? 's:' + it.songId : ''));
+      function bandOf(it) {   // คีย์ที่วงเลือก = คีย์ในคลังเพลงหลัก
+        try { if (!it || !it.songId) return ''; const a = JSON.parse(localStorage.getItem('lsh_songs')) || [], s = a.find((x) => x && String(x.id) === String(it.songId)); return s ? clean(s.key) : ''; } catch (e) { return ''; }
+      }
+      function origCached(it) { const k = ckey(it); return k && (k in oc) ? oc[k] : undefined; }
+      function origLoad(it) {   // คีย์ต้นฉบับจากฐานข้อมูลรอง (โหลดแล้วจำไว้) ไม่มี/โหลดไม่ได้ = ''
+        const k = ckey(it); if (!k) return Promise.resolve('');
+        if (k in oc) return Promise.resolve(oc[k]);
+        const X = window.lshChords && window.lshChords._x; if (!X) return Promise.resolve('');
+        const p = it.chordId ? X.getDocBk(it.chordId, '', it.title) : X.getDoc(it.songId);
+        return Promise.race([p, new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), 6000))])
+          .then((d) => (oc[k] = clean(d && d.rec && d.rec.k)))
+          .catch((e) => { if (e && e.message === 'notfound') oc[k] = ''; return ''; });
+      }
+      // o: {ori, band, cur, color, attr}  attr = แอตทริบิวต์ใส่ปุ่มแต่ละคีย์ (ปุ่มจะมี data-k ให้เอง)
+      function html(o) {
+        const ori = clean(o.ori), band = clean(o.band), cur = clean(o.cur), ref = ori || band, centre = pc(ref || cur);
+        const isMin = minor(ref || cur), list = isMin ? MIN : MAJ, col = o.color || '#00f2d1';
+        let chips = '';
+        if (ori) chips += '<span class="lshkp-c">ต้นฉบับ <b>' + esc(ori) + '</b></span>';
+        if (band) chips += '<span class="lshkp-c bd">วง <b>' + esc(band) + '</b></span>';
+        if (cur) chips += '<span class="lshkp-c on" style="--c:' + col + '">เลือก <b>' + esc(cur) + '</b></span>';
+        let g = '';
+        for (let i = 0; i < 12; i++) {
+          const off = i - 5, p = centre < 0 ? i : (centre + off + 120) % 12;
+          let name = list[p]; [ori, band, cur].forEach((k) => { if (k && pc(k) === p && minor(k) === isMin) name = k; });   // คงการสะกดของเพลง
+          let sub = '';
+          if (ref && centre >= 0) sub = off === 0 ? (ori ? 'Ori' : 'วง') : (off > 0 ? '+' + off : String(off));
+          const isOn = same(name, cur), isOri = !!ori && off === 0, isBd = !!band && same(name, band) && !(off === 0 && !ori);
+          g += '<button type="button" class="lshkp-b' + (isOn ? ' on' : '') + (isOri ? ' ori' : '') + (isBd ? ' bd' : '') + '" ' + (o.attr || '') + ' data-k="' + esc(name) + '" style="--c:' + col + '"><b>' + esc(name) + '</b>' + (sub ? '<span>(' + sub + ')</span>' : '') + (isBd ? '<i>วง</i>' : '') + '</button>';
+        }
+        return '<div class="lshkp"><div class="lshkp-h">' + chips + '</div><div class="lshkp-g">' + g + '</div></div>';
+      }
+      const st = document.createElement('style'); st.id = 'lshkp-css';
+      st.textContent = '.lshkp-h{display:flex;gap:6px;flex-wrap:wrap;justify-content:center;margin-bottom:10px;font-size:12px}' +
+        '.lshkp-c{padding:3px 9px;border-radius:999px;border:1px solid #3a3d4a;background:#1b1d26;color:#aeb3bf}.lshkp-c b{color:#fff;margin-left:2px}' +
+        '.lshkp-c.bd{border-color:#e8a838;color:#e8a838}.lshkp-c.bd b{color:#e8a838}.lshkp-c.on{background:var(--c);border-color:var(--c);color:#0b0d12}.lshkp-c.on b{color:#0b0d12}' +
+        '.lshkp-g{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}' +
+        '.lshkp-b{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;min-height:56px;padding:6px 2px;border-radius:12px;border:1px solid #3a3d4a;background:#1b1d26;color:#fff;font-family:inherit;cursor:pointer}' +
+        '.lshkp-b b{font-size:16px}.lshkp-b span{font-size:12px;color:#9aa0ad}.lshkp-b.ori span{color:#fff;font-weight:700}' +
+        '.lshkp-b.bd{border-color:#e8a838}.lshkp-b i{position:absolute;top:3px;right:6px;font-style:normal;font-size:10px;color:#e8a838}' +
+        '.lshkp-b.on{background:var(--c);border-color:var(--c);color:#0b0d12}.lshkp-b.on span,.lshkp-b.on.ori span,.lshkp-b.on i{color:#0b0d12}.lshkp-b:active{transform:scale(.96)}';
+      document.head.appendChild(st);
+      return { html: html, bandOf: bandOf, origCached: origCached, origLoad: origLoad, _pc: pc };
+    })();
+
     window.lshSongKit = (function() {
       const $ = (id) => document.getElementById(id);
       let ctx = { getAll: () => ({}), getPlayCount: () => 0, allowDelete: true, onChanged: () => {} };
@@ -1666,7 +1726,7 @@
     };
 
     // ===== ตรวจเวอร์ชันแอป (2.0): เทียบเลขใน version.json บนเซิร์ฟเวอร์ กับเลขของโค้ดที่เปิดอยู่ =====
-    const LSH_APP_VER = '2.0.0';
+    const LSH_APP_VER = '2.0.2';
     let lshVerAt = 0;
     function lshCheckVersion() {
       lshVerAt = Date.now();

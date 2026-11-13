@@ -200,9 +200,9 @@
 
   <!-- Pop-up เลือกคีย์ 12 ปุ่ม -->
   <div id="keySelectorModal" class="setlist-overlay hidden" onclick="window.closeKeyModal()" style="z-index:16000">
-    <div class="setlist-form-box" onclick="event.stopPropagation()" style="text-align:center;width:300px">
+    <div class="setlist-form-box" onclick="event.stopPropagation()" style="text-align:center;width:340px;max-width:94vw">
       <h3 style="color:#00f2d1;margin-bottom:4px">เลือกคีย์เพลง</h3>
-      <p style="font-size:12px;color:#aaa;margin-bottom:10px">เลือกคีย์เฉพาะสำหรับโชว์นี้</p>
+      <p style="font-size:12px;color:#aaa;margin-bottom:10px">เลือกคีย์เฉพาะสำหรับโชว์นี้ · ตัวเลขนับจากคีย์ต้นฉบับ</p>
       <div id="keyGrid" class="key-grid-container"></div>
       <button onclick="window.closeKeyModal()" style="margin-top:15px;width:100%;padding:8px;border-radius:6px;border:none;background:#333;color:#fff;cursor:pointer">ยกเลิก</button>
     </div>
@@ -1164,19 +1164,10 @@
       editingSongIndexForKey = idx;
       const item = editorSongsList[idx];
       const songMaster = allSongsData[item.songId] || {};
-      const baseKey = item.key || songMaster.key || 'C';
-      
-      const isMinor = baseKey.endsWith('m');
-      const keyList = isMinor ? minorKeys : majorKeys;
-
-      const grid = document.getElementById('keyGrid');
-      let html = '';
-      keyList.forEach(k => {
-        const isActive = k === baseKey;
-        html += `<button class="key-grid-btn ${isActive ? 'active' : ''}" onclick="window.selectSetlistKey('${k}')">${k}</button>`;
-      });
-      grid.innerHTML = html;
-
+      const KP = window.lshKeyPick, grid = document.getElementById('keyGrid');
+      const mk = (ori) => KP.html({ ori: ori, band: songMaster.key, cur: item.key || songMaster.key || '', color: 'var(--set-' + (String(item.set || 'Set 1').replace(/\D/g, '') || '1') + ', #00f2d1)', attr: 'onclick="window.selectSetlistKey(this.dataset.k)"' });
+      grid.className = ''; grid.innerHTML = mk(KP.origCached(item) || '');
+      if (KP.origCached(item) === undefined) KP.origLoad(item).then((o) => { if (o && editingSongIndexForKey === idx && !document.getElementById('keySelectorModal').classList.contains('hidden')) grid.innerHTML = mk(o); });   // ต้นฉบับโหลดทีหลัง
       document.getElementById('keySelectorModal').classList.remove('hidden');
     };
 
