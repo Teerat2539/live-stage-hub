@@ -1203,6 +1203,7 @@
         // ลูกค้าขอเพลง
         case 'rqpos': { const x = rqItems[Number(el.dataset.i)]; if (!x || !reqCtx) return true; const c = reqCtx; closeOv(); c.rec(false); placeSong(songObj(c.s, 'request'), x.id, null); return true; }
         case 'keypop': { const it = itemById(id); if (!it || !D) return true; const rr = root.getBoundingClientRect(), r = el.getBoundingClientRect(), KP = window.lshKeyPick;
+          if (!KP) { lshToast('ต้องอัปเดตแอปก่อน: ปิดแอปแล้วเปิดใหม่ (ไฟล์ index.html ยังเป็นรุ่นเก่า)', 'error'); return true; }
           const mk = (ori) => KP.html({ ori: ori, band: KP.bandOf(it), cur: keyOf(it), color: setCls(it), attr: 'data-a="keyset" data-id="' + esc(id) + '"' }), below = r.bottom - rr.top + 6, up = (rr.height - below) < 340;
           showOv('<div class="lv-kpop" id="lvKpop" data-a="stop-prop" style="right:' + Math.max(8, rr.right - r.right) + 'px;' + (up ? 'bottom:' + (rr.bottom - r.top + 6) + 'px' : 'top:' + below + 'px') + '">' + mk(KP.origCached(it) || '') + '</div>', 'pov', 'keypop');
           if (KP.origCached(it) === undefined) KP.origLoad(it).then((o) => { const box = $('lvKpop'); if (box && ui.ov && ui.ov.kind === 'keypop' && o) box.innerHTML = mk(o); });   // ต้นฉบับโหลดทีหลัง: เติมตัวเลขเมื่อมาถึง
