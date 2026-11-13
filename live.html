@@ -89,9 +89,10 @@
       .lv-lrow .n { width: 18px; font-size: 12px; color: var(--text-3); font-weight: 400; flex: none; }
       .lv-lrow .t { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
       .lv-lrow.done { opacity: .5; }
-      .lv-lrow.now { border-color: var(--live-line); background: var(--live-soft); }
-      .lv-lrow.view { border: 1.5px solid #eef1f6; }
-      .lv-lt1 { font-size: 11px; color: var(--live); } .lv-lt2 { font-size: 11px; color: #eef1f6; }
+      .lv-lrow.now { border: 1.5px solid var(--live); background: var(--live-soft); }
+      .lv-lrow.nxt { border: 1.5px solid #5b7cff; background: #0f1424; }
+      .lv-lrow.view { box-shadow: 0 0 0 2px #eef1f6; }
+      .lv-lt1 { font-size: 11px; color: var(--live); } .lv-lt2 { font-size: 11px; color: #eef1f6; } .lv-lt3 { font-size: 11px; color: #8fa4ff; }
     }
     .lv-tchip.ic { width: 40px; padding: 0; justify-content: center; border-radius: 50%; }
     .lv-chev svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; }
@@ -729,8 +730,8 @@
       if (!items.length) { el.innerHTML = '<div class="lv-empty">ยังไม่มีคิวเพลง</div>'; ui.landKey = null; return; }
       const segs = items.map((x) => '<i class="lv-lsg' + (x.status === 'played' ? ' done' : '') + (x.status === 'playing' ? ' now' : '') + (v && x.id === v.id ? ' view' : '') + '" style="--c:' + setCls(x) + '"></i>').join('');
       const rows = items.map((x) => {
-        const tg = x.status === 'playing' ? '<b class="lv-lt1">กำลังเล่น</b>' : (v && x.id === v.id ? '<b class="lv-lt2">กำลังดู</b>' : '');
-        return '<button type="button" class="lv-lrow' + (x.status === 'played' ? ' done' : '') + (x.status === 'playing' ? ' now' : '') + (v && x.id === v.id ? ' view' : '') + '" style="--c:' + setCls(x) + '" data-a="landpick" data-id="' + esc(x.id) + '"><span class="n">' + numberOf(L, x.id) + '</span><span class="t">' + esc(x.title) + '</span>' + tg + '</button>';
+        const tg = x.status === 'playing' ? '<b class="lv-lt1">กำลังเล่น</b>' : (x.status === 'next' ? '<b class="lv-lt3">ถัดไป</b>' : (v && x.id === v.id ? '<b class="lv-lt2">กำลังดู</b>' : ''));
+        return '<button type="button" class="lv-lrow' + (x.status === 'played' ? ' done' : '') + (x.status === 'playing' ? ' now' : '') + (x.status === 'next' ? ' nxt' : '') + (v && x.id === v.id ? ' view' : '') + '" style="--c:' + setCls(x) + '" data-a="landpick" data-id="' + esc(x.id) + '"><span class="n">' + numberOf(L, x.id) + '</span><span class="t">' + esc(x.title) + '</span>' + tg + '</button>';
       }).join('');
       const panel = '<div class="lv-lpanel"><div class="lv-lph"><div class="lv-venue">' + esc(Q.venue || 'ลิสต์เพลง') + '</div><span class="lv-autolbl">ตามเพลง<br>ที่เล่น</span><button type="button" class="lv-sw white" role="switch" aria-checked="' + (ui.follow ? 'true' : 'false') + '" data-a="followsw" aria-label="ตามเพลงที่เล่น"><i></i></button></div>' +
         '<div class="lv-lhint">แตะเพลงเพื่อดูคอร์ด · แตะนอกแผงเพื่อย่อ</div><div class="lv-lrows">' + rows + '</div></div>';

@@ -1354,7 +1354,7 @@ header .header-right { justify-content: flex-end; }
 /* ล็อกแนวตั้ง: ทุกหน้าที่ไม่ใช่มอนิเตอร์ ถ้าโทรศัพท์ถูกหมุนเป็นแนวนอน (iOS ล็อกจากโค้ดไม่ได้) ให้ขอให้หมุนกลับ */
 #lshRotateHint { display: none; }
 @media (orientation: landscape) and (max-height: 500px) {
-  body:not(.lsh-page-monitor):not(.lsh-page-talkback) #lshRotateHint {
+  body:not(.lsh-page-monitor):not(.lsh-page-talkback):not(.lsh-page-live) #lshRotateHint {
     position: fixed; inset: 0; z-index: 99999; display: flex; flex-direction: column;
     align-items: center; justify-content: center; gap: 12px;
     background: var(--bg, #0b0c10); color: var(--text, #f2f3f5); font-size: 16px; font-weight: 700;
