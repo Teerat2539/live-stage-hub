@@ -723,7 +723,12 @@ body .tb-main-content .btn-quick:active, body .tb-main-content .btn-quick[style*
       tgRefreshState();
       if (tgStarted) { clearTimeout(tgOpenTimer); tgOpenTimer = setTimeout(() => tgSetCollapsed(true), 5000); }
     });
-    if (typeof db !== 'undefined' && db.ref) db.ref(`roomConfig/${selectedRoom}`).on('value', function() { setTimeout(tgRefreshState, 0); });
+    if (typeof db !== 'undefined' && db.ref) {
+      if (window.__tbRcRef && window.__tbRcCb) { try { window.__tbRcRef.off('value', window.__tbRcCb); } catch (e) {} }
+      window.__tbRcRef = db.ref(`roomConfig/${selectedRoom}`);
+      window.__tbRcCb = function() { setTimeout(tgRefreshState, 0); };
+      window.__tbRcRef.on('value', window.__tbRcCb);
+    }
     window.__tbTimerFn = function(st) { tgApplyStarted(!!(st && st.startedAt && !st.endedAt)); };
     if (window.lshShowTimer) {
       if (!window.__tbTimerBound) { window.__tbTimerBound = true; window.lshShowTimer.onChange(function(st, i) { if (window.__tbTimerFn) { try { window.__tbTimerFn(st, i); } catch (e) {} } }); }

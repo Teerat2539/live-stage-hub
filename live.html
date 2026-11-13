@@ -760,16 +760,23 @@
         const lead = '<div class="lv-lt"><b>' + esc(v.title) + '</b><span>' + esc(isMed(v) ? v.parts.map((pt) => pt.title).join(' · ') : (v.artist && v.artist !== '-' ? v.artist : '')) + (keyOf(v) && !isMed(v) ? ' · Key ' + esc(keyOf(v)) : '') + '</span></div>';
         html += '<div class="lv-lmain">' + expHtml(lead) + '</div>';
       }
+      const oldRows = el.querySelector('.lv-lrows'), keepTop = oldRows ? oldRows.scrollTop : null;
+      const fixRows = function () {
+        const r = el.querySelector('.lv-lrows'); if (!r) return;
+        if (keepTop != null) { r.scrollTop = keepTop; return; }
+        const t = r.querySelector('.view') || r.querySelector('.now'); if (t) r.scrollTop = Math.max(0, t.offsetTop - 40);
+      };
       if (need) {
         el.innerHTML = html + (ui.landOpen ? '<div class="lv-lscrim" data-a="landclose"></div>' + panel : '');
         const box = el.querySelector('.lv-lmain .lv-exp'); if (box && v) fillChords(box, v);
-        ui.landKey = key;
+        ui.landKey = key; fixRows();
       } else {
         // เพลงที่ดูไม่เปลี่ยน: อัปเดตเฉพาะแถบเซกเมนต์/แผง ไม่แตะหน้าคอร์ด (ไม่ให้เลื่อนอ่านหลุด)
         const seg = el.querySelector('.lv-lseg'); if (seg) seg.innerHTML = segs;
         const old = el.querySelector('.lv-lpanel'), scrim = el.querySelector('.lv-lscrim');
         if (old) old.remove(); if (scrim) scrim.remove();
         if (ui.landOpen) el.insertAdjacentHTML('beforeend', '<div class="lv-lscrim" data-a="landclose"></div>' + panel);
+        fixRows();
       }
     }
     function renderActs() {
