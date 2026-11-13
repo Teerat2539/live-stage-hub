@@ -159,6 +159,8 @@
     .lv-sheet.full { flex: 1; max-height: none; border-radius: 0; }
     .lv-sheet.tall { height: calc(100% - 56px); max-height: none; }
     .lv-sheet.half { height: 54%; max-height: none; }
+    .lv-pb.lv-pbset { position: relative; border-left: 6px solid var(--c); display: flex; align-items: center; justify-content: center; gap: 8px; }
+    .lv-pb.lv-pbset i { width: 10px; height: 10px; border-radius: 50%; background: var(--c); flex: none; }
     .lv-ov.dragging { background: transparent; pointer-events: none; }
     .lv-ov.dragging .lv-sheet { opacity: 0; }
     .lv-row[data-a="inspick"] { touch-action: pan-y; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
@@ -396,18 +398,22 @@
       });
       return blocks;
     }
+    // ย้ายทั้งเซ็ต: afterId = id ของบล็อกที่จะวางต่อท้าย หรือ 'START' = วางเป็นเซ็ตแรก (ก่อนเริ่มโชว์เท่านั้น); เซ็ตแรกย้ายได้เมื่อยังไม่เริ่มโชว์
     function opMoveSet(list, brkId, afterId) {
       const L = clone(list), pi = L.findIndex((x) => x.status === 'playing'), bl = setBlocks(L);
-      const src = bl.find((b) => b.id === brkId), dst = bl.find((b) => b.id === afterId);
-      if (!src || !dst || src === dst) return null;
+      const prep = !!(L[pi] && L[pi].type === 'dummy_start');
+      const src = bl.find((b) => b.id === brkId), dst = afterId === 'START' ? null : bl.find((b) => b.id === afterId);
+      if (!src || (afterId !== 'START' && !dst) || src === dst) return null;
+      if ((src.id === 'CUR' || afterId === 'START') && !prep) return null;
+      if (afterId === 'START' && src.id === 'CUR') return null;
       const head = L.slice(0, pi + 1), tail = L.filter((x, i) => i > pi && SP(x));
-      const order = bl.filter((b) => b !== src); order.splice(order.indexOf(dst) + 1, 0, src);
-      if (src.id === 'CUR') {   // ย้ายเซ็ตแรก (ก่อนเริ่มโชว์เท่านั้น): เซ็ตที่ขึ้นมาเป็นเซ็ตแรกไม่มีเส้นนำหน้า เส้นของมันไปอยู่หน้าเซ็ตที่ถูกย้าย (ป้ายเซ็ตตามเซ็ตที่ตามหลังเส้น)
-        if (!L[pi] || L[pi].type !== 'dummy_start') return null;
-        const first = order[0], moved = src, label = (b) => { const s = b.items.find((x) => isSong(x) && !isIns(x)); return s ? (s.set || 'Set 1') : 'Set 1'; };
-        const brk = first.items[0] && isBrk(first.items[0]) ? first.items[0] : null; if (!brk) return null;
-        first.items = first.items.slice(1); brk.set = label(moved); moved.items = [brk].concat(moved.items);
-      }
+      const lab = (b) => { if (b.items[0] && isBrk(b.items[0])) return b.items[0].set || 'Set 1'; const s = b.items.find((x) => isSong(x) && !isIns(x)); return s ? (s.set || 'Set 1') : 'Set 1'; };
+      bl.forEach((b) => { b._lab = lab(b); });
+      const order = bl.filter((b) => b !== src); if (afterId === 'START') order.unshift(src); else order.splice(order.indexOf(dst) + 1, 0, src);
+      // เส้นพักคุยอยู่หน้าทุกเซ็ตยกเว้นเซ็ตแรก: เซ็ตที่ขึ้นมาเป็นเซ็ตแรกคืนเส้นของมัน ให้เซ็ตที่ไม่มีเส้น (เซ็ตแรกเดิม)
+      let spare = null;
+      order.forEach((b, k) => { if (b.items[0] && isBrk(b.items[0]) && k === 0) { spare = b.items[0]; b.items = b.items.slice(1); } });
+      order.forEach((b, k) => { if (k > 0 && !(b.items[0] && isBrk(b.items[0]))) { if (!spare) return; spare.set = b._lab; b.items = [spare].concat(b.items); spare = null; } });
       const out = head.concat(...order.map((b) => b.items)).concat(tail);
       return normalize(out);
     }
@@ -1106,17 +1112,20 @@
     }
 
     // ===== ย้ายทั้งเซ็ต / เรียกคืน / เปลี่ยนคีย์ =====
-    function openMoveSet(brkId) {
+    function openMoveSet(brkId) {   // เมนูย้ายทั้งเซ็ต: ตำแหน่งที่วางได้ตามจริงเท่านั้น (ไม่มีก่อนเซ็ตแรกเมื่อเริ่มโชว์แล้ว · ไม่มีตำแหน่งเดิม/ตัวเอง)
       if (!D) return;
-      const bl = setBlocks(D), src = bl.find((b) => b.id === brkId); if (!src) return;
-      const lab = (b) => b.id === 'CUR' ? 'ต่อจากเพลงที่กำลังเล่น (เซ็ตปัจจุบัน)' : 'หลังเซ็ต ' + sn(b.items[0].set);
-      const srcSet = src.id === 'CUR' ? ((src.items.find((x) => isSong(x) && !isIns(x)) || {}).set || 'Set 1') : src.items[0].set;
-      const dsts = bl.filter((b) => b !== src);
+      const bl = setBlocks(D), si = bl.findIndex((b) => b.id === brkId); if (si < 0) return;
+      const prep = !!(playingOf(D) && playingOf(D).type === 'dummy_start'), pl = playingOf(D);
+      const lab = (b) => b.id === 'CUR' ? ((b.items.find((x) => isSong(x) && !isIns(x)) || pl || {}).set || 'Set 1') : (b.items[0].set || 'Set 1');
+      const col = (b) => 'var(--set-' + sn(lab(b)) + ', var(--set-1))';
+      const last = bl[bl.length - 1], dsts = [];
+      if (prep && si !== 0) dsts.push({ id: 'START', t: 'ก่อนเซ็ตแรก', c: col(bl[0]) });
+      bl.forEach((b, i) => { if (i === si || i === si - 1) return; dsts.push({ id: b.id, t: b === last ? 'เซ็ตสุดท้าย' : 'หลังเซ็ต ' + sn(lab(b)), c: col(b) }); });
       if (!dsts.length) { lshToast('ไม่มีที่ให้ย้าย', 'warn'); return; }
-      popBtns = dsts.map((b) => ({ t: lab(b), fn: () => { closeOv(); const nl = opMoveSet(D, brkId, b.id); if (nl) change(nl); else lshToast('ย้ายไม่ได้', 'warn'); } }));
+      popBtns = dsts.map((d) => ({ t: d.t, c: d.c, fn: () => { closeOv(); const nl = opMoveSet(D, brkId, d.id); if (nl) change(nl); else lshToast('ย้ายไม่ได้', 'warn'); } }));
       popBtns.push({ t: 'ยกเลิก', fn: closeOv });
-      showOv('<div class="lv-pop" data-a="stop-prop"><h4>ย้ายเซ็ต ' + sn(srcSet) + ' ไปไว้…</h4><div class="sub">แตะเพื่อย้าย · ปิดเองใน 5 วินาที</div>' +
-        popBtns.map((b, i) => '<button type="button" class="lv-pb" data-a="pb" data-i="' + i + '">' + esc(b.t) + '</button>').join('') + '</div>', 'center', 'pop');
+      showOv('<div class="lv-pop" data-a="stop-prop"><h4 style="color:' + col(bl[si]) + '">ย้ายเซ็ต ' + sn(lab(bl[si])) + ' ไปไว้…</h4><div class="sub">แตะเพื่อย้าย · ปิดเองใน 5 วินาที</div>' +
+        popBtns.map((b, i) => '<button type="button" class="lv-pb' + (b.c ? ' lv-pbset' : '') + '" data-a="pb" data-i="' + i + '"' + (b.c ? ' style="--c:' + b.c + '"' : '') + '>' + (b.c ? '<i></i>' : '') + esc(b.t) + '</button>').join('') + '</div>', 'center', 'pop');
       clearTimeout(timers.mv); timers.mv = setTimeout(closeOv, 5000);
     }
     function removeItem(id, kind) {
