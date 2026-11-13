@@ -218,12 +218,20 @@
 
       // แนวนอน: ชื่อเพลง/ศิลปินบรรทัดเดียว ถ้าแสดงไม่หมดให้วิ่งจากขวามาซ้าย (แสดงหมดแล้วอยู่นิ่ง) — แนวตั้งคงเดิม (ขึ้นบรรทัดใหม่)
       const MQ_LAND = '(orientation: landscape) and (max-height: 640px)';
-      function fitMarquee(el) {
+      function fitMarquee(el, maxLines) {
         if (!el) return;
         const text = el.dataset.full !== undefined ? el.dataset.full : el.textContent;
         el.textContent = text;
-        el.classList.remove('mq-host');
+        el.classList.remove('mq-host', 'mq-wrap');
         if (!window.matchMedia(MQ_LAND).matches || !text) return;
+        if (maxLines > 1) {
+          // ชื่อเพลง: ตัวใหญ่พอดี ขึ้นบรรทัดใหม่ได้ไม่เกิน maxLines บรรทัด · ยาวกว่านั้นจริงๆ ค่อยเป็นตัววิ่งบรรทัดเดียว
+          el.classList.add('mq-wrap');
+          const lh = parseFloat(getComputedStyle(el).lineHeight) || (el.clientHeight / maxLines);
+          const cs = getComputedStyle(el), pad = (parseFloat(cs.paddingTop) || 0) + (parseFloat(cs.paddingBottom) || 0);
+          if (el.scrollHeight - pad <= lh * maxLines + 2) return;
+          el.classList.remove('mq-wrap');
+        }
         el.classList.add('mq-host');
         if (el.scrollWidth > el.clientWidth + 1) {
           const sp = document.createElement('span');
@@ -234,7 +242,7 @@
           el.style.setProperty('--mq-dur', Math.max(6, (el.clientWidth + sp.scrollWidth) / 110) + 's');
         }
       }
-      function refitNextMarquee() { fitMarquee(document.getElementById('mNextTitle')); fitMarquee(document.getElementById('mNextDetail')); }
+      function refitNextMarquee() { fitMarquee(document.getElementById('mNextTitle'), 2); fitMarquee(document.getElementById('mNextDetail'), 1); }
       if (!window.__mqBound) { window.__mqBound = true; window.addEventListener('resize', () => { if (document.getElementById('mNextTitle')) refitNextMarquee(); }); }
 
       function processQueueData(queueData) {
