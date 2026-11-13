@@ -1727,7 +1727,7 @@
     };
 
     // ===== ตรวจเวอร์ชันแอป (2.0): เทียบเลขใน version.json บนเซิร์ฟเวอร์ กับเลขของโค้ดที่เปิดอยู่ =====
-    const LSH_APP_VER = '2.0.5';
+    const LSH_APP_VER = '2.0.6';
     try { const dv = document.getElementById('drawerVersion'); if (dv) dv.textContent = 'เวอร์ชัน ' + LSH_APP_VER; } catch (e) {}   // แสดงเลขเวอร์ชันท้ายเมนูแฮมเบอร์เกอร์
     let lshVerAt = 0;
     function lshCheckVersion() {
@@ -1789,12 +1789,13 @@
       return {
         sync: function (page) {
           want = true; acquire();
-          // มอนิเตอร์และท็อคแบคหมุนได้ (ท็อคแบคแนวนอนใช้ได้เฉพาะคำสั่งด่วน) ทุกหน้าอื่นล็อกแนวตั้ง
+          // มอนิเตอร์ ท็อคแบค และ Live หมุนได้ (ท็อคแบคแนวนอนใช้ได้เฉพาะคำสั่งด่วน) ทุกหน้าอื่นล็อกแนวตั้ง
           document.body.classList.toggle('lsh-page-monitor', page === 'monitor');
           document.body.classList.toggle('lsh-page-talkback', page === 'talkback');
+          document.body.classList.toggle('lsh-page-live', page === 'live');   // 2.0: Live หมุนแนวนอนได้ (ดูคอร์ดอย่างเดียว)
           try {
             if (screen.orientation && screen.orientation.lock) {
-              if (page === 'monitor' || page === 'talkback') screen.orientation.unlock();
+              if (page === 'monitor' || page === 'talkback' || page === 'live') screen.orientation.unlock();
               else screen.orientation.lock('portrait').catch(() => {});
             }
           } catch (e) {}
