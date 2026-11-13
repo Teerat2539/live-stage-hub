@@ -1480,6 +1480,7 @@
       <button onclick="openLogoutConfirm()" class="is-danger">ออกจากระบบ</button>
       <button id="menuInstallApp" onclick="openInstallApp()" class="drawer-install"><svg class="ic" aria-hidden="true"><use href="#i-download"/></svg> ติดตั้งแอปลงหน้าจอ</button>
     </div>
+    <div id="drawerVersion" style="margin-top:auto;padding:12px 18px calc(12px + env(safe-area-inset-bottom, 0px));font-size:12px;color:#6b7080;text-align:center;border-top:1px solid var(--line)"></div>
   </aside>
 
   <!-- ========================================== -->
@@ -1726,7 +1727,8 @@
     };
 
     // ===== ตรวจเวอร์ชันแอป (2.0): เทียบเลขใน version.json บนเซิร์ฟเวอร์ กับเลขของโค้ดที่เปิดอยู่ =====
-    const LSH_APP_VER = '2.0.2';
+    const LSH_APP_VER = '2.0.3';
+    try { const dv = document.getElementById('drawerVersion'); if (dv) dv.textContent = 'เวอร์ชัน ' + LSH_APP_VER; } catch (e) {}   // แสดงเลขเวอร์ชันท้ายเมนูแฮมเบอร์เกอร์
     let lshVerAt = 0;
     function lshCheckVersion() {
       lshVerAt = Date.now();
