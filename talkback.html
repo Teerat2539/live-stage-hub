@@ -1,4 +1,30 @@
 <link rel="stylesheet" href="style.css">
+<style>
+/* ===== ท็อคแบค 2.0 ===== */
+/* คำสั่งด่วน: ขอบตามสีที่ตั้ง ตัวหนังสือขาว พื้นดำ ปุ่มสูงขึ้น */
+body .tb-main-content .btn-quick, body .tb-main-content .btn-quick[style*="--qc"] { height: 64px; min-height: 64px; border-radius: 14px; font-size: 15px; font-weight: 700; color: #fff; background: #000; border: 1.5px solid var(--qc, #5a6272); }
+body .tb-main-content .btn-quick:active, body .tb-main-content .btn-quick[style*="--qc"]:active { background: color-mix(in srgb, var(--qc, #5a6272) 28%, #000); transform: scale(.97); }
+/* แถบ Telegram: ก่อนเริ่มโชว์เป็นแถวสวิตช์ · เริ่มโชว์แล้วย่อเหลือลูกศร */
+#tgBar .tg-tab { display: none; }
+#tgBar.tg-collapsed { padding: 0 !important; border: 0 !important; background: none !important; box-shadow: none !important; justify-content: center; min-height: 0; margin: -14px 0 -8px; }
+#tgBar.tg-collapsed .tg-info, #tgBar.tg-collapsed .switch { display: none; }
+#tgBar.tg-collapsed .tg-tab { display: flex; align-items: center; justify-content: center; width: 46px; height: 22px; padding: 0; border-radius: 0 0 12px 12px; border: 1px solid #2a303c; border-top: 0; background: var(--surface); color: #8a93a3; cursor: pointer; }
+#tgBar.tg-collapsed .tg-tab .ic { width: 18px; height: 18px; }
+#tgBar.tg-collapsed[data-tg="on"] .tg-tab { border-color: #1f6b5c; background: #0f2a26; color: #35e6c0; }
+#tgBar.tg-collapsed[data-tg="none"] .tg-tab { border-color: #6b2f2f; background: #2a1517; color: #ff8d8d; }
+/* ฟีล / ตัดเพลง: ชิป 12 ปุ่ม 4×3 ย่อ/ขยายได้ (ขยายค้างจนกว่าจะกดย่อเอง) */
+.feel-wrap { flex: 1; min-width: 0; }
+.feel-head { width: 100%; height: 32px; padding: 0; border: 0; background: none; color: var(--text); display: flex; align-items: center; justify-content: space-between; font-size: 13px; font-weight: 700; font-family: inherit; cursor: pointer; }
+.feel-head i { font-style: normal; font-weight: 400; color: var(--text-3); }
+.feel-head .ic { width: 18px; height: 18px; color: var(--text-3); transform: rotate(180deg); transition: transform .2s; }
+.feel-wrap.folded .feel-head .ic { transform: none; }
+.feel-chips { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; margin-top: 6px; }
+.feel-wrap.folded .feel-chips { display: none; }
+.feel-chip { display: flex; align-items: center; justify-content: center; gap: 5px; height: 44px; min-width: 0; padding: 0 4px; border-radius: 999px; border: 1px solid var(--line-strong); background: var(--surface-2); color: var(--text); font-family: inherit; font-size: 13px; font-weight: 600; white-space: nowrap; cursor: pointer; }
+.feel-chip::before { content: ''; width: 7px; height: 7px; border-radius: 50%; flex: none; background: var(--gc, #5b7cff); }
+.feel-chip[data-g="s"] { --gc: #f5a524; } .feel-chip[data-g="c"] { --gc: #ff4fa8; } .feel-chip[data-g="y"] { --gc: #b084ff; }
+.feel-chip:active { transform: scale(.96); background: var(--live); border-color: var(--live); color: var(--live-ink); }
+</style>
 <!-- Top Bar (10%) -->
 <div class="tb-top-bar">
   <div class="top-box">
@@ -17,7 +43,8 @@
 <!-- Main Content Area (62%) -->
 <div class="tb-main-content">
   <!-- 1. Telegram Switch -->
-  <div class="tg-control-card">
+  <div class="tg-control-card" id="tgBar" data-tg="none">
+    <button type="button" class="tg-tab" id="tgTab" aria-label="แสดงสวิตช์ส่งแจ้งเตือน Telegram"><svg class="ic" aria-hidden="true"><use href="#i-chev-down"/></svg></button>
     <div class="tg-info">
       <div class="tg-title"><svg class="ic tg-ic" aria-hidden="true"><use href="#i-send"/></svg> ส่งแจ้งเตือนเข้า Telegram</div>
       <div id="tgStatusText" class="tg-status">กำลังตรวจสอบการเชื่อมต่อ...</div>
@@ -39,7 +66,24 @@
 
   <!-- 3 & 4. Action Row -->
   <div class="action-row">
-    <button class="btn-action-main btn-feel" id="btnOpenFeel"><svg class="ic" aria-hidden="true"><use href="#i-sliders"/></svg> ตัดเพลง / เปลี่ยนฟีล</button>
+    <div class="feel-wrap" id="feelWrap">
+      <button type="button" class="feel-head" id="btnFeelFold" aria-expanded="true"><span>ฟีล / ตัดเพลง <i>· 12 ปุ่ม</i></span><svg class="ic" aria-hidden="true"><use href="#i-chev-down"/></svg></button>
+      <div class="feel-chips" id="feelChips">
+        <button type="button" class="btn-feel-item feel-chip" data-g="t" data-act="เร่งจังหวะขึ้น">เร็วขึ้น</button>
+        <button type="button" class="btn-feel-item feel-chip" data-g="t" data-act="ผ่อนจังหวะลง">ช้าลง</button>
+        <button type="button" class="btn-feel-item feel-chip" data-g="s" data-act="จบเพลงหลังท่อนนี้">ตัดจบ</button>
+        <button type="button" class="btn-feel-item feel-chip" data-g="s" data-act="ซ้ำท่อนฮุคอีก 1 รอบ">ซ้ำฮุค</button>
+        <button type="button" class="btn-feel-item feel-chip" data-g="s" data-act="ยืดโซโล่ต่ออีก 1 รอบ">ยืดโซโล่</button>
+        <button type="button" class="btn-feel-item feel-chip" data-g="s" data-act="ข้ามไปท่อนฮุคสุดท้าย">ฮุคสุดท้าย</button>
+        <button type="button" class="btn-feel-item feel-chip" data-g="s" data-act="ท่อนต่อไปเล่นเบรคดาวน์">เบรคดาวน์</button>
+        <button type="button" class="btn-feel-item feel-chip" data-g="c" data-act="ท่อนต่อไปให้ลูกค้าร้อง">ลูกค้าร้อง</button>
+        <button type="button" class="btn-feel-item feel-chip" data-g="y" data-act="ย้ำกระเดื่อง วนคอร์ดท่อนฮุค">กระเดื่อง</button>
+        <button type="button" class="btn-feel-item feel-chip" data-g="y" data-act="ท่อนต่อไปเล่นสามช่า">สามช่า</button>
+        <button type="button" class="btn-feel-item feel-chip" data-g="y" data-act="ท่อนต่อไปเล่นดิสโก้">ดิสโก้</button>
+        <button type="button" class="btn-feel-item feel-chip" data-g="y" data-act="ท่อนต่อไปเล่นเร็กเก้">เร็กเก้</button>
+      </div>
+    </div>
+    <button class="btn-action-main btn-feel" id="btnOpenFeel" hidden style="display:none" aria-hidden="true" tabindex="-1"><svg class="ic" aria-hidden="true"><use href="#i-sliders"/></svg> ตัดเพลง / เปลี่ยนฟีล</button>
     <button class="btn-action-main btn-request" id="btnOpenRequest" hidden style="display:none" aria-hidden="true" tabindex="-1"><svg class="ic" aria-hidden="true"><use href="#i-inbox"/></svg> ลูกค้าขอเพลง</button>
   </div>
 
@@ -57,23 +101,12 @@
 </div>
 
 <!-- Popup: ตัดเพลง / เปลี่ยนฟีล (เพิ่ม onclick ปิดเมื่อแตะพื้นที่ภายนอก) -->
-<div id="feelModal" class="modal-overlay hidden" onclick="closeFeelModal(event)">
+<div id="feelModal" class="modal-overlay hidden" style="display:none" onclick="closeFeelModal(event)">
   <div class="feel-popup" onclick="event.stopPropagation()">
     <div class="modal-title modal-head">
       <svg class="ic" aria-hidden="true"><use href="#i-sliders"/></svg> สั่งงานด่วน: ตัดเพลง / เปลี่ยนฟีล
     </div>
-    <div class="feel-grid">
-      <div class="btn-feel-item" data-act="เล่นเร็วกว่านี้">เร็วขึ้น</div>
-      <div class="btn-feel-item" data-act="เล่นช้าลงกว่านี้">ช้าลง</div>
-      <div class="btn-feel-item" data-act="จบท่อนนี้แล้วตัดจบเลย">ตัดจบ</div>
-      <div class="btn-feel-item" data-act="ซ้ำท่อนฮุคอีก 1 รอบ">ซ้ำฮุค</div>
-      <div class="btn-feel-item" data-act="โซโล่ต่อให้ยาวกว่านี้">ยืดโซโล่</div>
-      <div class="btn-feel-item" data-act="ท่อนต่อไปให้ลูกค้าร้อง">ลูกค้าร้อง</div>
-      <div class="btn-feel-item" data-act="ย้ำกระเดื่อง วนคอร์ดท่อนฮุค">กระเดื่อง</div>
-      <div class="btn-feel-item" data-act="ท่อนต่อไปเล่นสามช่า">สามช่า</div>
-      <div class="btn-feel-item" data-act="ท่อนต่อไปเล่นดิสโก้">ดิสโก้</div>
-      <div class="btn-feel-item" data-act="ท่อนต่อไปเล่นเร็กเก้">เร็กเก้</div>
-    </div>
+    <!-- 2.0: ปุ่มฟีลย้ายไปเป็นชิป 12 ปุ่มในหน้า (#feelChips) ป๊อปอัปนี้ไม่ถูกเปิดแล้ว เก็บ ID ไว้ก่อน -->
     <button id="btnCancelFeel" class="btn-ghost">ยกเลิก</button>
   </div>
 </div>
@@ -147,10 +180,10 @@
 
     function initQuickCommands() {
       const defaultBtns = [
-        { name: 'ขอเวลานอก', action: 'ขอเวลานอกสักแป๊บครับ', color: '#1e202c' },
-        { name: 'ขอข้ามเพลงถัดไป', action: 'เพลงถัดไปยังไม่พร้อมครับ ขอข้ามก่อน', color: '#1e202c' },
-        { name: 'เพลงนี้คีย์อะไร', action: 'เพลงนี้เล่นคีย์อะไร?', color: '#1e202c' },
-        { name: 'นับให้หน่อย', action: 'ช่วยนับขึ้นเพลงให้หน่อย', color: '#1e202c' }
+        { name: 'ขอเวลานอก', action: 'ขอเวลานอกสักแป๊บครับ', color: '#5a6272' },
+        { name: 'ขอข้ามเพลงถัดไป', action: 'เพลงถัดไปยังไม่พร้อมครับ ขอข้ามก่อน', color: '#5a6272' },
+        { name: 'เพลงนี้คีย์อะไร', action: 'เพลงนี้เล่นคีย์อะไร?', color: '#5a6272' },
+        { name: 'นับให้หน่อย', action: 'ช่วยนับขึ้นเพลงให้หน่อย', color: '#5a6272' }
       ];
 
       const isMember = currentUser && currentUser.role !== 'guest';
@@ -637,6 +670,47 @@
 
     // ผูกฟังก์ชัน closeRequestModal แบบ global เพื่อให้ HTML inline onclick ทำงานได้
     window.closeRequestModal = closeRequestModal;
+
+    // ===== 2.0: แถบ Telegram ย่อเป็นลูกศร + ปุ่มฟีลพับได้ =====
+    const tgBar = document.getElementById('tgBar');
+    let tgStarted = false, tgOpenTimer = null;
+    function tgSetCollapsed(c) { if (tgBar) tgBar.classList.toggle('tg-collapsed', !!c); }
+    function tgRefreshState() {
+      if (!tgBar) return;
+      const t = document.getElementById('tgToggle');
+      tgBar.setAttribute('data-tg', !(botToken && chatId) ? 'none' : (t && t.checked ? 'on' : 'off'));
+    }
+    function tgApplyStarted(started) {
+      if (started === tgStarted) return;
+      tgStarted = started;
+      clearTimeout(tgOpenTimer);
+      tgSetCollapsed(started);            // เริ่มโชว์ = ย่อเอง · ยังไม่เริ่ม/จบโชว์ = ขยาย
+    }
+    document.getElementById('tgTab').onclick = function() {
+      tgSetCollapsed(false);
+      clearTimeout(tgOpenTimer);
+      if (tgStarted) tgOpenTimer = setTimeout(() => tgSetCollapsed(true), 5000);   // แตะลูกศร: ขยาย 5 วิ แล้วย่อเอง
+    };
+    document.getElementById('tgToggle').addEventListener('change', function() {
+      tgRefreshState();
+      if (tgStarted) { clearTimeout(tgOpenTimer); tgOpenTimer = setTimeout(() => tgSetCollapsed(true), 5000); }
+    });
+    if (typeof db !== 'undefined' && db.ref) db.ref(`roomConfig/${selectedRoom}`).on('value', function() { setTimeout(tgRefreshState, 0); });
+    window.__tbTimerFn = function(st) { tgApplyStarted(!!(st && st.startedAt && !st.endedAt)); };
+    if (window.lshShowTimer) {
+      if (!window.__tbTimerBound) { window.__tbTimerBound = true; window.lshShowTimer.onChange(function(st, i) { if (window.__tbTimerFn) { try { window.__tbTimerFn(st, i); } catch (e) {} } }); }
+      try { window.__tbTimerFn(window.lshShowTimer.state()); } catch (e) {}
+    }
+    tgRefreshState();
+
+    const feelWrap = document.getElementById('feelWrap'), feelFoldBtn = document.getElementById('btnFeelFold');
+    function feelSetFolded(f) { feelWrap.classList.toggle('folded', f); feelFoldBtn.setAttribute('aria-expanded', f ? 'false' : 'true'); }
+    try { feelSetFolded(localStorage.getItem('lshTbFeelFolded') === '1'); } catch (e) {}
+    feelFoldBtn.onclick = function() {
+      const f = !feelWrap.classList.contains('folded');
+      feelSetFolded(f);
+      try { localStorage.setItem('lshTbFeelFolded', f ? '1' : '0'); } catch (e) {}
+    };
 
     initTelegramConfig();
     initQuickCommands();
