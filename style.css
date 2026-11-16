@@ -2604,3 +2604,25 @@ nav button { transition: flex-grow 420ms var(--ease-out), background-color var(-
 .lshkf-all.on, .lshkf-b.on { background: var(--live); color: var(--live-ink); border-color: var(--live); }
 .lshkf-all:active, .lshkf-b:active { scale: .95; }
 @media (prefers-reduced-motion: reduce) { .lshkf-pop, .lshkf-btn { transition: none; } }
+
+/* ===== 2.0.19 หน้าตั้งค่าเป็นเมนู + แถบย้อนกลับ/บันทึก ===== */
+.settings-tabs.set-menu { background: none; border: 0; padding: 0; box-shadow: none; display: flex; flex-direction: column; gap: 10px; }
+.set-menu .settings-tab-btn { display: grid; grid-template-columns: 1fr auto; grid-template-areas: "t c" "d c"; align-items: center; column-gap: 12px; row-gap: 2px; min-height: 68px; padding: 12px 16px; text-align: left; font-size: 16px; border-radius: var(--r-lg); border: 1px solid var(--line); background: var(--surface); color: var(--text); }
+.set-menu .settings-tab-btn.hidden { display: none !important; }
+.set-menu .sm-t { grid-area: t; font-weight: 700; font-size: 17px; }
+.set-menu .sm-d { grid-area: d; font-size: 13px; font-weight: 400; color: var(--text-3); }
+.set-menu .sm-c { grid-area: c; width: 20px; height: 20px; opacity: .6; rotate: -90deg; }
+.set-menu .settings-tab-btn:active { scale: .985; background: var(--surface-2); }
+.set-menu.set-in, .settings-content.set-in { animation: setIn var(--dur-slow) var(--ease-out); }
+@keyframes setIn { from { opacity: 0; translate: 14px 0; } to { opacity: 1; translate: 0 0; } }
+.set-subbar { position: sticky; top: calc(-1 * var(--pad)); z-index: 5; display: flex; align-items: center; gap: 8px; margin: calc(-1 * var(--pad)) calc(-1 * var(--pad)) 12px; padding: 8px var(--pad); background: var(--bg); border-bottom: 1px solid var(--line); animation: setIn var(--dur) var(--ease-out); }
+.set-back { width: 44px; height: 44px; border-radius: 12px; border: 1px solid var(--line); background: var(--surface); color: var(--text); display: flex; align-items: center; justify-content: center; flex: none; }
+.set-back .ic { width: 22px; height: 22px; rotate: 90deg; }
+.set-back:active { scale: .94; }
+.set-subtitle { flex: 1; font-size: 18px; font-weight: 700; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.set-subsave { min-height: 44px; padding: 0 20px; border-radius: 12px; border: 0; background: var(--live); color: var(--live-ink); font-size: 16px; font-weight: 800; flex: none; transition: opacity var(--dur-fast), scale var(--dur-fast) var(--ease-out); }
+.set-subsave:disabled { opacity: .4; }
+.set-subsave:active:not(:disabled) { scale: .95; }
+.set-subbar.hidden, .set-subsave.hidden { display: none !important; }
+.settings-page:has(#setSubBar:not(.hidden)) #btnSaveProfile, .settings-page:has(#setSubBar:not(.hidden)) #dspSave { display: none; }
+@media (prefers-reduced-motion: reduce) { .set-menu.set-in, .settings-content.set-in, .set-subbar { animation: none; } }
