@@ -112,15 +112,8 @@
     </div>
   </div>
 
-  <!-- ================= TAB: การแสดงผล (ฟอนต์ + กลางวัน/กลางคืน — เก็บในเครื่องนี้เท่านั้น) ================= -->
+  <!-- ================= TAB: การแสดงผล (ฟอนต์ — เก็บในเครื่องนี้เท่านั้น; โหมดสีอยู่ที่เมนูแฮมเบอร์เกอร์) ================= -->
   <div id="tab-display" class="settings-content hidden">
-    <div class="settings-card">
-      <h3>โหมดสี</h3>
-      <div class="dsp-seg" id="dspTheme" role="group" aria-label="โหมดสี">
-        <button type="button" data-v="light">กลางวัน</button>
-        <button type="button" data-v="dark">กลางคืน</button>
-      </div>
-    </div>
     <div class="settings-card">
       <h3>ฟอนต์</h3>
       <p class="dsp-note">ใช้กับเครื่องนี้เท่านั้น ไม่กระทบสมาชิกคนอื่น</p>
@@ -503,12 +496,10 @@
         });
       }
       function render() {
-        document.querySelectorAll('#dspTheme button').forEach(b => { const on = b.dataset.v === sel.theme; b.classList.toggle('on', on); b.setAttribute('aria-pressed', on ? 'true' : 'false'); });
         $('dspFonts').innerHTML = D.FONTS.map(f => '<button type="button" role="radio" class="dsp-font' + (f.id === sel.font ? ' on' : '') + '" aria-checked="' + (f.id === sel.font) + '" data-f="' + f.id + '"><span class="dsp-dot"></span><span class="dsp-fn">' + f.name + '</span></button>').join('');
         $('dspSave').disabled = (sel.font === saved.font && sel.theme === saved.theme);
         paintPreview();
       }
-      $('dspTheme').onclick = (e) => { const b = e.target.closest('button'); if (!b) return; sel.theme = b.dataset.v; render(); };
       $('dspFonts').onclick = async (e) => {
         const b = e.target.closest('.dsp-font'); if (!b) return;
         const id = b.dataset.f, my = ++tok, prev = sel.font;
@@ -521,7 +512,7 @@
         render();
       };
       $('dspCancel').onclick = () => { tok++; saved = D.get(); sel = { font: saved.font, theme: saved.theme }; render(); };
-      $('dspSave').onclick = () => { D.save(sel.font, sel.theme); saved = D.get(); render(); lshToast('บันทึกการแสดงผลแล้ว', 'ok'); };
+      $('dspSave').onclick = () => { D.save(sel.font, D.get().theme); saved = D.get(); render(); lshToast('บันทึกการแสดงผลแล้ว', 'ok'); };
       window.loadDisplayTab = function() { tok++; saved = D.get(); sel = { font: saved.font, theme: saved.theme }; render(); };
       render();
     })();
