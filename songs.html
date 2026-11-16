@@ -17,9 +17,9 @@
 
     <!-- บรรทัดที่ 2: ฟิลเตอร์คีย์ + จัดเรียงโดย -->
     <div id="headerLine2" class="header-line-2 collapsed">
-      <label style="font-size:12px;color:#aaa;display:flex;align-items:center;gap:6px">
+      <label style="font-size:12px;color:var(--c-aaaaaa);display:flex;align-items:center;gap:6px">
         คีย์:
-        <select id="keyFilterSelect" class="sort-select" style="border-color:#00f2d1;font-weight:bold;color:#00f2d1">
+        <select id="keyFilterSelect" class="sort-select" style="border-color:var(--c-00f2d1);font-weight:bold;color:var(--c-00f2d1)">
           <option value="ALL">ทั้งหมด (All)</option>
         </select>
       </label>
@@ -216,7 +216,7 @@
               <div class="song-artist">${song.artist || 'ไม่ระบุศิลปิน'}</div>
             </div>
             <div style="display:flex;align-items:center;gap:12px">
-              <span style="font-size:12px;color:#f59e0b">(${song.playCount || 0} ครั้ง)</span>
+              <span style="font-size:12px;color:var(--c-f59e0b)">(${song.playCount || 0} ครั้ง)</span>
               <div class="song-key ${window.lshChordCls ? lshChordCls(song.id) : ''}" data-chordid="${song.id}">${song.key || '-'}</div>
             </div>
           </div>

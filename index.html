@@ -4,6 +4,55 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>Live Stage Hub</title>
+  <script>
+  // ===== ธีม (กลางวัน/กลางคืน) + ฟอนต์ ของเครื่องนี้ — เก็บใน localStorage ('lsh_theme','lsh_font') ไม่ขึ้น Firebase =====
+  (function() {
+    var TAIL = "'Noto Sans Thai','Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Sarabun',Helvetica,Arial,sans-serif";
+    var GF = 'https://fonts.googleapis.com/css2?family=';
+    var FONTS = [
+      { id: 'default', name: 'เริ่มต้น', family: null, href: null },
+      { id: 'googlesans', name: 'Google Sans', family: 'Google Sans', href: GF + 'Google+Sans:wght@400;500;600;700&display=swap' },
+      { id: 'k2d', name: 'K2D', family: 'K2D', href: GF + 'K2D:wght@400;500;600;700;800&display=swap' },
+      { id: 'mali', name: 'Mali', family: 'Mali', href: GF + 'Mali:wght@400;500;600;700&display=swap' },
+      { id: 'itim', name: 'Itim', family: 'Itim', href: GF + 'Itim&display=swap' }
+    ];
+    function rd(k, d) { try { return localStorage.getItem(k) || d; } catch (e) { return d; } }
+    function wr(k, v) { try { localStorage.setItem(k, v); } catch (e) {} }
+    function byId(id) { for (var i = 0; i < FONTS.length; i++) if (FONTS[i].id === id) return FONTS[i]; return FONTS[0]; }
+    function stack(id) { var f = byId(id); return f.family ? "'" + f.family + "'," + TAIL : ''; }
+    var loading = {};
+    function ensureFont(id) {          // โหลดเฉพาะฟอนต์ที่ใช้/เลือก -> Promise<boolean>
+      var f = byId(id); if (!f.href) return Promise.resolve(true);
+      if (loading[id]) return loading[id];
+      loading[id] = new Promise(function(res) {
+        var done = false, fin = function(ok) { if (!done) { done = true; if (!ok) delete loading[id]; res(ok); } };
+        var l = document.createElement('link'); l.rel = 'stylesheet'; l.href = f.href; l.setAttribute('data-lsh-font', id);
+        l.onerror = function() { try { l.remove(); } catch (e) {} fin(false); };
+        l.onload = function() {
+          if (!document.fonts || !document.fonts.load) { fin(true); return; }
+          document.fonts.load('16px "' + f.family + '"', 'Aa').then(function(r) { fin(!!(r && r.length)); }, function() { fin(false); });
+        };
+        document.head.appendChild(l);
+        setTimeout(function() { fin(false); }, 9000);
+      });
+      return loading[id];
+    }
+    function get() { var t = rd('lsh_theme', 'dark'), f = rd('lsh_font', 'default'); return { theme: t === 'light' ? 'light' : 'dark', font: byId(f).id }; }
+    function apply() {
+      var c = get(), r = document.documentElement;
+      if (c.theme === 'light') r.setAttribute('data-theme', 'light'); else r.removeAttribute('data-theme');
+      var st = stack(c.font); if (st) r.style.setProperty('--font', st); else r.style.removeProperty('--font');
+      var m = document.querySelector('meta[name="theme-color"]'); if (m) m.setAttribute('content', c.theme === 'light' ? '#F3F5F9' : '#0a0b0f');
+      if (c.font !== 'default') ensureFont(c.font).then(function(ok) {
+        if (!ok) { r.style.removeProperty('--font'); if (window.lshToast) window.lshToast('โหลดฟอนต์ไม่ได้ ใช้ฟอนต์เริ่มต้นไปก่อน', 'warn'); }
+      });
+    }
+    function save(font, theme) { wr('lsh_font', byId(font).id); wr('lsh_theme', theme === 'light' ? 'light' : 'dark'); apply(); }
+    window.lshDisplay = { DEFAULT_STACK: "'Inter'," + TAIL, FONTS: FONTS, get: get, stack: stack, ensureFont: ensureFont, apply: apply, save: save };
+    window.addEventListener('DOMContentLoaded', apply);
+    apply();
+  })();
+  </script>
   <link rel="stylesheet" href="style.css">
   <link rel="manifest" href="manifest.webmanifest">
   <meta name="theme-color" content="#0a0b0f">
@@ -151,13 +200,13 @@
       }
       const st = document.createElement('style'); st.id = 'lshkp-css';
       st.textContent = '.lshkp-h{display:flex;gap:6px;flex-wrap:wrap;justify-content:center;margin-bottom:10px;font-size:12px}' +
-        '.lshkp-c{padding:3px 9px;border-radius:999px;border:1px solid #3a3d4a;background:#1b1d26;color:#aeb3bf}.lshkp-c b{color:#fff;margin-left:2px}' +
-        '.lshkp-c.bd{border-color:#e8a838;color:#e8a838}.lshkp-c.bd b{color:#e8a838}.lshkp-c.on{background:var(--c);border-color:var(--c);color:#0b0d12}.lshkp-c.on b{color:#0b0d12}' +
+        '.lshkp-c{padding:3px 9px;border-radius:999px;border:1px solid var(--c-3a3d4a);background:var(--c-1b1d26);color:var(--c-aeb3bf)}.lshkp-c b{color:var(--c-ffffff);margin-left:2px}' +
+        '.lshkp-c.bd{border-color:var(--c-e8a838);color:var(--c-e8a838)}.lshkp-c.bd b{color:var(--c-e8a838)}.lshkp-c.on{background:var(--c);border-color:var(--c);color:var(--c-0b0d12)}.lshkp-c.on b{color:var(--c-0b0d12)}' +
         '.lshkp-g{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}' +
-        '.lshkp-b{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;min-height:56px;padding:6px 2px;border-radius:12px;border:1px solid #3a3d4a;background:#1b1d26;color:#fff;font-family:inherit;cursor:pointer}' +
-        '.lshkp-b b{font-size:16px}.lshkp-b span{font-size:12px;color:#9aa0ad}.lshkp-b.ori span{color:#fff;font-weight:700}' +
-        '.lshkp-b.bd{border-color:#e8a838}.lshkp-b i{position:absolute;top:3px;right:6px;font-style:normal;font-size:10px;color:#e8a838}' +
-        '.lshkp-b.on{background:var(--c);border-color:var(--c);color:#0b0d12}.lshkp-b.on span,.lshkp-b.on.ori span,.lshkp-b.on i{color:#0b0d12}.lshkp-b:active{transform:scale(.96)}';
+        '.lshkp-b{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;min-height:56px;padding:6px 2px;border-radius:12px;border:1px solid var(--c-3a3d4a);background:var(--c-1b1d26);color:var(--c-ffffff);font-family:inherit;cursor:pointer}' +
+        '.lshkp-b b{font-size:16px}.lshkp-b span{font-size:12px;color:var(--c-9aa0ad)}.lshkp-b.ori span{color:var(--c-ffffff);font-weight:700}' +
+        '.lshkp-b.bd{border-color:var(--c-e8a838)}.lshkp-b i{position:absolute;top:3px;right:6px;font-style:normal;font-size:10px;color:var(--c-e8a838)}' +
+        '.lshkp-b.on{background:var(--c);border-color:var(--c);color:var(--c-0b0d12)}.lshkp-b.on span,.lshkp-b.on.ori span,.lshkp-b.on i{color:var(--c-0b0d12)}.lshkp-b:active{transform:scale(.96)}';
       document.head.appendChild(st);
       return { html: html, bandOf: bandOf, origCached: origCached, origLoad: origLoad, _pc: pc };
     })();
@@ -169,18 +218,18 @@
       const MARKUP = `<div id="detailOverlay" class="sub-overlay hidden"></div>
 <div id="songDetailDrawer" class="slide-up-panel">
   <div class="panel-header">
-    <h3 id="detailSongTitle" style="color:#00f2d1;margin:0">-</h3>
+    <h3 id="detailSongTitle" style="color:var(--c-00f2d1);margin:0">-</h3>
     <div>
       <button id="btnEditSong" style="background:none;border:none;font-size:18px;cursor:pointer;margin-right:10px"><svg class="ic ic-solo" aria-hidden="true"><use href="#i-edit"/></svg></button>
       <button id="btnDeleteSong" style="background:none;border:none;font-size:18px;cursor:pointer"><svg class="ic ic-solo" aria-hidden="true"><use href="#i-trash"/></svg></button>
     </div>
   </div>
-  <div style="font-size:14px;line-height:1.8;color:#ccc">
-    <div>ศิลปิน: <b id="detailArtist" style="color:#fff">-</b></div>
-    <div>คีย์หลัก: <b id="detailKey" style="color:#00f2d1">-</b></div>
-    <div>BPM: <b id="detailBpm" style="color:#fff">-</b></div>
-    <div>ความยาวเพลง: <b id="detailDuration" style="color:#fff">-</b></div>
-    <div>ความถี่ที่เล่น: <b id="detailPlayCount" style="color:#f59e0b">0 ครั้ง</b></div>
+  <div style="font-size:14px;line-height:1.8;color:var(--c-cccccc)">
+    <div>ศิลปิน: <b id="detailArtist" style="color:var(--c-ffffff)">-</b></div>
+    <div>คีย์หลัก: <b id="detailKey" style="color:var(--c-00f2d1)">-</b></div>
+    <div>BPM: <b id="detailBpm" style="color:var(--c-ffffff)">-</b></div>
+    <div>ความยาวเพลง: <b id="detailDuration" style="color:var(--c-ffffff)">-</b></div>
+    <div>ความถี่ที่เล่น: <b id="detailPlayCount" style="color:var(--c-f59e0b)">0 ครั้ง</b></div>
   </div>
   <button id="btnSongChords" type="button" class="chord-open-btn hidden">ดูคอร์ด</button>
   <button id="btnSongChordFind" type="button" class="chord-open-btn chord-edit-btn hidden">ค้นหาคอร์ดในคลัง</button>
@@ -189,7 +238,7 @@
 
 <div id="songFormOverlay" class="sub-overlay hidden">
   <div class="form-box" onclick="event.stopPropagation()">
-    <h3 id="formModalTitle" style="margin-bottom:12px;color:#00f2d1">เพิ่มเพลงใหม่</h3>
+    <h3 id="formModalTitle" style="margin-bottom:12px;color:var(--c-00f2d1)">เพิ่มเพลงใหม่</h3>
     
     <div class="form-group">
       <label>ชื่อเพลง *</label>
@@ -231,12 +280,12 @@
 </div>
 
 <div id="unsavedWarningOverlay" class="sub-overlay hidden" style="z-index:14700">
-  <div class="slide-up-panel open" style="z-index:14701;border-color:#f59e0b">
-    <h3 style="color:#f59e0b;margin-bottom:8px"><svg class="ic" aria-hidden="true"><use href="#i-alert"/></svg> ยังไม่ได้บันทึกข้อมูล</h3>
+  <div class="slide-up-panel open" style="z-index:14701;border-color:var(--c-f59e0b)">
+    <h3 style="color:var(--c-f59e0b);margin-bottom:8px"><svg class="ic" aria-hidden="true"><use href="#i-alert"/></svg> ยังไม่ได้บันทึกข้อมูล</h3>
     <p class="modal-desc">คุณต้องการออกจากหน้าต่างนี้โดยไม่บันทึกใช่หรือไม่?</p>
     <div style="display:flex;gap:10px">
-      <button id="btnConfirmDiscard" style="flex:1;padding:10px;border-radius:6px;border:none;background:#ef4444;color:#fff;font-weight:bold;cursor:pointer">ยืนยัน (ไม่บันทึก)</button>
-      <button id="btnCancelDiscard" style="flex:1;padding:10px;border-radius:6px;border:none;background:#333;color:#fff;cursor:pointer">แก้ไขต่อ</button>
+      <button id="btnConfirmDiscard" style="flex:1;padding:10px;border-radius:6px;border:none;background:var(--c-ef4444);color:var(--c-ffffff);font-weight:bold;cursor:pointer">ยืนยัน (ไม่บันทึก)</button>
+      <button id="btnCancelDiscard" style="flex:1;padding:10px;border-radius:6px;border:none;background:var(--c-333333);color:var(--c-ffffff);cursor:pointer">แก้ไขต่อ</button>
     </div>
   </div>
 </div>
@@ -244,7 +293,7 @@
 <div id="deleteConfirmOverlay" class="sub-overlay hidden" style="z-index:14700">
   <div class="form-box u-center">
     <h3 class="modal-title is-danger">ยืนยันการลบเพลง</h3>
-    <p class="modal-desc">คุณต้องการลบเพลง <b id="deleteTargetTitle" style="color:#fff">-</b> ออกจากคลังใช่หรือไม่?</p>
+    <p class="modal-desc">คุณต้องการลบเพลง <b id="deleteTargetTitle" style="color:var(--c-ffffff)">-</b> ออกจากคลังใช่หรือไม่?</p>
     <div class="u-row-center">
       <button id="btnExecuteDelete" class="btn-danger">ยืนยันลบ</button>
       <button id="btnCancelDelete" class="btn-ghost">ยกเลิก</button>
@@ -1261,7 +1310,7 @@
               el.classList.toggle('over', i.over);
               el.classList.remove('idle');
               el.classList.toggle('last15', !!i.last15);
-              el.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></svg><span class="st-time"' + (i.last15 ? ' style="color:#F5A524"' : '') + '>' + (i.last15 ? 'เหลืออีก ~' + i.songsLeft + ' เพลง' : i.hms) + '</span>';
+              el.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></svg><span class="st-time"' + (i.last15 ? ' style="color:var(--c-f5a524)"' : '') + '>' + (i.last15 ? 'เหลืออีก ~' + i.songsLeft + ' เพลง' : i.hms) + '</span>';
               // ติดลบถึง 30 นาที = จบการแสดงอัตโนมัติ (บันทึกเวลาจบครั้งเดียว ใครเปิดแอปอยู่ก็ทำได้)
               if (i.over && !st.endedAt && i.remMs <= -MAX_OVER_MIN * 60000 && ref) { try { ref.child('endedAt').transaction(v => v || Date.now()); } catch (e) {} }
             }
@@ -1482,8 +1531,8 @@
   <aside id="sideDrawer" class="drawer">
     <div class="drawer-header">
       <div id="displayUserInfo" class="user-info-text drawer-user">ยังไม่ได้เลือกห้อง</div>
-      <div style="font-size:12px;color:#a0a0ab">เวลา Session ที่เหลืออยู่:</div>
-      <div id="sessionCountdown" style="font-size:18px;font-weight:bold;color:#00f2d1;margin-top:4px">--:--:--</div>
+      <div style="font-size:12px;color:var(--c-a0a0ab)">เวลา Session ที่เหลืออยู่:</div>
+      <div id="sessionCountdown" style="font-size:18px;font-weight:bold;color:var(--c-00f2d1);margin-top:4px">--:--:--</div>
     </div>
     <div class="drawer-menu">
       <button onclick="menuAction('แฟ้มลิสต์เพลง')">แฟ้มลิสต์เพลง</button>
@@ -1494,7 +1543,7 @@
       <button onclick="openLogoutConfirm()" class="is-danger">ออกจากระบบ</button>
       <button id="menuInstallApp" onclick="openInstallApp()" class="drawer-install"><svg class="ic" aria-hidden="true"><use href="#i-download"/></svg> ติดตั้งแอปลงหน้าจอ</button>
     </div>
-    <div id="drawerVersion" style="margin-top:auto;padding:12px 18px calc(12px + env(safe-area-inset-bottom, 0px));font-size:12px;color:#6b7080;text-align:center;border-top:1px solid var(--line)"></div>
+    <div id="drawerVersion" style="margin-top:auto;padding:12px 18px calc(12px + env(safe-area-inset-bottom, 0px));font-size:12px;color:var(--c-6b7080);text-align:center;border-top:1px solid var(--line)"></div>
   </aside>
 
   <!-- ========================================== -->
@@ -1524,7 +1573,7 @@
   <!-- POPUP ยืนยันเคลียร์คิว -->
   <div id="clearQueueConfirmModal" class="overlay hidden">
     <div class="box" onclick="event.stopPropagation()">
-      <h3 style="margin-bottom:10px;color:#ff5451"><svg class="ic" aria-hidden="true"><use href="#i-eraser"/></svg> เคลียร์คิวและข้อมูลโชว์</h3>
+      <h3 style="margin-bottom:10px;color:var(--c-ff5451)"><svg class="ic" aria-hidden="true"><use href="#i-eraser"/></svg> เคลียร์คิวและข้อมูลโชว์</h3>
       <p class="modal-desc">คุณต้องการล้างคิวเพลง, ท็อคแบค และรีเควสทั้งหมด เพื่อเริ่มโชว์ใหม่ใช่หรือไม่?</p>
       <button onclick="confirmClearQueue()" class="btn-danger">ยืนยันเคลียร์</button>
       <button onclick="closeClearQueueModal()" class="btn-ghost">ยกเลิก</button>
@@ -1544,8 +1593,8 @@
       <h3>วงเฉพาะกิจ</h3>
       <p style="font-size:13px;margin:10px 0">คุณเป็นสมาชิกของระบบหรือไม่?</p>
       <button onclick="openMemberLogin()" class="btn-primary">เป็นสมาชิก</button>
-      <button onclick="openGuestForm()" style="background:#555;color:#fff">ไม่ได้เป็นสมาชิก</button><br><br>
-      <button onclick="cancelToRoomSelect()" style="background:none;color:#aaa">ยกเลิก</button>
+      <button onclick="openGuestForm()" style="background:var(--c-555555);color:var(--c-ffffff)">ไม่ได้เป็นสมาชิก</button><br><br>
+      <button onclick="cancelToRoomSelect()" style="background:none;color:var(--c-aaaaaa)">ยกเลิก</button>
     </div>
   </div>
 
@@ -1553,7 +1602,7 @@
   <div id="memberLoginModal" class="overlay hidden">
     <div class="box" onclick="event.stopPropagation()">
       <h3>เข้าสู่ระบบ</h3>
-      <p style="font-size:12px;color:#aaa;margin:5px 0">ล็อกอินครั้งเดียวอยู่ได้จนถึงเที่ยงวันของวันที่ 7 <b id="loginRoomLabel" hidden></b></p>
+      <p style="font-size:12px;color:var(--c-aaaaaa);margin:5px 0">ล็อกอินครั้งเดียวอยู่ได้จนถึงเที่ยงวันของวันที่ 7 <b id="loginRoomLabel" hidden></b></p>
       <input type="text" id="usernameInput" placeholder="Username" style="width:100%;padding:8px;margin:5px 0"><br>
       <input type="password" id="pinInput" inputmode="numeric" pattern="[0-9]*" maxlength="6" placeholder="PIN" autocomplete="off" style="width:100%;padding:8px;margin:5px 0;font-size:16px" onkeydown="if(event.key==='Enter')submitMemberLogin()"><br><br>
       <button onclick="submitMemberLogin()" class="btn-primary">เข้าสู่ระบบ</button>
@@ -1604,7 +1653,7 @@
   <div id="sessionExpiredModal" class="overlay hidden">
     <div class="box">
       <h3>หมดเวลาการใช้งาน</h3>
-      <p id="expiredReasonText" style="font-size:12px;color:#aaa;margin:10px 0">กรุณาล็อกอินใหม่เพื่อใช้งานต่อ</p>
+      <p id="expiredReasonText" style="font-size:12px;color:var(--c-aaaaaa);margin:10px 0">กรุณาล็อกอินใหม่เพื่อใช้งานต่อ</p>
       <button onclick="confirmReLogin()" class="btn-primary">ตกลง</button>
     </div>
   </div>
@@ -1612,9 +1661,9 @@
   <!-- POPUP รายการเพลงรีเควสแยกตามร้าน -->
   <div id="requestHistoryModal" class="overlay hidden" onclick="closeRequestHistoryModal(event)">
     <div class="box" onclick="event.stopPropagation()" style="width:90%;max-width:400px;max-height:80vh;display:flex;flex-direction:column;text-align:left">
-      <div style="display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #333;padding-bottom:8px;margin-bottom:10px">
-        <h3 style="color:#00f2d1;font-size:16px;margin:0"><svg class="ic" aria-hidden="true"><use href="#i-mail"/></svg> ประวัติเพลงรีเควสแยกตามร้าน</h3>
-        <button onclick="closeRequestHistoryModal()" style="background:none;border:none;color:#aaa;font-size:18px;cursor:pointer;padding:0"><svg class="ic ic-solo" aria-hidden="true"><use href="#i-close"/></svg></button>
+      <div style="display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--c-333333);padding-bottom:8px;margin-bottom:10px">
+        <h3 style="color:var(--c-00f2d1);font-size:16px;margin:0"><svg class="ic" aria-hidden="true"><use href="#i-mail"/></svg> ประวัติเพลงรีเควสแยกตามร้าน</h3>
+        <button onclick="closeRequestHistoryModal()" style="background:none;border:none;color:var(--c-aaaaaa);font-size:18px;cursor:pointer;padding:0"><svg class="ic ic-solo" aria-hidden="true"><use href="#i-close"/></svg></button>
       </div>
       <div id="requestHistoryContent" style="flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:10px;padding-right:4px">
         <div class="u-empty">กำลังโหลดข้อมูล...</div>
@@ -1625,7 +1674,7 @@
   <!-- POPUP ยืนยันการลบร้าน -->
   <div id="deleteRoomConfirmModal" class="overlay hidden">
     <div class="box" onclick="event.stopPropagation()">
-      <h3 style="margin-bottom:10px;color:#ef4444"><svg class="ic" aria-hidden="true"><use href="#i-trash"/></svg> ยืนยันการลบข้อมูลร้าน</h3>
+      <h3 style="margin-bottom:10px;color:var(--c-ef4444)"><svg class="ic" aria-hidden="true"><use href="#i-trash"/></svg> ยืนยันการลบข้อมูลร้าน</h3>
       <p id="deleteRoomText" class="modal-desc">คุณต้องการลบข้อมูลรีเควสทั้งหมดของร้านนี้ใช่หรือไม่?</p>
       <button onclick="executeDeleteRoom()" class="btn-danger">ยืนยันลบ</button>
       <button onclick="closeDeleteRoomModal()" class="btn-ghost">ยกเลิก</button>
@@ -1635,7 +1684,7 @@
   <!-- POPUP ยืนยันการลบเพลงรีเควสรายเพลง -->
   <div id="deleteReqSongConfirmModal" class="overlay hidden" onclick="closeDeleteReqSongModal(event)">
     <div class="box" onclick="event.stopPropagation()">
-      <h3 style="margin-bottom:10px;color:#ef4444"><svg class="ic" aria-hidden="true"><use href="#i-trash"/></svg> ลบเพลงนี้ออกจากประวัติ</h3>
+      <h3 style="margin-bottom:10px;color:var(--c-ef4444)"><svg class="ic" aria-hidden="true"><use href="#i-trash"/></svg> ลบเพลงนี้ออกจากประวัติ</h3>
       <p id="deleteReqSongText" class="modal-desc"></p>
       <button onclick="executeDeleteReqSong()" class="btn-danger">ยืนยันลบ</button>
       <button onclick="closeDeleteReqSongModal()" class="btn-ghost">ยกเลิก</button>
@@ -1741,7 +1790,7 @@
     };
 
     // ===== ตรวจเวอร์ชันแอป (2.0): เทียบเลขใน version.json บนเซิร์ฟเวอร์ กับเลขของโค้ดที่เปิดอยู่ =====
-    const LSH_APP_VER = '2.0.13';
+    const LSH_APP_VER = '2.0.14';
     try { const dv = document.getElementById('drawerVersion'); if (dv) dv.textContent = 'เวอร์ชัน ' + LSH_APP_VER; } catch (e) {}   // แสดงเลขเวอร์ชันท้ายเมนูแฮมเบอร์เกอร์
     let lshVerAt = 0;
     function lshCheckVersion() {
@@ -1751,8 +1800,8 @@
         if (!j || !j.version || String(j.version) === LSH_APP_VER) return;
         if (document.getElementById('lshVerBar')) return;
         const b = document.createElement('div'); b.id = 'lshVerBar';
-        b.style.cssText = 'position:fixed;left:12px;right:12px;bottom:calc(84px + env(safe-area-inset-bottom,0px));z-index:9999;background:#1b2330;color:#eef1f6;border:1px solid #3a4a63;border-radius:14px;padding:12px 14px;display:flex;align-items:center;gap:10px;box-shadow:0 8px 24px rgba(0,0,0,.5);font-size:14px';
-        b.innerHTML = '<span style="flex:1">มีเวอร์ชันใหม่ (' + String(j.version).replace(/[<>&"]/g, '') + ')</span><button type="button" id="lshVerGo" style="height:40px;padding:0 16px;border:0;border-radius:10px;background:#3DDC84;color:#04210f;font-weight:700;font-size:14px">อัปเดตตอนนี้</button><button type="button" id="lshVerX" aria-label="ปิด" style="height:40px;width:40px;border:0;border-radius:10px;background:transparent;color:#9aa6b8;font-size:18px">✕</button>';
+        b.style.cssText = 'position:fixed;left:12px;right:12px;bottom:calc(84px + env(safe-area-inset-bottom,0px));z-index:9999;background:var(--c-1b2330);color:var(--c-eef1f6);border:1px solid var(--c-3a4a63);border-radius:14px;padding:12px 14px;display:flex;align-items:center;gap:10px;box-shadow:0 8px 24px rgba(0,0,0,.5);font-size:14px';
+        b.innerHTML = '<span style="flex:1">มีเวอร์ชันใหม่ (' + String(j.version).replace(/[<>&"]/g, '') + ')</span><button type="button" id="lshVerGo" style="height:40px;padding:0 16px;border:0;border-radius:10px;background:var(--c-3ddc84);color:var(--c-04210f);font-weight:700;font-size:14px">อัปเดตตอนนี้</button><button type="button" id="lshVerX" aria-label="ปิด" style="height:40px;width:40px;border:0;border-radius:10px;background:transparent;color:var(--c-9aa6b8);font-size:18px">✕</button>';
         document.body.appendChild(b);
         document.getElementById('lshVerX').onclick = () => b.remove();
         document.getElementById('lshVerGo').onclick = () => { location.replace(location.pathname + '?v=' + encodeURIComponent(j.version)); };   // รีโหลดแล้วได้ไฟล์ล่าสุด (ไม่ล้างการล็อกอิน)
@@ -2625,7 +2674,7 @@
         }
 
       } catch (err) {
-        container.innerHTML = `<p style="color:#ef4444;text-align:center;margin-top:20px">เกิดข้อผิดพลาด: ${err.message}</p>`;
+        container.innerHTML = `<p style="color:var(--c-ef4444);text-align:center;margin-top:20px">เกิดข้อผิดพลาด: ${err.message}</p>`;
         window.lshReady();
       }
       // หน้าที่ไม่รอข้อมูลจาก Firebase (ตั้งค่า) ให้ซ่อนทันทีหลังโหลดเสร็จ
@@ -2684,16 +2733,16 @@
         let html = '';
         storeList.forEach(store => {
           html += `
-            <div style="background:#111319;border:1px solid #333;border-radius:8px;padding:10px">
-              <div style="display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #222;padding-bottom:6px;margin-bottom:8px">
-                <span style="font-weight:bold;color:#00f2d1;font-size:14px"><svg class="ic" aria-hidden="true"><use href="#i-home"/></svg> ${store.storeName}</span>
-                <button onclick="confirmDeleteRoom('${store.storeName}')" style="background:#2a1515;border:1px solid #ef4444;color:#ef4444;font-size:10px;padding:3px 8px;border-radius:4px;cursor:pointer"><svg class="ic" aria-hidden="true"><use href="#i-trash"/></svg> ลบร้าน</button>
+            <div style="background:var(--c-111319);border:1px solid var(--c-333333);border-radius:8px;padding:10px">
+              <div style="display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--c-222222);padding-bottom:6px;margin-bottom:8px">
+                <span style="font-weight:bold;color:var(--c-00f2d1);font-size:14px"><svg class="ic" aria-hidden="true"><use href="#i-home"/></svg> ${store.storeName}</span>
+                <button onclick="confirmDeleteRoom('${store.storeName}')" style="background:var(--c-2a1515);border:1px solid var(--c-ef4444);color:var(--c-ef4444);font-size:10px;padding:3px 8px;border-radius:4px;cursor:pointer"><svg class="ic" aria-hidden="true"><use href="#i-trash"/></svg> ลบร้าน</button>
               </div>
               <div class="u-col-6">
           `;
 
           if (store.songs.length === 0) {
-            html += `<div style="font-size:12px;color:#666;padding:4px">ไม่มีเพลงในร้านนี้</div>`;
+            html += `<div style="font-size:12px;color:var(--c-666666);padding:4px">ไม่มีเพลงในร้านนี้</div>`;
           } else {
             store.songs.forEach(song => {
               let artistText = song.artist && song.artist !== '-' ? ` - ${song.artist}` : '';
@@ -2702,16 +2751,16 @@
               let dateStr = song.date || '-';
 
               html += `
-                <div style="background:#181920;padding:6px 8px;border-radius:6px;font-size:12px;display:flex;justify-content:space-between;align-items:center;gap:8px">
+                <div style="background:var(--c-181920);padding:6px 8px;border-radius:6px;font-size:12px;display:flex;justify-content:space-between;align-items:center;gap:8px">
                   <div style="overflow:hidden">
-                    <span style="color:#fff;font-weight:bold;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block">${song.title || 'ไม่ระบุชื่อเพลง'}${artistText}</span>
-                    <div style="font-size:10px;color:#f59e0b;margin-top:2px">คีย์: ${song.key || '-'}</div>
+                    <span style="color:var(--c-ffffff);font-weight:bold;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block">${song.title || 'ไม่ระบุชื่อเพลง'}${artistText}</span>
+                    <div style="font-size:10px;color:var(--c-f59e0b);margin-top:2px">คีย์: ${song.key || '-'}</div>
                   </div>
                   <div style="display:flex;align-items:center;gap:6px;flex:none">
-                    <div style="font-size:11px;color:#888;white-space:nowrap;background:#111319;padding:3px 6px;border-radius:4px;border:1px solid #222">
+                    <div style="font-size:11px;color:var(--c-888888);white-space:nowrap;background:var(--c-111319);padding:3px 6px;border-radius:4px;border:1px solid var(--c-222222)">
                       <svg class="ic" aria-hidden="true"><use href="#i-calendar"/></svg> ${dateStr}
                     </div>
-                    <button type="button" data-store="${String(store.storeName).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;')}" data-id="${song.id}" data-title="${String((song.title || '') + artistText).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;')}" onclick="confirmDeleteReqSong(this)" aria-label="ลบเพลงนี้" style="background:#2a1515;border:1px solid #ef4444;color:#ef4444;width:28px;height:28px;border-radius:6px;cursor:pointer;display:flex;align-items:center;justify-content:center"><svg class="ic ic-solo" aria-hidden="true"><use href="#i-close"/></svg></button>
+                    <button type="button" data-store="${String(store.storeName).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;')}" data-id="${song.id}" data-title="${String((song.title || '') + artistText).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;')}" onclick="confirmDeleteReqSong(this)" aria-label="ลบเพลงนี้" style="background:var(--c-2a1515);border:1px solid var(--c-ef4444);color:var(--c-ef4444);width:28px;height:28px;border-radius:6px;cursor:pointer;display:flex;align-items:center;justify-content:center"><svg class="ic ic-solo" aria-hidden="true"><use href="#i-close"/></svg></button>
                   </div>
                 </div>
               `;
@@ -2724,7 +2773,7 @@
         contentContainer.innerHTML = html;
 
       } catch (error) {
-        contentContainer.innerHTML = `<div style="color:#ef4444;text-align:center;padding:20px">เกิดข้อผิดพลาด: ${error.message}</div>`;
+        contentContainer.innerHTML = `<div style="color:var(--c-ef4444);text-align:center;padding:20px">เกิดข้อผิดพลาด: ${error.message}</div>`;
       }
     }
 

@@ -2,16 +2,16 @@
 <style>
 /* ===== ท็อคแบค 2.0 ===== */
 /* คำสั่งด่วน: ขอบตามสีที่ตั้ง ตัวหนังสือขาว พื้นดำ ปุ่มสูงขึ้น */
-body .tb-main-content .btn-quick, body .tb-main-content .btn-quick[style*="--qc"] { height: 64px; min-height: 64px; border-radius: 14px; font-size: 15px; font-weight: 700; color: #fff; background: #000; border: 1.5px solid var(--qc, #5a6272); }
-body .tb-main-content .btn-quick:active, body .tb-main-content .btn-quick[style*="--qc"]:active { background: color-mix(in srgb, var(--qc, #5a6272) 28%, #000); transform: scale(.97); }
+body .tb-main-content .btn-quick, body .tb-main-content .btn-quick[style*="--qc"] { height: 64px; min-height: 64px; border-radius: 14px; font-size: 15px; font-weight: 700; color: var(--c-ffffff); background: var(--c-000000); border: 1.5px solid var(--qc, var(--c-5a6272)); }
+body .tb-main-content .btn-quick:active, body .tb-main-content .btn-quick[style*="--qc"]:active { background: color-mix(in srgb, var(--qc, var(--c-5a6272)) 28%, var(--c-000000)); transform: scale(.97); }
 /* แถบ Telegram: ก่อนเริ่มโชว์เป็นแถวสวิตช์ · เริ่มโชว์แล้วย่อเหลือลูกศร */
 #tgBar .tg-tab { display: none; }
 #tgBar.tg-collapsed { padding: 0 !important; border: 0 !important; background: none !important; box-shadow: none !important; justify-content: center; min-height: 0; margin: -14px 0 -8px; }
 #tgBar.tg-collapsed .tg-info, #tgBar.tg-collapsed .switch { display: none; }
-#tgBar.tg-collapsed .tg-tab { display: flex; align-items: center; justify-content: center; width: 46px; height: 22px; padding: 0; border-radius: 0 0 12px 12px; border: 1px solid #2a303c; border-top: 0; background: var(--surface); color: #8a93a3; cursor: pointer; }
+#tgBar.tg-collapsed .tg-tab { display: flex; align-items: center; justify-content: center; width: 46px; height: 22px; padding: 0; border-radius: 0 0 12px 12px; border: 1px solid var(--c-2a303c); border-top: 0; background: var(--surface); color: var(--c-8a93a3); cursor: pointer; }
 #tgBar.tg-collapsed .tg-tab .ic { width: 18px; height: 18px; }
-#tgBar.tg-collapsed[data-tg="on"] .tg-tab { border-color: #1f6b5c; background: #0f2a26; color: #35e6c0; }
-#tgBar.tg-collapsed[data-tg="none"] .tg-tab { border-color: #6b2f2f; background: #2a1517; color: #ff8d8d; }
+#tgBar.tg-collapsed[data-tg="on"] .tg-tab { border-color: var(--c-1f6b5c); background: var(--c-0f2a26); color: var(--c-35e6c0); }
+#tgBar.tg-collapsed[data-tg="none"] .tg-tab { border-color: var(--c-6b2f2f); background: var(--c-2a1517); color: var(--c-ff8d8d); }
 /* ฟีล / ตัดเพลง: ชิป 12 ปุ่ม 4×3 ย่อ/ขยายได้ (ขยายค้างจนกว่าจะกดย่อเอง) */
 .feel-wrap { flex: 1; min-width: 0; }
 .feel-head { width: 100%; height: 32px; padding: 0; border: 0; background: none; color: var(--text); display: flex; align-items: center; justify-content: space-between; font-size: 13px; font-weight: 700; font-family: inherit; cursor: pointer; }
@@ -21,8 +21,8 @@ body .tb-main-content .btn-quick:active, body .tb-main-content .btn-quick[style*
 .feel-chips { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; margin-top: 6px; }
 .feel-wrap.folded .feel-chips { display: none; }
 .feel-chip { display: flex; align-items: center; justify-content: center; gap: 5px; height: 44px; min-width: 0; padding: 0 4px; border-radius: 999px; border: 1px solid var(--line-strong); background: var(--surface-2); color: var(--text); font-family: inherit; font-size: 13px; font-weight: 600; white-space: nowrap; cursor: pointer; }
-.feel-chip::before { content: ''; width: 7px; height: 7px; border-radius: 50%; flex: none; background: var(--gc, #5b7cff); }
-.feel-chip[data-g="s"] { --gc: #f5a524; } .feel-chip[data-g="c"] { --gc: #ff4fa8; } .feel-chip[data-g="y"] { --gc: #b084ff; }
+.feel-chip::before { content: ''; width: 7px; height: 7px; border-radius: 50%; flex: none; background: var(--gc, var(--c-5b7cff)); }
+.feel-chip[data-g="s"] { --gc: var(--c-f5a524); } .feel-chip[data-g="c"] { --gc: var(--c-ff4fa8); } .feel-chip[data-g="y"] { --gc: var(--c-b084ff); }
 .feel-chip:active { transform: scale(.96); background: var(--live); border-color: var(--live); color: var(--live-ink); }
 /* ===== แนวนอน: 2 หน้า (คำสั่งด่วน / ฟีล-ตัดเพลง) สลับด้วยแถบบนหรือปัดซ้าย-ขวา ===== */
 .land-tabs { display: none; }
@@ -37,7 +37,7 @@ body .tb-main-content .btn-quick:active, body .tb-main-content .btn-quick[style*
   body.lsh-page-talkback .feel-wrap { display: flex; flex-direction: column; flex: 1; min-height: 0; }
   body.lsh-page-talkback .feel-head { display: none; }
   body.lsh-page-talkback .feel-wrap.folded .feel-chips, body.lsh-page-talkback .feel-chips { display: grid !important; flex: 1; min-height: 0; margin: 0; grid-template-columns: repeat(4, minmax(0, 1fr)); grid-template-rows: repeat(3, minmax(0, 1fr)); gap: 12px; }
-  body.lsh-page-talkback .feel-chip { position: relative; overflow: hidden; height: auto; flex-direction: column; border-radius: 16px; background: #000; color: #fff; border: 1.5px solid var(--gc, #5b7cff); font-size: clamp(15px, 4.6vh, 24px); font-weight: 700; gap: 2px; line-height: 1.2; transition: transform .18s var(--ease), box-shadow .18s; }
+  body.lsh-page-talkback .feel-chip { position: relative; overflow: hidden; height: auto; flex-direction: column; border-radius: 16px; background: var(--c-000000); color: var(--c-ffffff); border: 1.5px solid var(--gc, var(--c-5b7cff)); font-size: clamp(15px, 4.6vh, 24px); font-weight: 700; gap: 2px; line-height: 1.2; transition: transform .18s var(--ease), box-shadow .18s; }
   body.lsh-page-talkback .feel-chip::before { display: none; }
   body.lsh-page-talkback .feel-chip .q-hint { font-size: 12px; font-weight: 600; opacity: .9; }
   body.lsh-page-talkback .feel-chip.armed { transform: scale(1.05); z-index: 2; box-shadow: 0 0 0 3px var(--gc), 0 10px 28px rgba(0,0,0,.55); }
@@ -80,7 +80,7 @@ body .tb-main-content .btn-quick:active, body .tb-main-content .btn-quick[style*
   <div>
     <div class="section-title"><svg class="ic" aria-hidden="true"><use href="#i-bolt"/></svg> คำสั่งด่วน</div>
     <div class="quick-grid" id="quickButtonsContainer"></div>
-    <div id="quickLimitNotice" style="font-size:10px;color:#888;margin-top:4px;text-align:right">
+    <div id="quickLimitNotice" style="font-size:10px;color:var(--c-888888);margin-top:4px;text-align:right">
       * เพิ่ม/แก้ไขคำสั่งด่วนได้สูงสุด 6 ปุ่ม
     </div>
   </div>
@@ -144,7 +144,7 @@ body .tb-main-content .btn-quick:active, body .tb-main-content .btn-quick[style*
   <div class="request-modal-content" onclick="event.stopPropagation()">
     <div class="u-between">
       <span class="modal-title" style="margin:0;color:var(--request)"><svg class="ic" aria-hidden="true"><use href="#i-inbox"/></svg> ลูกค้าขอเพลง</span>
-      <button id="btnCloseRequestModal" style="background:none;border:none;color:#aaa;font-size:20px;cursor:pointer"><svg class="ic ic-solo" aria-hidden="true"><use href="#i-close"/></svg></button>
+      <button id="btnCloseRequestModal" style="background:none;border:none;color:var(--c-aaaaaa);font-size:20px;cursor:pointer"><svg class="ic ic-solo" aria-hidden="true"><use href="#i-close"/></svg></button>
     </div>
     <div class="search-row">
       <input type="text" id="reqSearchInput" placeholder="พิมพ์ชื่อเพลง หรือศิลปิน...">
@@ -192,11 +192,11 @@ body .tb-main-content .btn-quick:active, body .tb-main-content .btn-quick[style*
 
           if (botToken && chatId) {
             tgStatus.innerText = `พร้อมใช้งาน (ห้อง ${selectedRoom})`;
-            tgStatus.style.color = '#00f2d1';
+            tgStatus.style.color = 'var(--c-00f2d1)';
             tgToggle.disabled = false;
           } else {
             tgStatus.innerText = `ห้อง ${selectedRoom} ยังไม่ได้ตั้งค่า BotToken/ChatID`;
-            tgStatus.style.color = '#ef4444';
+            tgStatus.style.color = 'var(--c-ef4444)';
             tgToggle.disabled = true;
             tgToggle.checked = false;
             isTgEnabled = false;
@@ -349,7 +349,7 @@ body .tb-main-content .btn-quick:active, body .tb-main-content .btn-quick[style*
 
     function reqHead(text) {
       const d = document.createElement('div');
-      d.style.cssText = 'font-size:11px;color:#888;padding:2px 4px;font-weight:700';
+      d.style.cssText = 'font-size:11px;color:var(--c-888888);padding:2px 4px;font-weight:700';
       d.textContent = text;
       return d;
     }
@@ -465,11 +465,11 @@ body .tb-main-content .btn-quick:active, body .tb-main-content .btn-quick[style*
       const tail = document.createElement('div');
       container.appendChild(tail);
       const noHit = () => {
-        if (!results.length) tail.innerHTML = '<div style="color:#666;font-size:11px;text-align:center;padding:12px">ไม่พบเพลงในระบบ (พิมพ์ชื่อเองแล้วกดส่งได้เลย)</div>';
+        if (!results.length) tail.innerHTML = '<div style="color:var(--c-666666);font-size:11px;text-align:center;padding:12px">ไม่พบเพลงในระบบ (พิมพ์ชื่อเองแล้วกดส่งได้เลย)</div>';
         else tail.innerHTML = '';
       };
       if (!(window.lshChordLookup && window.lshChordLookup._bulk)) { noHit(); return; }
-      tail.innerHTML = '<div style="color:#666;font-size:11px;text-align:center;padding:8px">กำลังค้นหาในคลังคอร์ด...</div>';
+      tail.innerHTML = '<div style="color:var(--c-666666);font-size:11px;text-align:center;padding:8px">กำลังค้นหาในคลังคอร์ด...</div>';
       searchChordCatalog(kw).then(rows => {
         if (my !== reqSearchSeq) return;
         if (!rows || !rows.length) { noHit(); return; }

@@ -65,9 +65,9 @@
   <!-- 4. หน้าต่างสไลด์ "แทรกเพลง" -->
   <div id="insertModal" class="slide-modal-overlay hidden" onclick="closeInsertModal(event)">
     <div class="slide-modal-content" onclick="event.stopPropagation()">
-      <div style="display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #333;padding-bottom:8px">
+      <div style="display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--c-333333);padding-bottom:8px">
         <h3 class="ins-title">แทรกเพลง</h3>
-        <button onclick="closeInsertModal()" style="background:none;border:none;color:#aaa;font-size:18px;cursor:pointer"><svg class="ic ic-solo" aria-hidden="true"><use href="#i-close"/></svg></button>
+        <button onclick="closeInsertModal()" style="background:none;border:none;color:var(--c-aaaaaa);font-size:18px;cursor:pointer"><svg class="ic ic-solo" aria-hidden="true"><use href="#i-close"/></svg></button>
       </div>
 
       <div class="ins-tabs" id="insTabs">
@@ -77,14 +77,14 @@
       </div>
 
       <div id="insReqWrap">
-        <div style="font-size:12px;color:#f59e0b;font-weight:bold;margin-bottom:6px"><svg class="ic" aria-hidden="true"><use href="#i-inbox"/></svg> เพลงรีเควสจากลูกค้า (รอจัดคิว)</div>
-        <div id="requestSongList" style="background:#12131a;border:1px solid #333;border-radius:6px;padding:8px;min-height:45px;max-height:100px;overflow-y:auto;font-size:12px;color:#ccc">
+        <div style="font-size:12px;color:var(--c-f59e0b);font-weight:bold;margin-bottom:6px"><svg class="ic" aria-hidden="true"><use href="#i-inbox"/></svg> เพลงรีเควสจากลูกค้า (รอจัดคิว)</div>
+        <div id="requestSongList" style="background:var(--c-12131a);border:1px solid var(--c-333333);border-radius:6px;padding:8px;min-height:45px;max-height:100px;overflow-y:auto;font-size:12px;color:var(--c-cccccc)">
           ไม่มีคำขอเพลงใหม่จากลูกค้าในขณะนี้
         </div>
       </div>
 
       <div id="insLibWrap" style="flex:1;display:flex;flex-direction:column;overflow:hidden">
-        <div style="font-size:12px;color:#00f2d1;font-weight:bold;margin-bottom:6px" id="recommendLabel"><svg class="ic" aria-hidden="true"><use href="#i-search"/></svg> ค้นหาเพลงจากคลัง / เพลงแนะนำ</div>
+        <div style="font-size:12px;color:var(--c-00f2d1);font-weight:bold;margin-bottom:6px" id="recommendLabel"><svg class="ic" aria-hidden="true"><use href="#i-search"/></svg> ค้นหาเพลงจากคลัง / เพลงแนะนำ</div>
         
         <div class="key-filter-bar" id="keyFilterContainer">
           <button class="key-btn active" onclick="filterByKey('ALL')">ALL</button>
@@ -102,7 +102,7 @@
           <button class="key-btn" onclick="filterByKey('B')">B/G#m</button>
         </div>
 
-        <input type="text" id="searchSongInput" placeholder="พิมพ์ค้นหาชื่อเพลง หรือศิลปิน..." oninput="filterBySearch()" style="width:100%;padding:8px;background:#12131a;border:1px solid #333;border-radius:6px;color:#fff;font-size:13px;margin:6px 0">
+        <input type="text" id="searchSongInput" placeholder="พิมพ์ค้นหาชื่อเพลง หรือศิลปิน..." oninput="filterBySearch()" style="width:100%;padding:8px;background:var(--c-12131a);border:1px solid var(--c-333333);border-radius:6px;color:var(--c-ffffff);font-size:13px;margin:6px 0">
         <div class="ins-hint">กดค้างที่เพลง แล้วลากลงไปวางในคิว</div>
         <div id="recommendSongList" style="flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:6px"></div>
       </div>
@@ -113,8 +113,8 @@
   <div id="actionModal" class="slide-modal-overlay hidden" onclick="closeActionModal(event)">
     <div class="popup-dialog" onclick="event.stopPropagation()">
       <div class="modal-head">
-        <div style="font-size:11px;color:#00f2d1">เมนูคำสั่งเพลง</div>
-        <div id="actionSongTitle" style="font-size:16px;font-weight:bold;color:#fff;margin-top:2px">-</div>
+        <div style="font-size:11px;color:var(--c-00f2d1)">เมนูคำสั่งเพลง</div>
+        <div id="actionSongTitle" style="font-size:16px;font-weight:bold;color:var(--c-ffffff);margin-top:2px">-</div>
       </div>
       <button class="popup-btn popup-btn-move" onclick="openMoveTargetModal()"><svg class="ic" aria-hidden="true"><use href="#i-pin"/></svg> ย้ายเพลง</button>
       <button class="popup-btn popup-btn-skip" onclick="confirmSkipSong()"><svg class="ic" aria-hidden="true"><use href="#i-next"/></svg> ข้ามเพลงมาเล่นเพลงนี้</button>
@@ -127,8 +127,8 @@
   <div id="moveTargetModal" class="slide-modal-overlay hidden" onclick="closeMoveTargetModal(event)">
     <div class="popup-dialog" style="max-height:80vh" onclick="event.stopPropagation()">
       <div class="modal-head">
-        <div style="font-size:14px;font-weight:bold;color:#00f2d1"><svg class="ic" aria-hidden="true"><use href="#i-pin"/></svg> เลือกเพลงที่ต้องการย้ายไปต่อท้าย</div>
-        <div style="font-size:11px;color:#888;margin-top:2px">แตะที่เพลงเป้าหมายเพื่อย้ายทันที</div>
+        <div style="font-size:14px;font-weight:bold;color:var(--c-00f2d1)"><svg class="ic" aria-hidden="true"><use href="#i-pin"/></svg> เลือกเพลงที่ต้องการย้ายไปต่อท้าย</div>
+        <div style="font-size:11px;color:var(--c-888888);margin-top:2px">แตะที่เพลงเป้าหมายเพื่อย้ายทันที</div>
       </div>
       <div id="moveTargetList" style="display:flex;flex-direction:column;gap:8px;overflow-y:auto;max-height:50vh;padding:4px 0"></div>
       <button class="popup-btn popup-btn-cancel" onclick="closeMoveTargetModal()">ยกเลิก</button>
@@ -140,8 +140,8 @@
     <div class="popup-dialog" onclick="event.stopPropagation()">
       <div class="u-center">
         <div id="confirmIcon" style="font-size:32px;margin-bottom:4px"><svg class="ic ic-solo" aria-hidden="true"><use href="#i-alert"/></svg></div>
-        <div id="confirmTitle" style="font-size:16px;font-weight:bold;color:#fff">ยืนยันการทำรายการ</div>
-        <div id="confirmMessage" style="font-size:12px;color:#aaa;margin-top:6px">-</div>
+        <div id="confirmTitle" style="font-size:16px;font-weight:bold;color:var(--c-ffffff)">ยืนยันการทำรายการ</div>
+        <div id="confirmMessage" style="font-size:12px;color:var(--c-aaaaaa);margin-top:6px">-</div>
       </div>
       <div style="display:flex;gap:8px;margin-top:8px">
         <button class="popup-btn popup-btn-cancel u-flex1" onclick="closeConfirmModal()">ยกเลิก</button>
@@ -154,8 +154,8 @@
   <div id="insertOptionsModal" class="slide-modal-overlay hidden" onclick="closeInsertOptionsModal(event)">
     <div class="popup-dialog" onclick="event.stopPropagation()">
       <div class="modal-head">
-        <div style="font-size:11px;color:#00f2d1"><svg class="ic" aria-hidden="true"><use href="#i-plus"/></svg> ตัวเลือกการแทรกเพลง</div>
-        <div id="insertOptionsSongTitle" style="font-size:15px;font-weight:bold;color:#fff;margin-top:2px">-</div>
+        <div style="font-size:11px;color:var(--c-00f2d1)"><svg class="ic" aria-hidden="true"><use href="#i-plus"/></svg> ตัวเลือกการแทรกเพลง</div>
+        <div id="insertOptionsSongTitle" style="font-size:15px;font-weight:bold;color:var(--c-ffffff);margin-top:2px">-</div>
       </div>
       <button class="popup-btn popup-btn-live" onclick="executeInsertAfterPlaying()"><svg class="ic" aria-hidden="true"><use href="#i-next"/></svg> เล่นต่อจากเพลงที่กำลังเล่น</button>
       <button class="popup-btn popup-btn-move" onclick="openInsertTargetModal()"><svg class="ic" aria-hidden="true"><use href="#i-pin"/></svg> ย้ายเข้าคิว (เลือกเพลงเป้าหมาย)</button>
@@ -167,8 +167,8 @@
   <div id="insertTargetModal" class="slide-modal-overlay hidden" onclick="closeInsertTargetModal(event)">
     <div class="popup-dialog" style="max-height:80vh" onclick="event.stopPropagation()">
       <div class="modal-head">
-        <div style="font-size:14px;font-weight:bold;color:#00f2d1"><svg class="ic" aria-hidden="true"><use href="#i-pin"/></svg> แทรกต่อท้ายเพลงใดในคิว?</div>
-        <div style="font-size:11px;color:#888;margin-top:2px">แตะเลือกเพลงเป้าหมายเพื่อแทรกต่อท้ายทันที</div>
+        <div style="font-size:14px;font-weight:bold;color:var(--c-00f2d1)"><svg class="ic" aria-hidden="true"><use href="#i-pin"/></svg> แทรกต่อท้ายเพลงใดในคิว?</div>
+        <div style="font-size:11px;color:var(--c-888888);margin-top:2px">แตะเลือกเพลงเป้าหมายเพื่อแทรกต่อท้ายทันที</div>
       </div>
       <div id="insertTargetList" style="display:flex;flex-direction:column;gap:8px;overflow-y:auto;max-height:50vh;padding:4px 0"></div>
       <button class="popup-btn popup-btn-cancel" onclick="closeInsertTargetModal()">ยกเลิก</button>
@@ -532,8 +532,8 @@
           container.innerHTML = `
             <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;gap:16px;text-align:center;padding:20px">
               <div style="font-size:40px"><svg class="ic ic-solo" aria-hidden="true"><use href="#i-music"/></svg></div>
-              <div style="font-size:16px;font-weight:bold;color:#ccc">ยังไม่มีการเลือกลิสต์เพลงสำหรับจัดคิว</div>
-              <div style="font-size:12px;color:#888;max-width:280px">กรุณากลับไปที่หน้าแฟ้มลิสต์เพลง แล้วกดปุ่ม Play เพื่อเลือกเซ็ตลิสต์สำหรับการแสดง</div>
+              <div style="font-size:16px;font-weight:bold;color:var(--c-cccccc)">ยังไม่มีการเลือกลิสต์เพลงสำหรับจัดคิว</div>
+              <div style="font-size:12px;color:var(--c-888888);max-width:280px">กรุณากลับไปที่หน้าแฟ้มลิสต์เพลง แล้วกดปุ่ม Play เพื่อเลือกเซ็ตลิสต์สำหรับการแสดง</div>
             </div>
           `;
           let topNext = document.getElementById('topNextText');
@@ -580,10 +580,10 @@
 
             if (song.status === 'playing') {
               stateLabel = song.type === 'dummy_start' ? ' — ยังไม่เริ่ม (กด "เริ่มการแสดง" เมื่อพร้อม)' : ' (กำลังสแตนบายหน้าเวที)';
-              highlightStyle = 'border: 2px solid #00f2d1; color: #00f2d1; background: #1a3a3a; padding: 14px; font-size: 15px;';
+              highlightStyle = 'border: 2px solid var(--c-00f2d1); color: var(--c-00f2d1); background: var(--c-1a3a3a); padding: 14px; font-size: 15px;';
             } else if (song.status === 'next') {
               stateLabel = ' (เพลงถัดไป)';
-              highlightStyle = 'border: 2px solid #00f2d1; color: #00f2d1; background: #142828; padding: 14px;';
+              highlightStyle = 'border: 2px solid var(--c-00f2d1); color: var(--c-00f2d1); background: var(--c-142828); padding: 14px;';
             } else if (song.status === 'played') {
               stateLabel = ' (เริ่มแสดงแล้ว)';
               highlightStyle = 'opacity: 0.5; text-decoration: line-through;';
@@ -704,11 +704,11 @@
         return `
           <div class="song-card" style="border-style:dashed;opacity:0.6;cursor:default">
             <div class="u-flex1">
-              <div style="font-size:11px;color:#ef4444;font-weight:bold">[ถูกนำออกจากคิว]</div>
-              <div style="font-size:14px;font-weight:bold;color:#fff">${song.title} - ${song.artist}</div>
+              <div style="font-size:11px;color:var(--c-ef4444);font-weight:bold">[ถูกนำออกจากคิว]</div>
+              <div style="font-size:14px;font-weight:bold;color:var(--c-ffffff)">${song.title} - ${song.artist}</div>
             </div>
             <div>
-              <button onclick="restoreSong('${song.id}')" style="background:#00f2d1;border:none;color:#000;font-weight:bold;padding:6px 12px;border-radius:4px;cursor:pointer">↩️ กู้เพลงกลับ</button>
+              <button onclick="restoreSong('${song.id}')" style="background:var(--c-00f2d1);border:none;color:var(--c-000000);font-weight:bold;padding:6px 12px;border-radius:4px;cursor:pointer">↩️ กู้เพลงกลับ</button>
             </div>
           </div>
         `;
@@ -750,12 +750,12 @@
           let html = '';
           targetCandidates.forEach(song => {
             html += `
-              <div onclick="moveSongAfter('${song.id}')" class="${song.set ? 'set-color-' + song.set.replace('Set ', '') : ''}" style="background:#12131a;border:1px solid #333;padding:10px;border-radius:6px;cursor:pointer;display:flex;justify-content:space-between;align-items:center">
+              <div onclick="moveSongAfter('${song.id}')" class="${song.set ? 'set-color-' + song.set.replace('Set ', '') : ''}" style="background:var(--c-12131a);border:1px solid var(--c-333333);padding:10px;border-radius:6px;cursor:pointer;display:flex;justify-content:space-between;align-items:center">
                 <div>
-                  <div style="font-weight:bold;font-size:13px;color:#fff">${song.title} - ${song.artist}</div>
+                  <div style="font-weight:bold;font-size:13px;color:var(--c-ffffff)">${song.title} - ${song.artist}</div>
                   <div class="u-meta">คีย์: ${song.key || '-'}</div>
                 </div>
-                <div style="color:#3b82f6;font-size:12px;font-weight:bold">ย้ายมาต่อท้าย <svg class="ic" aria-hidden="true"><use href="#i-chev-right"/></svg></div>
+                <div style="color:var(--c-3b82f6);font-size:12px;font-weight:bold">ย้ายมาต่อท้าย <svg class="ic" aria-hidden="true"><use href="#i-chev-right"/></svg></div>
               </div>
             `;
           });
@@ -959,12 +959,12 @@
           targetCandidates.forEach(song => {
             let label = song.type === 'dummy_start' ? lshIcon('dot') + ' เตรียมพร้อมสำหรับการแสดง' : `${song.title} - ${song.artist}`;
             html += `
-              <div onclick="executeInsertAfterTarget('${song.id}')" class="${song.set ? 'set-color-' + song.set.replace('Set ', '') : ''}" style="background:#12131a;border:1px solid #333;padding:10px;border-radius:6px;cursor:pointer;display:flex;justify-content:space-between;align-items:center">
+              <div onclick="executeInsertAfterTarget('${song.id}')" class="${song.set ? 'set-color-' + song.set.replace('Set ', '') : ''}" style="background:var(--c-12131a);border:1px solid var(--c-333333);padding:10px;border-radius:6px;cursor:pointer;display:flex;justify-content:space-between;align-items:center">
                 <div>
-                  <div style="font-weight:bold;font-size:13px;color:#fff">${label}</div>
+                  <div style="font-weight:bold;font-size:13px;color:var(--c-ffffff)">${label}</div>
                   <div class="u-meta">${song.type === 'dummy_start' ? '' : 'คีย์: ' + (song.key || '-')}</div>
                 </div>
-                <div style="color:#00f2d1;font-size:12px;font-weight:bold">แทรกต่อท้าย <svg class="ic" aria-hidden="true"><use href="#i-chev-right"/></svg></div>
+                <div style="color:var(--c-00f2d1);font-size:12px;font-weight:bold">แทรกต่อท้าย <svg class="ic" aria-hidden="true"><use href="#i-chev-right"/></svg></div>
               </div>
             `;
           });
@@ -1019,7 +1019,7 @@
         { const bd = document.getElementById('insReqBadge'); const n = (window.requestQueue || []).length; if (bd) { bd.textContent = n; bd.hidden = !n; } }
         
         if (!window.requestQueue || window.requestQueue.length === 0) {
-          container.innerHTML = '<div style="color:#666;text-align:center;padding:4px">ไม่มีคำขอเพลงใหม่จากลูกค้า</div>';
+          container.innerHTML = '<div style="color:var(--c-666666);text-align:center;padding:4px">ไม่มีคำขอเพลงใหม่จากลูกค้า</div>';
           return;
         }
 
@@ -1030,10 +1030,10 @@
           let keyText = req.key && req.key !== '-' ? ` (คีย์: ${req.key})` : '';
           
           html += `
-            <div onclick="selectInsertSong(${reqJson}, 'request', '${req.id}')" style="display:flex;justify-content:space-between;align-items:center;background:#1a1c24;padding:8px;border-radius:4px;margin-bottom:4px;cursor:pointer;border:1px solid #333">
+            <div onclick="selectInsertSong(${reqJson}, 'request', '${req.id}')" style="display:flex;justify-content:space-between;align-items:center;background:var(--c-1a1c24);padding:8px;border-radius:4px;margin-bottom:4px;cursor:pointer;border:1px solid var(--c-333333)">
               <div>
-                <span style="font-weight:bold;color:#fff">${req.title}${artistText}</span>
-                <span style="font-size:10px;color:#f59e0b;margin-left:6px">${keyText}</span>
+                <span style="font-weight:bold;color:var(--c-ffffff)">${req.title}${artistText}</span>
+                <span style="font-size:10px;color:var(--c-f59e0b);margin-left:6px">${keyText}</span>
               </div>
               <div class="ins-req-go">แตะเพื่อแทรก</div>
             </div>
@@ -1110,7 +1110,7 @@ window.executeInsertAfterPlaying = function() {
           : (JSON.parse(localStorage.getItem('lsh_songs')) || []);
 
         if (!songLib || songLib.length === 0) {
-          container.innerHTML = '<div style="color:#888;text-align:center;padding:20px"><svg class="ic" aria-hidden="true"><use href="#i-hourglass"/></svg> กำลังโหลดคลังเพลงจากระบบ...</div>';
+          container.innerHTML = '<div style="color:var(--c-888888);text-align:center;padding:20px"><svg class="ic" aria-hidden="true"><use href="#i-hourglass"/></svg> กำลังโหลดคลังเพลงจากระบบ...</div>';
           return;
         }
 
@@ -1256,7 +1256,7 @@ window.executeInsertAfterPlaying = function() {
         });
 
         html += `
-          <button onclick="renderSongLibrary()" style="width:100%;padding:10px;margin-top:6px;background:#222430;border:1px solid #00f2d1;color:#00f2d1;border-radius:6px;font-weight:bold;font-size:12px;cursor:pointer">
+          <button onclick="renderSongLibrary()" style="width:100%;padding:10px;margin-top:6px;background:var(--c-222430);border:1px solid var(--c-00f2d1);color:var(--c-00f2d1);border-radius:6px;font-weight:bold;font-size:12px;cursor:pointer">
             <svg class="ic" aria-hidden="true"><use href="#i-dice"/></svg> สุ่ม 6 เพลงแนะนำใหม่
           </button>
         `;

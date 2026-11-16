@@ -7,7 +7,7 @@
   <link rel="stylesheet" href="style.css">
   <style>
     /* ===== หน้า Live (2.0): รวมหน้าคอร์ด + หน้าจัดคิว — ใช้ตัวแปรสีเดิมจาก style.css ===== */
-    .lv { --set-1:#5B8CFF; --set-2:#F5A524; --set-3:#3DDC84; --set-4:#B084FF; --set-5:#22D3EE; --live:#35e6c0; --live-ink:#0a0c10; --live-soft:rgba(53,230,192,.12); --live-line:rgba(53,230,192,.6); --bg:#0a0c10; --surface:#12151b; --surface-2:#171b23; --surface-3:#1f242e; --line:#232832; --line-strong:#2a303c; --text:#eef1f6; --text-2:#c4cad6; --text-3:#8a93a3; --next:#F5A524; --next-ink:#0a0c10; --next-soft:rgba(245,165,36,.14); --danger:#ff6b6b; --danger-soft:rgba(255,107,107,.14); --request:#FF5FD2; --request-soft:rgba(255,95,210,.14); background: var(--bg); position: relative; display: flex; flex-direction: column; flex: 1 1 auto; min-height: 0; height: 100%; color: var(--text); }
+    .lv { --set-1:var(--c-5b8cff); --set-2:var(--c-f5a524); --set-3:var(--c-3ddc84); --set-4:var(--c-b084ff); --set-5:var(--c-22d3ee); --live:var(--c-35e6c0); --live-ink:var(--c-0a0c10); --live-soft:rgba(53,230,192,.12); --live-line:rgba(53,230,192,.6); --bg:var(--c-0a0c10); --surface:var(--c-12151b); --surface-2:var(--c-171b23); --surface-3:var(--c-1f242e); --line:var(--c-232832); --line-strong:var(--c-2a303c); --text:var(--c-eef1f6); --text-2:var(--c-c4cad6); --text-3:var(--c-8a93a3); --next:var(--c-f5a524); --next-ink:var(--c-0a0c10); --next-soft:rgba(245,165,36,.14); --danger:var(--c-ff6b6b); --danger-soft:rgba(255,107,107,.14); --request:var(--c-ff5fd2); --request-soft:rgba(255,95,210,.14); background: var(--bg); position: relative; display: flex; flex-direction: column; flex: 1 1 auto; min-height: 0; height: 100%; color: var(--text); }
     .lv * { box-sizing: border-box; }
     .lv button { font-family: inherit; cursor: pointer; -webkit-tap-highlight-color: transparent; }
     .lv .lv-top { display: flex; gap: 10px; padding: 12px 16px 0; flex: none; }
@@ -27,9 +27,9 @@
     .lv-tchip svg { width: 18px; height: 18px; stroke: var(--live); fill: none; stroke-width: 2; stroke-linecap: round; }
     .lv-tchip.over { border-color: var(--danger); color: var(--danger); }
     .lv-chev { display: flex; justify-content: center; padding-top: 6px; }
-    .lv-chev button { width: 46px; height: 22px; border-radius: 0 0 12px 12px; border: 1px solid #2a303c; border-top: 0; background: #171b23; color: var(--text-3); display: flex; align-items: center; justify-content: center; padding: 0; }
-    .lv-chev button.on { border-color: #1f6b5c; background: #0f2a26; color: #35e6c0; }
-    .lv-chev button.brk { border-color: #7a5a1e; background: #2a2112; color: #F5A524; }
+    .lv-chev button { width: 46px; height: 22px; border-radius: 0 0 12px 12px; border: 1px solid var(--c-2a303c); border-top: 0; background: var(--c-171b23); color: var(--text-3); display: flex; align-items: center; justify-content: center; padding: 0; }
+    .lv-chev button.on { border-color: var(--c-1f6b5c); background: var(--c-0f2a26); color: var(--c-35e6c0); }
+    .lv-chev button.brk { border-color: var(--c-7a5a1e); background: var(--c-2a2112); color: var(--c-f5a524); }
     /* แถบควบคุม 2.0: บรรทัด 1 (ชื่อร้าน + ตามเพลงที่เล่น) · บรรทัด 2 (ตั้งเวลา · พอส · เลื่อนอัตโนมัติ เฉพาะสมาชิกหลัก) · แถบย่อเต็มความกว้าง 4 สี */
     .lv-strip { display: block; padding: 0; }
     .lv-r1 { display: flex; align-items: center; gap: 10px; padding: 12px 16px 8px; }
@@ -39,14 +39,14 @@
     .lv-r2m { flex: none; width: 56px; height: 56px; display: flex; align-items: center; justify-content: center; }
     .lv-r2m .lv-pp { width: 56px; height: 56px; }
     .lv-r1 .lv-autolbl { width: auto; text-align: right; }
-    .lv-sw.white[aria-checked="true"] { background: #eef1f6; }
-    .lv-sbar { --bc: #3a404c; --bk: #8a93a3; position: relative; height: 30px; display: flex; align-items: center; justify-content: center; margin-top: 2px; }
+    .lv-sw.white[aria-checked="true"] { background: var(--c-eef1f6); }
+    .lv-sbar { --bc: var(--c-3a404c); --bk: var(--c-8a93a3); position: relative; height: 30px; display: flex; align-items: center; justify-content: center; margin-top: 2px; }
     .lv-sbar::before { content: ''; position: absolute; left: 0; right: 0; top: 50%; height: 3px; margin-top: -1px; background: var(--bc); }
-    .lv-sbar[data-s="follow"] { --bc: #eef1f6; --bk: #eef1f6; }
-    .lv-sbar[data-s="auto"] { --bc: #6ee7c3; --bk: #6ee7c3; }
-    .lv-sbar[data-s="both"] { --bc: linear-gradient(90deg, #eef1f6, #6ee7c3); --bk: #cfeee3; }
+    .lv-sbar[data-s="follow"] { --bc: var(--c-eef1f6); --bk: var(--c-eef1f6); }
+    .lv-sbar[data-s="auto"] { --bc: var(--c-6ee7c3); --bk: var(--c-6ee7c3); }
+    .lv-sbar[data-s="both"] { --bc: linear-gradient(90deg, var(--c-eef1f6), var(--c-6ee7c3)); --bk: var(--c-cfeee3); }
     .lv-sbar button { position: relative; width: 52px; height: 24px; border-radius: 12px; border: 1.5px solid var(--bk); background: var(--bg); color: var(--bk); display: flex; align-items: center; justify-content: center; padding: 0; }
-    .lv-sbar[data-s="off"] button { border-color: #3a404c; }
+    .lv-sbar[data-s="off"] button { border-color: var(--c-3a404c); }
     .lv-sbar button svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; }
     /* ===== แนวนอน (หน้าจอสูง ≤ 640px): ดูคอร์ดอย่างเดียว ===== */
     .lv-land { display: none; }
@@ -81,7 +81,7 @@
       .lv-lsg { flex: 1 1 0; min-height: 3px; border-radius: 4px; background: var(--c); display: block; }
       .lv-lsg.done { opacity: .35; }
       .lv-lsg.now { background: var(--live); }
-      .lv-lsg.view { box-shadow: 0 0 0 2px #eef1f6; }
+      .lv-lsg.view { box-shadow: 0 0 0 2px var(--c-eef1f6); }
       .lv-lmain { flex: 1; min-width: 0; overflow-y: auto; overscroll-behavior: contain; padding: 0 16px 16px 6px; }
       .lv-lmain .lv-exp { margin: 0; padding: 0; width: auto; flex: none; }
       .lv-lmain .lv-tools { margin-top: 0; padding: 8px 0; flex-wrap: nowrap; border-top: 0; position: sticky; top: 0; background: var(--bg); z-index: 1; }
@@ -89,7 +89,7 @@
       .lv-lt b { font-size: 17px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
       .lv-lt span { font-size: 12px; color: var(--text-3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
       .lv-lscrim { position: absolute; inset: 0; z-index: 4; background: rgba(0,0,0,.35); }
-      .lv-lpanel { position: absolute; left: 0; top: 0; bottom: 0; width: min(300px, 62%); z-index: 5; background: #0d0f14; border-right: 1px solid var(--line-strong); box-shadow: 8px 0 24px rgba(0,0,0,.5); display: flex; flex-direction: column; min-height: 0; }
+      .lv-lpanel { position: absolute; left: 0; top: 0; bottom: 0; width: min(300px, 62%); z-index: 5; background: var(--c-0d0f14); border-right: 1px solid var(--line-strong); box-shadow: 8px 0 24px rgba(0,0,0,.5); display: flex; flex-direction: column; min-height: 0; }
       .lv-lph { display: flex; align-items: center; gap: 10px; padding: 10px 12px 6px; flex: none; }
       .lv-lph .lv-venue { font-size: 16px; }
       .lv-lhint { padding: 0 12px 8px; font-size: 12px; color: var(--text-3); flex: none; }
@@ -100,9 +100,9 @@
       .lv-lrow .t { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
       .lv-lrow.done { opacity: .5; }
       .lv-lrow.now { border: 1.5px solid var(--live); background: var(--live-soft); }
-      .lv-lrow.nxt { border: 1.5px solid #5b7cff; background: #0f1424; }
-      .lv-lrow.view { box-shadow: 0 0 0 2px #eef1f6; }
-      .lv-lt1 { font-size: 11px; color: var(--live); } .lv-lt2 { font-size: 11px; color: #eef1f6; } .lv-lt3 { font-size: 11px; color: #8fa4ff; }
+      .lv-lrow.nxt { border: 1.5px solid var(--c-5b7cff); background: var(--c-0f1424); }
+      .lv-lrow.view { box-shadow: 0 0 0 2px var(--c-eef1f6); }
+      .lv-lt1 { font-size: 11px; color: var(--live); } .lv-lt2 { font-size: 11px; color: var(--c-eef1f6); } .lv-lt3 { font-size: 11px; color: var(--c-8fa4ff); }
     }
     .lv-tchip.ic { width: 40px; padding: 0; justify-content: center; border-radius: 50%; }
     .lv-chev svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; }
@@ -114,7 +114,7 @@
     .lv-btn.ins { flex: 1; background: var(--surface-3); border: 1px solid var(--text-2); color: var(--text); }
     .lv-btn.save { background: var(--live); border-color: var(--live); color: var(--live-ink); font-weight: 700; }
     .lv-btn.save.ring { box-shadow: 0 0 0 3px rgba(46,242,184,.55), 0 0 0 7px rgba(46,242,184,.22); animation: lvRing 1s ease-in-out infinite; }
-    .lv-btn.save.fail { background: var(--danger); border-color: var(--danger); color: #fff; }
+    .lv-btn.save.fail { background: var(--danger); border-color: var(--danger); color: var(--c-ffffff); }
     @keyframes lvRing { 50% { box-shadow: 0 0 0 1px rgba(46,242,184,.2), 0 0 0 3px rgba(46,242,184,.1); } }
     .lv-badge { position: absolute; top: -7px; right: -7px; min-width: 20px; height: 20px; padding: 0 5px; border-radius: 10px; background: var(--request); color: var(--bg); font-size: 12px; font-weight: 700; display: flex; align-items: center; justify-content: center; box-shadow: 0 0 0 3px rgba(255,95,210,.35); }
     /* รายการ */
@@ -123,8 +123,8 @@
     .lv-played svg { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 2.5; stroke-linecap: round; transition: transform .15s; }
     .lv-played.open svg { transform: rotate(90deg); }
     .lv-card { --c: var(--set-1); display: flex; align-items: flex-start; gap: 12px; padding: 12px 14px; border: 1px solid var(--line); border-left: 4px solid var(--c); border-radius: 16px; background: var(--surface); position: relative; }
-    .lv-card.next { border: 1.5px solid #5b7cff; background: #0f1424; }
-    .lv-card.next .lv-tag { color: #8fa4ff; }
+    .lv-card.next { border: 1.5px solid var(--c-5b7cff); background: var(--c-0f1424); }
+    .lv-card.next .lv-tag { color: var(--c-8fa4ff); }
     .lv-card.playing { border: 1.5px solid var(--live); border-left: 4px solid var(--c); }
     .lv-card.played { opacity: .5; }
     .lv-card.req { --c: var(--request); } .lv-card.custom { --c: var(--custom); }
@@ -166,21 +166,21 @@
     /* ปุ่มลอยมุมขวาล่าง */
     .lv-ctrl { position: absolute; right: 14px; bottom: 14px; display: flex; flex-direction: column; align-items: flex-end; gap: 10px; z-index: 20; }
     .lv-ctrl .row { display: flex; align-items: center; gap: 10px; }
-    .lv-fab { width: 52px; height: 52px; border-radius: 50%; border: 1px solid var(--line-strong); background: #0f1218; color: var(--text); display: flex; align-items: center; justify-content: center; box-shadow: 0 6px 18px rgba(0,0,0,.5); padding: 0; }
+    .lv-fab { width: 52px; height: 52px; border-radius: 50%; border: 1px solid var(--line-strong); background: var(--c-0f1218); color: var(--text); display: flex; align-items: center; justify-content: center; box-shadow: 0 6px 18px rgba(0,0,0,.5); padding: 0; }
     .lv-fab svg { width: 22px; height: 22px; fill: currentColor; stroke: none; }
     .lv-fab.go { background: var(--live); border-color: var(--live); color: var(--live-ink); }
     .lv-fab.big { width: 64px; height: 64px; } .lv-fab.big svg { width: 28px; height: 28px; }
     .lv-fab.resume { background: var(--next); border-color: var(--next); color: var(--next-ink); }
-    .lv-fab.stop { background: #ff6b6b; border-color: #ff6b6b; color: #0a0c10; }
-    .lv-pill { display: flex; align-items: center; gap: 10px; padding: 6px; border-radius: 999px; border: 1px solid #2a303c; background: #171b23; box-shadow: 0 6px 18px rgba(0,0,0,.5); }
+    .lv-fab.stop { background: var(--c-ff6b6b); border-color: var(--c-ff6b6b); color: var(--c-0a0c10); }
+    .lv-pill { display: flex; align-items: center; gap: 10px; padding: 6px; border-radius: 999px; border: 1px solid var(--c-2a303c); background: var(--c-171b23); box-shadow: 0 6px 18px rgba(0,0,0,.5); }
     .lv-pill .lv-fab { box-shadow: none; }
     .lv-pc { width: 34px; height: 34px; border-radius: 50%; border: 0; background: transparent; display: flex; align-items: center; justify-content: center; padding: 0; color: var(--text-3); }
     .lv-pc svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; }
-    .lv-ptab { width: 40px; height: 56px; border-radius: 28px 0 0 28px; margin-right: -14px; border: 1px solid #2a303c; border-right: 0; background: #171b23; display: flex; align-items: center; justify-content: center; padding: 0; color: var(--text-2); box-shadow: 0 6px 18px rgba(0,0,0,.5); }
+    .lv-ptab { width: 40px; height: 56px; border-radius: 28px 0 0 28px; margin-right: -14px; border: 1px solid var(--c-2a303c); border-right: 0; background: var(--c-171b23); display: flex; align-items: center; justify-content: center; padding: 0; color: var(--text-2); box-shadow: 0 6px 18px rgba(0,0,0,.5); }
     .lv-ptab svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; }
     .lv-fab.ring { box-shadow: 0 0 0 3px rgba(46,242,184,.55), 0 0 0 7px rgba(46,242,184,.22); }
     .lv-fab:disabled { opacity: .35; }
-    .lv-cap { height: 64px; padding: 0 24px; border-radius: 32px; border: 0; background: #e8a838; color: #0a0c10; font-size: 17px; font-weight: 700; display: flex; align-items: center; gap: 8px; box-shadow: 0 6px 18px rgba(0,0,0,.5); }
+    .lv-cap { height: 64px; padding: 0 24px; border-radius: 32px; border: 0; background: var(--c-e8a838); color: var(--c-0a0c10); font-size: 17px; font-weight: 700; display: flex; align-items: center; gap: 8px; box-shadow: 0 6px 18px rgba(0,0,0,.5); }
     .lv-cap svg { width: 24px; height: 24px; fill: currentColor; }
     .lv-cap.ring { box-shadow: 0 0 0 3px rgba(255,194,51,.55), 0 0 0 7px rgba(255,194,51,.22); }
     .lv-hold { padding: 6px 12px; border-radius: 10px; background: var(--surface-2); border: 1px solid var(--line-strong); font-size: 12px; color: var(--text-2); box-shadow: 0 6px 18px rgba(0,0,0,.5); }
@@ -189,16 +189,16 @@
     /* แบนเนอร์ */
     .lv-banner { margin: 10px 16px 0; padding: 10px 14px; border-radius: 14px; border: 1px solid; font-size: 13px; display: flex; gap: 10px; align-items: flex-start; }
     .lv-banner b { display: block; font-size: 14px; } .lv-banner span { color: var(--text-2); }
-    .lv-banner.ok { background: #0f2a26; border-color: var(--live); color: var(--live); }
-    .lv-banner.warn { background: #2a2112; border-color: var(--next); color: var(--next); }
-    .lv-banner.err { background: #2a1517; border-color: #ff8d8d; color: #ff8d8d; }
+    .lv-banner.ok { background: var(--c-0f2a26); border-color: var(--live); color: var(--live); }
+    .lv-banner.warn { background: var(--c-2a2112); border-color: var(--next); color: var(--next); }
+    .lv-banner.err { background: var(--c-2a1517); border-color: var(--c-ff8d8d); color: var(--c-ff8d8d); }
     .lv-dirty { font-size: 11px; font-weight: 700; color: var(--next); background: var(--next-soft); padding: 1px 7px; border-radius: 999px; display: inline-block; margin-left: 6px; }
     /* โหมดจัดคิว */
     .lv-grip { flex: none; width: 22px; height: 28px; display: flex; align-items: center; justify-content: center; color: var(--text-3); touch-action: none; }
     .lv-grip svg { width: 16px; height: 22px; fill: currentColor; }
     .lv-card.locked { border-color: var(--live); }
     .lv-card:has(> .lv-main) { flex-direction: column; align-items: stretch; gap: 0; }
-    .lv-card.edit.next, .lv-card.edit.open { border: 1.5px solid #5b7cff; border-left: 4px solid var(--c); background: #0f1424; }
+    .lv-card.edit.next, .lv-card.edit.open { border: 1.5px solid var(--c-5b7cff); border-left: 4px solid var(--c); background: var(--c-0f1424); }
     .lv-kchip { flex: none; align-self: center; padding: 0 8px; height: 24px; line-height: 22px; border: 1px solid var(--c); border-radius: 6px; font-size: 14px; color: var(--text-2); }
     .lv-lock { flex: none; width: 22px; height: 28px; display: flex; align-items: center; justify-content: center; color: var(--live); align-self: center; }
     .lv-lock svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
@@ -208,20 +208,20 @@
     .lv-etools button svg { flex: none; width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
     .lv-etools { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; width: 100%; }
     .lv-etools button { flex: 1 1 0; min-width: 0; height: 40px; padding: 0 6px; border-radius: 10px; border: 1px solid var(--line); background: var(--surface); color: var(--text-2); font-size: 13px; font-weight: 700; white-space: nowrap; }
-    .lv-etools button.del { color: #ff8d8d; }
-    .lv-etools button.full { flex: 1 1 100%; border-color: #7a5a1e; background: #2a2112; color: var(--next); }
+    .lv-etools button.del { color: var(--c-ff8d8d); }
+    .lv-etools button.full { flex: 1 1 100%; border-color: var(--c-7a5a1e); background: var(--c-2a2112); color: var(--next); }
     .lv-etools select.lv-in { height: 40px; border-radius: 10px; border: 1px solid var(--line); background: var(--surface); color: var(--text-2); font-size: 13px; font-weight: 700; }
     .lv-etools button:disabled { opacity: .35; }
     .lv-ov.pov { background: transparent; }
-    .lv-kpop { position: absolute; width: min(320px, calc(100% - 16px)); max-height: 80%; overflow-y: auto; padding: 12px; border-radius: 16px; background: #171b23; border: 1px solid #2a303c; box-shadow: 0 12px 30px rgba(0,0,0,.6); animation: lvDown .15s var(--ease); }
+    .lv-kpop { position: absolute; width: min(320px, calc(100% - 16px)); max-height: 80%; overflow-y: auto; padding: 12px; border-radius: 16px; background: var(--c-171b23); border: 1px solid var(--c-2a303c); box-shadow: 0 12px 30px rgba(0,0,0,.6); animation: lvDown .15s var(--ease); }
     button.lv-kchip { background: none; font-family: inherit; }
     .lv-pop.req { max-width: 342px; }
     .lv-pop.req .s0 { font-size: 12px; color: var(--text-3); } .lv-pop.req .nm { font-size: 18px; font-weight: 700; } .lv-pop.req .ar { font-size: 13px; color: var(--text-3); }
     .lv-pop.req .bt { margin-top: 6px; display: flex; flex-direction: column; gap: 8px; }
     .lv-pb.pinko { height: 46px; border-color: var(--request); background: var(--request-soft); color: var(--request); }
     .lv-pop.req .lv-pb.pink { height: 46px; }
-    .lv-pick { padding: 10px 12px; border: 1px solid var(--line); border-radius: 12px; background: #0f1218; text-align: left; color: var(--text); font-size: 15px; font-weight: 700; width: 100%; }
-    .lv-pick.cur { border: 1.5px solid var(--live); background: #0f2a26; cursor: default; }
+    .lv-pick { padding: 10px 12px; border: 1px solid var(--line); border-radius: 12px; background: var(--c-0f1218); text-align: left; color: var(--text); font-size: 15px; font-weight: 700; width: 100%; }
+    .lv-pick.cur { border: 1.5px solid var(--live); background: var(--c-0f2a26); cursor: default; }
     .lv-pick small { display: block; font-size: 11px; font-weight: 700; color: var(--live); }
     .lv-pline { height: 6px; margin: 0 20px; border-radius: 3px; background: var(--request); flex: none; }
     .lv-sort-ghost { opacity: .4; }
@@ -238,11 +238,11 @@
     .lv-ov.dragging { background: transparent; pointer-events: none; }
     .lv-ov.dragging .lv-sheet { opacity: 0; }
     .lv-row[data-a="inspick"] { touch-action: pan-y; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
-    .lv-dghost { position: fixed; z-index: 9999; pointer-events: none; width: 300px; padding: 10px 14px; border-radius: 14px; background: rgba(60,20,50,.92); border: 1.5px solid #ff4fa8; color: #fff; box-shadow: 0 10px 28px rgba(0,0,0,.55); transform: rotate(-2deg); display: flex; flex-direction: column; gap: 2px; font-family: inherit; }
+    .lv-dghost { position: fixed; z-index: 9999; pointer-events: none; width: 300px; padding: 10px 14px; border-radius: 14px; background: rgba(60,20,50,.92); border: 1.5px solid var(--c-ff4fa8); color: var(--c-ffffff); box-shadow: 0 10px 28px rgba(0,0,0,.55); transform: rotate(-2deg); display: flex; flex-direction: column; gap: 2px; font-family: inherit; }
     .lv-dghost b { font-size: 16px; } .lv-dghost span { font-size: 13px; opacity: .7; }
-    .lv-dline { position: fixed; z-index: 9998; height: 3px; border-radius: 2px; background: #ff4fa8; box-shadow: 0 0 8px #ff4fa8; pointer-events: none; }
-    .lv-dzone { position: fixed; z-index: 9997; height: 48px; border: 1.5px dashed #ff4fa8; border-radius: 12px; display: flex; align-items: center; justify-content: center; color: #ff8fc8; font-size: 14px; background: rgba(40,10,30,.7); pointer-events: none; font-family: inherit; }
-    .lv-dzone.on { background: rgba(255,79,168,.25); color: #fff; }
+    .lv-dline { position: fixed; z-index: 9998; height: 3px; border-radius: 2px; background: var(--c-ff4fa8); box-shadow: 0 0 8px var(--c-ff4fa8); pointer-events: none; }
+    .lv-dzone { position: fixed; z-index: 9997; height: 48px; border: 1.5px dashed var(--c-ff4fa8); border-radius: 12px; display: flex; align-items: center; justify-content: center; color: var(--c-ff8fc8); font-size: 14px; background: rgba(40,10,30,.7); pointer-events: none; font-family: inherit; }
+    .lv-dzone.on { background: rgba(255,79,168,.25); color: var(--c-ffffff); }
     .lv-sheet.pinkb { border-bottom: 2px solid var(--request); }
     .lv-sheet h4.pk { color: var(--request); }
     .lv-sin { position: relative; flex: 1; min-width: 0; display: flex; align-items: center; }
@@ -250,12 +250,12 @@
     .lv-sin .lv-in { padding-left: 40px; width: 100%; }
     .lv-tabs2 { display: flex; gap: 6px; }
     .lv-tabs2 button { flex: 1; height: 42px; border-radius: 12px; border: 0; background: transparent; color: var(--text-2); font-size: 15px; font-weight: 700; display: flex; align-items: center; justify-content: center; gap: 8px; }
-    .lv-tabs2 button.on { background: #eef1f6; color: #0a0c10; }
+    .lv-tabs2 button.on { background: var(--c-eef1f6); color: var(--c-0a0c10); }
     .lv-tabs2 .lv-badge { position: static; box-shadow: none; }
     .lv-keys { display: flex; align-items: center; gap: 6px; overflow-x: auto; flex: none; padding-bottom: 2px; }
     .lv-keys span.l { font-size: 13px; color: var(--text-3); margin-right: 2px; }
     .lv-keys button { flex: none; height: 30px; padding: 0 12px; border-radius: 999px; border: 1px solid var(--line); background: var(--surface); color: var(--text-2); font-size: 13px; font-weight: 700; }
-    .lv-keys button.on { background: #eef1f6; color: #0a0c10; border-color: #eef1f6; }
+    .lv-keys button.on { background: var(--c-eef1f6); color: var(--c-0a0c10); border-color: var(--c-eef1f6); }
     .lv-hint { font-size: 12px; color: var(--text-3); }
     .lv-pl { flex: none; height: 24px; line-height: 22px; padding: 0 8px; border-radius: 8px; border: 1px solid var(--line-strong); font-size: 12px; font-weight: 700; color: var(--text-3); white-space: nowrap; }
     .lv-pl.ok { border-color: var(--live-line); color: var(--live); background: var(--live-soft); }
@@ -267,12 +267,12 @@
     .lv-pop .sub { font-size: 13px; color: var(--text-2); line-height: 1.5; }
     .lv-pb { min-height: 44px; border-radius: 12px; border: 1px solid var(--line-strong); background: var(--surface-3); color: var(--text); font-size: 15px; font-weight: 700; padding: 0 14px; }
     .lv-pb.live { background: var(--live); border-color: var(--live); color: var(--live-ink); }
-    .lv-pb.pink { background: var(--request); border-color: var(--request); color: #0a0c10; }
+    .lv-pb.pink { background: var(--request); border-color: var(--request); color: var(--c-0a0c10); }
     .lv-pb.warn { border-color: var(--next); color: var(--next); background: var(--next-soft); }
-    .lv-pb.danger { background: var(--danger); border-color: var(--danger); color: #fff; }
+    .lv-pb.danger { background: var(--danger); border-color: var(--danger); color: var(--c-ffffff); }
     .lv-srow { display: flex; gap: 8px; }
     .lv-in { flex: 1; min-width: 0; height: 44px; border-radius: 12px; border: 1px solid var(--line-strong); background: var(--bg); color: var(--text); padding: 0 12px; font-size: 16px; font-family: inherit; }
-    .lv-chk { flex: none; width: 48px; height: 44px; border-radius: 12px; border: 0; background: var(--request); color: #0a0c10; display: flex; align-items: center; justify-content: center; padding: 0; }
+    .lv-chk { flex: none; width: 48px; height: 44px; border-radius: 12px; border: 0; background: var(--request); color: var(--c-0a0c10); display: flex; align-items: center; justify-content: center; padding: 0; }
     .lv-chk svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; }
     .lv-res { overflow-y: auto; display: flex; flex-direction: column; gap: 6px; min-height: 0; }
     .lv-res .hd { font-size: 11px; font-weight: 700; color: var(--text-3); padding: 2px 4px; }
@@ -291,7 +291,7 @@
     .lv-stat { border: 1px solid var(--line); border-radius: 14px; background: var(--surface); padding: 10px 12px; }
     .lv-stat b { display: block; font-size: 22px; font-variant-numeric: tabular-nums; } .lv-stat span { font-size: 12px; color: var(--text-3); }
     .lv-tg { font-size: 11px; font-weight: 700; padding: 1px 7px; border-radius: 999px; margin-left: 6px; }
-    .lv-tg.pl { color: var(--live); background: var(--live-soft); } .lv-tg.np { color: var(--text-3); background: var(--surface-3); } .lv-tg.sk { color: var(--next); background: var(--next-soft); } .lv-tg.dl { color: #ff8d8d; background: var(--danger-soft); }
+    .lv-tg.pl { color: var(--live); background: var(--live-soft); } .lv-tg.np { color: var(--text-3); background: var(--surface-3); } .lv-tg.sk { color: var(--next); background: var(--next-soft); } .lv-tg.dl { color: var(--c-ff8d8d); background: var(--danger-soft); }
     .lv-empty { padding: 40px 20px; text-align: center; color: var(--text-3); }
     .lv .hidden { display: none !important; }
   </style>
@@ -695,7 +695,7 @@
       const L = cur(), nx = L.find((x) => x.status === 'next'), box = $('topNextBox'), t = $('topNextText');
       if (!t) return;
       t.innerText = nx ? (isBrk(nx) ? 'พักคุย' : SP(nx) ? lshPlain(nx.title) : nx.title) : 'จบการแสดง';
-      if (box) box.style.borderLeft = '4px solid #5b7cff';
+      if (box) box.style.borderLeft = '4px solid var(--c-5b7cff)';
       // แนวนอน (แถบล่าง): ป้าย "ถัดไป · SET n" + คีย์ + สีกรอบตามเซ็ต (ซ่อนในแนวตั้ง)
       const tg = $('topNextTag'), ky = $('topNextKey');
       if (tg) tg.textContent = nx ? (isBrk(nx) ? 'ถัดไป' : 'ถัดไป · SET ' + sn(nx.set)) : 'ถัดไป';
@@ -1072,7 +1072,7 @@
       const rem = L.filter((x) => x.status === 'removed' && (isSong(x) || isBrk(x)));
       if (rem.length) {
         h += '<div class="lv-grp" style="color:var(--text-3)">เพลงที่ถูกข้าม / ลบ</div>';
-        rem.forEach((x) => { const sk = x.rm === 'skip'; h += '<div class="lv-card removed" style="--c:' + setCls(x) + '"><div class="lv-main"><span class="lv-grip">' + IC.grip + '</span>' + bodyOf(x) + '<button type="button" class="lv-rest" style="color:' + (sk ? '#ffb066' : '#ff8d8d') + '" data-a="restore" data-id="' + esc(x.id) + '">' + (sk ? 'ข้ามแล้ว' : 'ลบแล้ว') + ' · เรียกคืน</button></div></div>'; });
+        rem.forEach((x) => { const sk = x.rm === 'skip'; h += '<div class="lv-card removed" style="--c:' + setCls(x) + '"><div class="lv-main"><span class="lv-grip">' + IC.grip + '</span>' + bodyOf(x) + '<button type="button" class="lv-rest" style="color:' + (sk ? 'var(--c-ffb066)' : 'var(--c-ff8d8d)') + '" data-a="restore" data-id="' + esc(x.id) + '">' + (sk ? 'ข้ามแล้ว' : 'ลบแล้ว') + ' · เรียกคืน</button></div></div>'; });
       }
       el.innerHTML = h;
       const box = $('lvSort');
