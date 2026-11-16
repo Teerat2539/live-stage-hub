@@ -36,7 +36,7 @@
         </select>
       </div>
 
-      <div class="bk-line3"><label class="u-meta bk-nochord"><input type="checkbox" id="chkNoChord"> เฉพาะเพลงที่ยังไม่มีคอร์ด</label><button id="btnOpenBulkAdd" class="add-song-btn bk-open" title="เพิ่มหลายเพลงพร้อมกัน">+ เพิ่มหลายเพลง</button></div>
+      <div class="bk-line3"><label class="u-meta bk-nochord"><input type="checkbox" id="chkNoChord"> เฉพาะเพลงที่ยังไม่มีคอร์ด</label></div>
     </div>
   </div>
 
@@ -293,8 +293,7 @@
     document.getElementById('sortSelect').onchange = onSearchOrFilterChange;
     document.getElementById('chkNoChord').onchange = onSearchOrFilterChange;
 
-    document.getElementById('btnOpenAddSong').onclick = () => { lshSongKit.openForm(null); };
-    document.getElementById('btnOpenBulkAdd').onclick = () => { if (window.lshBulkAdd) window.lshBulkAdd.start(); };
+    document.getElementById('btnOpenAddSong').onclick = () => { if (window.lshBulkAdd) window.lshBulkAdd.start(); };   // เพิ่มเพลง = ตารางกรอกชื่อ/ศิลปิน (1–20 เพลง) → ตรวจซ้ำ → ค้นฐานข้อมูลรอง
   };
 
   window.initSongsPageModule();

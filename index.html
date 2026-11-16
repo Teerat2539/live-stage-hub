@@ -884,7 +884,7 @@
       // ขั้น 1: ตารางกรอก
       function askRows() {
         return new Promise(resolve => {
-          const sh = sheet('<div class="bk-h">เพิ่มหลายเพลง</div><div class="bk-s">กรอกชื่อเพลง (จำเป็น) และศิลปิน (ไม่บังคับ) ครั้งละไม่เกิน ' + MAX + ' เพลง · วางรายการหลายบรรทัดได้ (ชื่อเพลง | ศิลปิน)</div><div class="bk-rows"></div><button type="button" class="bk-addrow">+ เพิ่มแถว</button><div class="bk-cnt"></div><div class="bk-act"><button type="button" class="bk-ghost">ยกเลิก</button><button type="button" class="bk-go">ถัดไป</button></div>');
+          const sh = sheet('<div class="bk-h">เพิ่มเพลง</div><div class="bk-s">กรอกชื่อเพลง (จำเป็น) และศิลปิน (ไม่บังคับ) · ถ้าจะเพิ่มหลายเพลงให้แตะ "+ เพิ่มหลายเพลง" (ครั้งละไม่เกิน ' + MAX + ' เพลง) · วางรายการหลายบรรทัดได้ (ชื่อเพลง | ศิลปิน)</div><div class="bk-rows"></div><button type="button" class="bk-addrow">+ เพิ่มหลายเพลง</button><div class="bk-cnt"></div><div class="bk-act"><button type="button" class="bk-ghost">ยกเลิก</button><button type="button" class="bk-go">ถัดไป</button></div>');
           const list = sh.q('.bk-rows'), cnt = sh.q('.bk-cnt'), addBtn = sh.q('.bk-addrow');
           const rowsEl = () => list.querySelectorAll('.bk-row');
           const filled = () => Array.prototype.filter.call(rowsEl(), r => r.querySelector('.bk-t').value.trim()).length;
@@ -910,7 +910,7 @@
             });
             list.appendChild(r); return r;
           }
-          addRow(); addRow(); addRow(); upd();
+          addRow(); upd();
           addBtn.onclick = () => { const r = addRow(); if (r) r.querySelector('.bk-t').focus(); upd(); };
           sh.q('.bk-ghost').onclick = () => { sh.close(); resolve(null); };
           sh.q('.bk-go').onclick = () => {
@@ -994,13 +994,25 @@
               if (x.status === 'link') d = '<i>เชื่อมกับ: ' + esc(x.e[1]) + ' — ' + esc(x.e[2]) + (x.e[3] ? ' · คีย์ ' + esc(x.e[3]) : '') + '</i>';
               else if (x.status === 'own') d = '<i>ต้องเขียนคอร์ดเอง</i>';
               else d = '<i>' + esc(x.reason || 'ข้าม') + '</i>';
-              row.innerHTML = '<div class="bk-sm"><b>' + esc(x.status === 'link' ? x.e[1] : x.title) + '</b>' + d + '</div>' + (x.status === 'skip' ? '' : '<button type="button" class="bk-x" aria-label="เอาออก">✕</button>');
+              row.innerHTML = '<div class="bk-sm"><b>' + esc(x.status === 'link' ? x.e[1] : x.title) + '</b>' + d + '</div>' + (x.status === 'skip' ? '' : '<button type="button" class="bk-x" aria-label="เอาออก">✕</button>') +
+                (x.status === 'own' ? '<div class="bk-det"><select class="bk-dk" aria-label="คีย์"><option value="">คีย์</option>' + ((window.lshKeys && lshKeys.master) || []).map(k => '<option value="' + esc(k) + '"' + (x.key === k ? ' selected' : '') + '>' + esc(k) + '</option>').join('') + '</select>' +
+                  '<input class="bk-db" data-noclear type="number" inputmode="numeric" min="0" max="400" placeholder="bpm" value="' + esc(x.bpm || '') + '">' +
+                  '<input class="bk-dm" data-noclear type="number" inputmode="numeric" min="0" max="59" placeholder="นาที" value="' + esc(x.dm || '') + '"><span>:</span>' +
+                  '<input class="bk-ds" data-noclear type="number" inputmode="numeric" min="0" max="59" placeholder="วิ" value="' + esc(x.ds || '') + '"></div>' : '');
+              if (x.status === 'own') {
+                const bind = (sel, f) => { const el = row.querySelector(sel); if (el) el.oninput = el.onchange = () => { x[f] = el.value; }; };
+                bind('.bk-dk', 'key'); bind('.bk-db', 'bpm'); bind('.bk-dm', 'dm'); bind('.bk-ds', 'ds');
+              }
               const xb = row.querySelector('.bk-x'); if (xb) xb.onclick = () => { x.status = 'skip'; x.reason = 'เอาออกแล้ว'; draw(); };
               listEl.appendChild(row);
             });
           }
           draw();
-          sh.q('.bk-ghost').onclick = () => { sh.close(); resolve(false); };
+          sh.q('.bk-ghost').onclick = () => {
+            const cf = sheet('<div class="bk-h">ยกเลิกการเพิ่มเพลง?</div><div class="bk-s">ถ้ายกเลิก ข้อมูลที่กรอกไปจะไม่ได้ถูกบันทึก และต้องเริ่มกรอกใหม่ทั้งหมด</div><div class="bk-act"><button type="button" class="bk-go bk-back">ย้อนกลับ</button><button type="button" class="bk-ghost bk-yes">ยืนยันยกเลิก</button></div>');
+            cf.q('.bk-back').onclick = () => { cf.close(); };
+            cf.q('.bk-yes').onclick = () => { cf.close(); sh.close(); resolve(false); };
+          };
           save.onclick = () => { sh.close(); resolve(true); };
         });
       }
@@ -1022,7 +1034,9 @@
             if (t.d) p.duration = t.d; if (t.y) p.year = t.y; if (t.g) p.genres = t.g;
             return p;
           }
-          return { title: x.title, artist: x.artist || '', key: '-', bpm: 0, updatedAt: now };
+          const p = { title: x.title, artist: x.artist || '', key: x.key || '-', bpm: parseInt(x.bpm, 10) || 0, updatedAt: now };
+          const ds = (parseInt(x.dm, 10) || 0) * 60 + (parseInt(x.ds, 10) || 0); if (ds > 0) p.duration = ds;
+          return p;
         }));
         const fresh = (await db.ref('songs').once('value')).val() || {};   // อ่านรายการล่าสุดทันทีก่อนเขียน เพื่อกันรหัสเพลงชนกับคนที่เพิ่มพร้อมกัน
         const ids = nextIds(Object.keys(fresh), payloads.length), upd = {};
@@ -1727,7 +1741,7 @@
     };
 
     // ===== ตรวจเวอร์ชันแอป (2.0): เทียบเลขใน version.json บนเซิร์ฟเวอร์ กับเลขของโค้ดที่เปิดอยู่ =====
-    const LSH_APP_VER = '2.0.11';
+    const LSH_APP_VER = '2.0.12';
     try { const dv = document.getElementById('drawerVersion'); if (dv) dv.textContent = 'เวอร์ชัน ' + LSH_APP_VER; } catch (e) {}   // แสดงเลขเวอร์ชันท้ายเมนูแฮมเบอร์เกอร์
     let lshVerAt = 0;
     function lshCheckVersion() {

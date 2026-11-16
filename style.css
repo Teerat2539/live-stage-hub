@@ -2388,3 +2388,9 @@ nav button:active:not(.active) { background: var(--surface-2); }
 
 .kar-line.kdiv, #karCur.kdiv, #karNxt.kdiv, #karN2.kdiv, #karN3.kdiv { text-align: center; }
 .kar-mdiv { display: inline-block; margin: 0; padding: 3px 14px; border-left: 0; border-radius: 999px; border: 1px solid rgba(245,158,11,.6); }
+
+/* เพิ่มเพลง: ช่องกรอกรายละเอียดในหน้าสรุป (เฉพาะเพลงที่ไม่มีในฐานข้อมูลรอง) */
+.bk-sr { flex-wrap: wrap; }
+.bk-det { flex: 1 0 100%; display: flex; align-items: center; gap: 6px; margin-top: 6px; }
+.bk-det select, .bk-det input { height: 38px; min-width: 0; width: 0; padding: 0 8px; border-radius: 10px; border: 1px solid var(--line-strong); background: var(--bg); color: var(--text); font-size: 16px; }
+.bk-det select { flex: 1.1; } .bk-det .bk-db { flex: 1; } .bk-det .bk-dm, .bk-det .bk-ds { flex: .8; } .bk-det span { color: var(--text-3); }
