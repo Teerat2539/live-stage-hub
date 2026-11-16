@@ -2626,3 +2626,59 @@ nav button { transition: flex-grow 420ms var(--ease-out), background-color var(-
 .set-subbar.hidden, .set-subsave.hidden { display: none !important; }
 .settings-page:has(#setSubBar:not(.hidden)) #btnSaveProfile, .settings-page:has(#setSubBar:not(.hidden)) #dspSave { display: none; }
 @media (prefers-reduced-motion: reduce) { .set-menu.set-in, .settings-content.set-in, .set-subbar { animation: none; } }
+
+/* ===== 2.0.20 ทัวร์สอนใช้งาน + หน้าวิธีใช้ ===== */
+.tour-card { position: fixed; z-index: 16000; left: 12px; right: 12px; bottom: calc(env(safe-area-inset-bottom, 0px) + 76px); max-width: 480px; margin: 0 auto; background: var(--surface-2); border: 1px solid var(--line-strong); border-radius: 20px; padding: 14px 16px 12px; box-shadow: var(--shadow-pop); opacity: 0; translate: 0 24px; scale: .97; transition: opacity var(--dur) var(--ease-out), translate var(--dur-slow) var(--spring), scale var(--dur-slow) var(--spring); }
+.tour-card.in { opacity: 1; translate: 0 0; scale: 1; }
+.tour-head { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; font-size: 12px; color: var(--text-3); margin-bottom: 8px; }
+.tour-name { font-weight: 700; color: var(--live); }
+.tour-bar { height: 4px; border-radius: 2px; background: var(--line); overflow: hidden; margin-bottom: 12px; }
+.tour-bar i { display: block; height: 100%; border-radius: 2px; background: var(--live); transition: width var(--dur-slow) var(--ease-out); }
+.tour-body.in { animation: tourIn var(--dur-slow) var(--ease-out); }
+@keyframes tourIn { from { opacity: 0; translate: 16px 0; } to { opacity: 1; translate: 0 0; } }
+.tour-body h4 { margin: 10px 0 4px; font-size: 18px; }
+.tour-body p { margin: 0; font-size: 14px; line-height: 1.55; color: var(--text-2); }
+.tour-act { display: flex; justify-content: space-between; align-items: center; margin-top: 14px; gap: 10px; }
+.tour-skip { min-height: 44px; padding: 0 12px; background: none; border: 0; color: var(--text-3); font-size: 14px; font-weight: 600; }
+.tour-next { min-height: 48px; padding: 0 28px; border-radius: 14px; border: 0; background: var(--live); color: var(--live-ink); font-size: 16px; font-weight: 800; margin-left: auto; }
+.tour-next:active { scale: .96; }
+.tour-mock { background: var(--bg); border: 1px solid var(--line); border-radius: 14px; padding: 10px; display: flex; flex-direction: column; gap: 8px; pointer-events: none; }
+.tm-card, .tm-box { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; }
+.tm-l { font-size: 11px; color: var(--text-3); }
+.tm-t { font-size: 17px; font-weight: 700; margin: 2px 0; }
+.tm-s { font-size: 13px; color: var(--text-2); display: flex; align-items: center; gap: 8px; }
+.tm-k { display: inline-block; min-width: 26px; text-align: center; padding: 1px 7px; border-radius: 8px; border: 1px solid var(--live); color: var(--live); font-size: 12px; font-weight: 700; margin-left: auto; }
+.tm-note { font-size: 12px; color: var(--text-2); padding: 0 4px; }
+.tm-prog { height: 6px; border-radius: 3px; background: var(--line); overflow: hidden; } .tm-prog i { display: block; height: 100%; background: var(--live); }
+.tm-rows { display: flex; flex-direction: column; gap: 6px; }
+.tm-row { display: flex; align-items: center; gap: 8px; background: var(--surface); border: 1px solid var(--line); border-left: 4px solid var(--c); border-radius: 12px; padding: 8px 10px; }
+.tm-h { color: var(--text-3); font-size: 12px; letter-spacing: -2px; }
+.tm-rt { flex: 1; display: flex; flex-direction: column; min-width: 0; } .tm-rt b { font-size: 14px; } .tm-rt i { font-style: normal; font-size: 12px; color: var(--text-3); }
+.tm-btns { display: flex; gap: 8px; flex-wrap: wrap; }
+.tm-b { position: relative; flex: 1; min-width: 80px; text-align: center; padding: 10px 12px; border-radius: 12px; border: 1px solid var(--line-strong); background: var(--surface); font-size: 14px; font-weight: 700; }
+.tm-b.pri { background: var(--live); color: var(--live-ink); border-color: var(--live); }
+.tm-b.req { background: var(--request); color: var(--bg); border-color: var(--request); }
+.tm-b.small { flex: 0 0 auto; align-self: center; padding: 6px 14px; font-size: 12px; font-weight: 600; background: var(--request-soft); color: var(--request); border-color: var(--request); }
+.tm-b.ghost { background: transparent; } .tm-b.danger { color: #fff; background: var(--danger, #e5484d); border-color: transparent; }
+.tm-b.p { background: #5b4bd6; color: #fff; border-color: transparent; } .tm-b.p2 { background: #3b5bdb; color: #fff; border-color: transparent; }
+.tm-b.badge::after { content: '1'; position: absolute; top: -7px; right: -6px; min-width: 20px; height: 20px; border-radius: 10px; background: var(--request); color: var(--bg); font-size: 12px; display: flex; align-items: center; justify-content: center; box-shadow: 0 0 0 3px rgba(255,95,210,.35); }
+.tm-chips { display: flex; gap: 6px; flex-wrap: wrap; } .tm-chip { padding: 6px 12px; border-radius: 999px; border: 1px solid var(--line-strong); font-size: 13px; font-weight: 700; } .tm-chip.on { background: var(--live); color: var(--live-ink); border-color: var(--live); }
+.tm-tabs { display: flex; gap: 6px; } .tm-tabs span { flex: 1; text-align: center; padding: 8px; border-radius: 10px; font-size: 13px; font-weight: 700; color: var(--text-2); } .tm-tabs span.on { background: var(--text); color: var(--bg); } .tm-tabs b { margin-left: 6px; padding: 1px 7px; border-radius: 10px; background: var(--request); color: var(--bg); font-size: 11px; }
+.tm-msgs { display: flex; flex-direction: column; gap: 6px; } .tm-msg { max-width: 75%; padding: 7px 12px; border-radius: 14px; background: var(--surface); font-size: 13px; } .tm-msg.me { align-self: flex-end; background: var(--live); color: var(--live-ink); }
+.tm-sw { display: flex; align-items: center; justify-content: space-between; font-size: 14px; font-weight: 700; } .tm-sw i { width: 42px; height: 24px; border-radius: 12px; background: var(--line-strong); position: relative; } .tm-sw i.on { background: var(--live); } .tm-sw i::after { content: ''; position: absolute; top: 3px; left: 3px; width: 18px; height: 18px; border-radius: 50%; background: #fff; } .tm-sw i.on::after { left: 21px; }
+.help-sheet { position: fixed; inset: 0; z-index: 15800; background: var(--bg); display: flex; flex-direction: column; padding: calc(env(safe-area-inset-top, 0px) + 12px) 16px calc(env(safe-area-inset-bottom, 0px) + 16px); overflow-y: auto; opacity: 0; translate: 0 40px; transition: opacity var(--dur) var(--ease-out), translate var(--dur-slow) var(--ease-out); }
+.help-sheet.in { opacity: 1; translate: 0 0; }
+.help-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
+.help-title { font-size: 22px; font-weight: 800; }
+.help-x { width: 44px; height: 44px; border-radius: 12px; border: 1px solid var(--line); background: var(--surface); color: var(--text); font-size: 18px; }
+.help-sub { font-size: 13px; color: var(--text-3); margin-bottom: 14px; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.help-list { display: flex; flex-direction: column; gap: 10px; }
+.help-row { display: flex; align-items: center; gap: 14px; min-height: 64px; padding: 10px 14px; text-align: left; border-radius: 16px; border: 1px solid var(--line); background: var(--surface); color: var(--text); }
+.help-row:active { scale: .985; background: var(--surface-2); }
+.help-tx { flex: 1; display: flex; flex-direction: column; } .help-tx b { font-size: 16px; } .help-tx i { font-style: normal; font-size: 12px; color: var(--text-3); }
+.help-c { width: 20px; height: 20px; opacity: .6; rotate: -90deg; }
+.help-st { display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; border-radius: 50%; border: 2px solid var(--line-strong); flex: none; }
+.help-st.done { background: #2fbf71; border-color: #2fbf71; color: #fff; } .help-st.part { background: #f2b53a; border-color: #f2b53a; color: #1b1405; }
+.help-sub .help-st { width: 20px; height: 20px; border-width: 0; } .help-sub .help-st svg { width: 14px; height: 14px; }
+.help-reset { margin-top: 18px; min-height: 44px; border-radius: 12px; border: 1px solid var(--line); background: transparent; color: var(--text-3); font-size: 14px; }
+@media (prefers-reduced-motion: reduce) { .tour-card, .help-sheet, .tour-body.in { transition: none; animation: none; } }

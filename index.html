@@ -194,6 +194,138 @@
     //  ต้นฉบับ = rec.k ของคลังคอร์ด · วง = คีย์ในคลังเพลงหลัก (lsh_songs) · เลือก = คีย์ในคิว/ลิสต์ตอนนี้
     //  ไม่มีค่าไหนก็ไม่แสดงค่านั้น · มีแต่คีย์วงให้นับเลขจากคีย์วง · ไม่มีทั้งคู่ไม่แสดงเลข
     // ======================================================================
+    // ทัวร์สอนใช้งานแยกตามหน้า + หน้าวิธีใช้ (สถานะเก็บในเครื่องนี้: localStorage 'lsh_tour')
+    window.lshTour = (function() {
+      const KEY = 'lsh_tour';
+      const esc = (t) => String(t).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+      // ---- ภาพจำลอง (mockup) ไม่ขึ้นกับข้อมูลจริง ----
+      const M = {
+        now: (l, t, a, k) => '<div class="tm-card"><div class="tm-l">' + l + '</div><div class="tm-t">' + t + '</div><div class="tm-s">' + a + (k ? '<span class="tm-k">' + k + '</span>' : '') + '</div></div>',
+        rows: (a) => '<div class="tm-rows">' + a.map((r) => '<div class="tm-row" style="--c:' + (r[0] || 'var(--line-strong)') + '"><span class="tm-h">⋮⋮</span><span class="tm-rt"><b>' + r[1] + '</b><i>' + (r[2] || '') + '</i></span>' + (r[3] ? '<span class="tm-k">' + r[3] + '</span>' : '') + '</div>').join('') + '</div>',
+        btns: (a) => '<div class="tm-btns">' + a.map((b) => '<span class="tm-b' + (b[2] ? ' ' + b[2] : '') + '">' + b[0] + (b[1] ? '<em>' + b[1] + '</em>' : '') + '</span>').join('') + '</div>',
+        chips: (a, on) => '<div class="tm-chips">' + a.map((c) => '<span class="tm-chip' + (c === on ? ' on' : '') + '">' + c + '</span>').join('') + '</div>',
+        msg: (a) => '<div class="tm-msgs">' + a.map((m) => '<div class="tm-msg' + (m[1] ? ' me' : '') + '">' + m[0] + '</div>').join('') + '</div>',
+        sw: (l, on) => '<div class="tm-sw"><span>' + l + '</span><i class="' + (on ? 'on' : '') + '"></i></div>',
+        box: (a) => '<div class="tm-box">' + a.join('') + '</div>'
+      };
+      const SET = ['var(--set-1, #5B8CFF)', 'var(--set-2, #F5A524)'], PINK = 'var(--request, #ff5fd2)';
+      // g:0 = ซ่อนสำหรับผู้เยี่ยมชม (guest)
+      const TOURS = {
+        monitor: { name: 'มอนิเตอร์', cards: [
+          { t: 'หน้านี้ไว้ดูเวที', d: 'แสดงเพลงที่กำลังเล่น เพลงถัดไป และโน้ตของเพลง อัปเดตเองทันที ไม่ต้องกดอะไร', m: M.now('กำลังเล่น · SET 1', 'เธอยังคงสวยงาม', 'ศิลปินตัวอย่าง', 'G') },
+          { t: 'ถัดไปและตามด้วย', d: 'ดูเพลงต่อไปล่วงหน้า พร้อมโน้ตที่ผู้คุมคิวเขียนไว้ เช่น "วนอินโทร"', m: M.now('ถัดไป · SET 1', 'เสียดาย', 'Bodyslam', 'G') + '<div class="tm-note">โน้ต: วนอินโทร 2 รอบ</div>' },
+          { t: 'ความคืบหน้าของเพลง', d: 'แถบด้านบนบอกว่าเพลงเล่นมานานแค่ไหนแล้ว จะได้รู้ว่าใกล้จบหรือยัง', m: '<div class="tm-prog"><i style="width:62%"></i></div>' + M.now('กำลังเล่น', 'เธอยังคงสวยงาม', '2:31 / 4:05') },
+          { t: 'ท็อคแบคล่าสุด', d: 'คำสั่งจากผู้คุมคิวขึ้นที่นี่ทันที แตะเพื่อดูประวัติ 4 คำสั่งล่าสุด', m: M.box(['<div class="tm-l">ท็อคแบคล่าสุด</div><div class="tm-t">ย้ำกระเดื่อง วนคอร์ดท่อนฮุค</div>']) },
+          { t: 'เสียงท็อคแบค', d: 'เปิดให้เครื่องอ่านคำสั่งออกเสียงได้ ปรับความดังและความเร็วในการอ่าน และกด "ลองฟังเสียง" เพื่อทดสอบ', m: M.sw('เสียงท็อคแบค', true) + M.btns([['ลองฟังเสียง', '', 'ghost']]) },
+          { t: 'รายการคิวทั้งหมด', d: 'เลื่อนลงไปดูคิวทั้งคืนว่าเหลือเพลงอะไรบ้าง', m: M.rows([[SET[0], 'เธอยังคงสวยงาม', '', 'G'], [SET[0], 'เสียดาย', '', 'G'], [SET[1], 'ขอให้เธอใจดี', '', 'D']]) }
+        ] },
+        live: { name: 'Live (คุมคิวและดูคอร์ด)', cards: [
+          { t: 'หน้านี้คือห้องคุมคิว', d: 'รวมคอร์ดของเพลงที่กำลังเล่นกับคิวทั้งหมดไว้ที่เดียว', m: M.now('กำลังเล่น', 'เธอยังคงสวยงาม', 'ศิลปินตัวอย่าง', 'G') },
+          { t: 'คิวเพลงและสี', d: 'แถบสีด้านซ้ายคือเซ็ตของเพลง ส่วนเพลงสีชมพูคือเพลงที่ลูกค้าขอ', m: M.rows([[SET[0], 'เธอยังคงสวยงาม', 'ศิลปิน', 'G'], [PINK, 'คนธรรมดา', 'ชิน ชินวุฒ', 'F#'], [SET[1], 'ขอให้เธอใจดี', 'Free Hand', 'D']]) },
+          { g: 0, t: 'เลื่อนเพลง', d: 'ปุ่มก่อนหน้า/ถัดไป เปลี่ยนเพลงที่กำลังเล่น ทุกเครื่องในห้องจะเห็นพร้อมกัน', m: M.btns([['ก่อนหน้า', '', 'ghost'], ['ถัดไป', '', 'pri']]) },
+          { g: 0, t: 'จัดคิว', d: 'กด "จัดคิว" เพื่อเข้าโหมดแก้ไข ลากที่จับด้านซ้ายของแถวเพื่อสลับลำดับ และแตะป้ายคีย์เพื่อเปลี่ยนคีย์ให้ตรงกับนักร้อง', m: M.btns([['จัดคิว', '', '']]) + M.rows([[SET[0], 'เสียดาย', 'Bodyslam', 'G'], [SET[0], 'เคลิ้ม', 'Slot Machine', 'G']]) },
+          { g: 0, t: 'บันทึกและย้อนกลับ', d: 'การแก้ไขยังไม่ถูกส่งจนกว่าจะกด "บันทึก" ถ้าทำพลาดกดย้อนกลับเพื่อยกเลิกการแก้ไขทั้งหมด', m: M.btns([['แทรกเพลง', '', ''], ['บันทึก', '', 'pri']]) },
+          { g: 0, t: 'แทรกเพลง', d: 'มี 2 แท็บ: "แทรกเพลงเอง" ค้นหาจากคลังหรือดูเพลงแนะนำ และ "เพลงลูกค้าขอ" แล้วเลือกว่าจะเล่นต่อทันทีหรือเลือกตำแหน่ง', m: '<div class="tm-tabs"><span class="on">แทรกเพลงเอง</span><span>เพลงลูกค้าขอ<b>1</b></span></div>' + M.btns([['คีย์ ทั้งหมด ▾', '', 'ghost']]) },
+          { g: 0, t: 'ลูกค้าขอเพลง', d: 'เมื่อลูกค้าขอเพลง เลือก "ส่งเข้ากล่องลูกค้าขอเพลง" เพื่อเก็บไว้ก่อน หรือ "ใส่ในคิวเลย" ถ้าจะเล่นทันที', m: M.box(['<div class="tm-l">เพลงที่ลูกค้าขอ</div><div class="tm-t">คนธรรมดา</div><div class="tm-s">ชิน ชินวุฒ <span class="tm-k">F#</span></div>']) + M.btns([['ส่งเข้ากล่องลูกค้าขอเพลง', '', 'req'], ['ใส่ในคิวเลย', '', 'small']]) },
+          { g: 0, t: 'ป้ายชมพู', d: 'ตัวเลขที่ปุ่ม "จัดคิว" หรือ "แทรกเพลง" คือจำนวนเพลงในกล่องลูกค้าขอเพลงที่ยังไม่ได้ใส่คิว และจะเด้งเตือนเมื่อมีเพลงใหม่เข้ามา', m: M.btns([['แทรกเพลง', '', 'badge']]) },
+          { g: 0, t: 'คีย์ของเพลงที่ขอ', d: 'ถ้าเพลงอยู่ในคลัง จะแสดงคีย์ให้เลย เผื่อเปลี่ยนให้ตรงกับนักร้องหน้างาน (เช่นลูกค้าขอเพลงผู้หญิงในวันที่ร้องชาย)', m: M.rows([[PINK, 'คนธรรมดา', 'ชิน ชินวุฒ', 'F#']]) }
+        ] },
+        talkback: { name: 'ท็อคแบค', cards: [
+          { t: 'ส่งคำสั่งถึงทีมบนเวที', d: 'คำสั่งที่ส่งจะขึ้นบนหน้ามอนิเตอร์ของทุกเครื่องทันที', m: M.box(['<div class="tm-l">ท็อคแบคล่าสุด</div><div class="tm-t">ตัดจบ</div>']) },
+          { g: 0, t: 'คำสั่งด่วน', d: 'ปุ่มสำเร็จรูป แตะครั้งเดียวส่งเลย เช่น ตัดจบ ซ้ำฮุค ยืดโซโล่ ฮุคสุดท้าย', m: M.btns([['ตัดจบ', ''], ['ซ้ำฮุค', ''], ['ยืดโซโล่', '']]) },
+          { g: 0, t: 'ฟีล / ตัดเพลง', d: 'กลุ่ม 12 ปุ่มสำหรับเปลี่ยนฟีลหรือจบเพลง เช่น เร็วขึ้น ช้าลง เบรคดาวน์ ดิสโก้ เร็กเก้', m: M.chips(['เร็วขึ้น', 'ช้าลง', 'เบรคดาวน์', 'ดิสโก้', 'เร็กเก้'], 'ช้าลง') },
+          { g: 0, t: 'ลูกค้าขอเพลง', d: 'แจ้งทีมเมื่อมีลูกค้าขอเพลง', m: M.btns([['ลูกค้าขอเพลง', '', 'req']]) },
+          { g: 0, t: 'ห้องแชต', d: 'พิมพ์ข้อความเองแล้วกด "ส่ง" เหมาะกับคำสั่งที่ไม่มีปุ่มสำเร็จรูป', m: M.msg([['ซ้ำท่อนฮุคอีกรอบ', 1], ['รับทราบ', 0]]) },
+          { g: 0, t: 'ส่งเข้า Telegram', d: 'เปิดสวิตช์เพื่อให้คำสั่งส่งเข้า Telegram ด้วย และดูสถานะการเชื่อมต่อได้ในหน้านี้', m: M.sw('ส่งแจ้งเตือนเข้า Telegram', true) },
+          { g: 0, t: 'แก้ไขคำสั่งด่วนเองได้', d: 'ปุ่มคำสั่งด่วนของคุณแก้ไขหรือเพิ่มเองได้ที่ ตั้งค่า > คำสั่งด่วน ตั้งชื่อ แอ็คชั่น และสีของปุ่มได้ตามต้องการ', m: M.btns([['ตั้งค่า', ''], ['คำสั่งด่วน', '', 'pri']]) }
+        ] },
+        songs: { name: 'เพลงทั้งหมด', cards: [
+          { g: 0, t: 'คลังเพลงของวง', d: 'รวมเพลงทั้งหมดที่วงเล่นได้ พร้อมคีย์ BPM และความยาวของแต่ละเพลง', m: M.rows([[null, 'Too much so much very much', 'Bird Thongchai', 'D'], [null, 'ทำได้เพียง', 'ศิลปินตัวอย่าง', 'A']]) },
+          { g: 0, t: 'เพิ่มเพลง', d: 'พิมพ์ชื่อเพลงและศิลปิน เพิ่มได้สูงสุด 20 เพลงในครั้งเดียว กด "เพิ่มหลายเพลง" เพื่อเพิ่มแถว', m: M.btns([['+ เพิ่มเพลง', '', 'pri']]) + M.box(['<div class="tm-s">เพลง 1 · ชื่อเพลง / ศิลปิน</div>', '<div class="tm-s">+ เพิ่มหลายเพลง</div>']) },
+          { g: 0, t: 'ระบบตรวจเพลงให้', d: 'ระบบเช็คว่ามีในคลังหลักหรือยัง ถ้ามีในฐานข้อมูลรองจะให้เลือกเพลงที่หมายถึงเพื่อดึงคอร์ด คีย์ BPM และเวลามาให้ ถ้าไม่มีกรอกทีหลังตอนแก้ไขเพลงได้', m: M.rows([[null, 'คนธรรมดา', 'มีในคลังแล้ว · ข้าม', ''], [null, 'เพลงใหม่', 'พบในฐานรอง · เลือกเพลง', '']]) },
+          { g: 0, t: 'ค้นหาและกรองคีย์', d: 'พิมพ์ค้นหาชื่อเพลงหรือศิลปิน และแตะปุ่ม "คีย์" เพื่อเลือกคีย์จากตาราง', m: M.btns([['คีย์ ทั้งหมด ▾', '', 'ghost']]) },
+          { g: 0, t: 'จัดเรียง', d: 'เรียงตามชื่อ ศิลปิน คีย์ BPM ความถี่ที่นำมาเล่น หรือล่าสุดที่เพิ่ม/แก้ไข', m: M.chips(['ชื่อเพลง', 'ศิลปิน', 'คีย์', 'BPM', 'ความถี่'], 'คีย์') },
+          { g: 0, t: 'เพลงที่ยังไม่มีคอร์ด', d: 'ตัวเลือก "เฉพาะเพลงที่ยังไม่มีคอร์ด" ช่วยหาเพลงที่ยังต้องเติมคอร์ด', m: M.sw('เฉพาะเพลงที่ยังไม่มีคอร์ด', true) }
+        ] },
+        setlists: { name: 'ลิสต์เพลง', cards: [
+          { g: 0, t: 'แฟ้มลิสต์', d: 'เก็บลิสต์เพลงแยกตามร้านและวันที่เล่น เปิดดูหรือแก้ไขย้อนหลังได้', m: M.rows([[null, 'มายคลับ', 'จันทร์ 16 พ.ย.', '']]) },
+          { g: 0, t: 'สร้างลิสต์ใหม่', d: 'กด "สร้างลิสต์เพลงใหม่" ใส่ชื่อร้าน/สถานที่กับวันที่เล่น แล้วกด "สร้างและจัดเพลง"', m: M.btns([['สร้างลิสต์เพลงใหม่', '', 'pri']]) },
+          { g: 0, t: 'เลือกเพลงจากคลัง', d: 'เลือกเพลงใส่ลิสต์ กรองด้วยคีย์ และเรียงตามชื่อ ศิลปิน คีย์ หรือเล่นบ่อยสุด', m: M.btns([['+ เลือกเพลงจากคลังใส่ลิสต์', '', 'ghost']]) },
+          { g: 0, t: 'เซ็ตและเมดเลย์', d: 'แบ่งเพลงเป็นเซ็ต และสร้างเมดเลย์รวมหลายเพลงเป็นรายการเดียว', m: M.rows([[SET[0], 'เซ็ต 1 · เสียดาย', '', 'G'], [SET[1], 'เมดเลย์ครึ่งเพลง', '2 เพลง', '']]) },
+          { g: 0, t: 'โน้ตพิเศษและคีย์', d: 'ใส่โน้ตต่อเพลง (เช่น วนท่อนอินโทร) และเลือกคีย์เฉพาะลิสต์นี้ได้', m: M.rows([[SET[0], 'เคลิ้ม', 'วนท่อนอินโทร', 'G']]) },
+          { g: 0, t: 'เลือกเล่นลิสต์นี้', d: 'กด "เลือกเล่นลิสต์นี้" เพื่อโหลดลิสต์เข้าคิวของคืนนี้', m: M.btns([['เลือกเล่นลิสต์นี้', '', 'pri']]) },
+          { g: 0, t: 'ส่งออกให้วง', d: 'ปุ่มส่งออกจะสร้างข้อความรายการเพลงให้ แชร์หรือคัดลอกส่งให้คนในวงได้', m: M.box(['<div class="tm-s">มายคลับ/จันทร์ 16 พ.ย.<br>1. เสียดาย — Bodyslam · G<br>2. เคลิ้ม — Slot Machine · G</div>']) },
+          { g: 0, t: 'ปกป้องงานของคุณ', d: 'ถ้าออกก่อนบันทึกจะมีเตือน และการลบลิสต์ต้องยืนยันก่อนเสมอ', m: M.btns([['แก้ไขต่อ', '', 'ghost'], ['ยืนยัน (ไม่บันทึก)', '', 'danger']]) }
+        ] },
+        settings: { name: 'ตั้งค่า', cards: [
+          { g: 0, t: 'โปรไฟล์', d: 'แก้ข้อมูลผู้ใช้ (ชื่อเล่น บทบาท อีโมจิ) และเปลี่ยนรหัส PIN Username ล็อกไว้เปลี่ยนไม่ได้', m: M.box(['<div class="tm-s">NICKNAME · ROLE · EMOJI</div>']) },
+          { g: 0, t: 'สำรองและกู้คืนข้อมูล', d: 'Export JSON เพื่อเก็บสำเนาข้อมูลห้อง และ Import เพื่อกู้คืนกลับมา', m: M.btns([['Export JSON', '', 'ghost'], ['Import JSON', '', 'ghost']]) },
+          { g: 0, t: 'คำสั่งด่วน', d: 'กำหนดปุ่มท็อคแบคส่วนตัว 6 ปุ่ม แตะปุ่มเพื่อแก้ไขชื่อ แอ็คชั่น และสี', m: M.btns([['ซ้ำฮุค', '', 'p'], ['ตัดจบ', '', 'p2'], ['+', '', 'ghost']]) },
+          { g: 0, t: 'ค้นหา', d: 'ตั้งว่าจะรวมชื่อศิลปินในคำค้นไหม คำต่อท้ายคืออะไร และจะคัดลอกอะไรเมื่อแตะการ์ดเพลง ใช้เฉพาะบัญชีของคุณ', m: M.sw('รวมชื่อศิลปินในคำค้น', true) },
+          { g: 0, t: 'การแสดงผล', d: 'เลือกโหมดกลางวัน/กลางคืน และฟอนต์ พร้อมตัวอย่างหน้ามอนิเตอร์กับหน้าคอร์ด กด "บันทึก" มุมบนขวา', m: M.chips(['กลางวัน', 'กลางคืน'], 'กลางคืน') },
+          { g: 0, t: 'เก็บเฉพาะเครื่องนี้', d: 'สีและฟอนต์ใช้เฉพาะเครื่องนี้ ไม่กระทบเครื่องอื่นของสมาชิกในวง', m: M.sw('ใช้กับเครื่องนี้เท่านั้น', true) },
+          { g: 0, t: 'ดูวิธีใช้ได้ทุกเมื่อ', d: 'ที่เมนูในหน้านี้และเมนูหลักมีรายการ "วิธีใช้" รวมทัวร์ทุกหน้าไว้ ดูซ้ำหรือดูที่ยังไม่ครบได้', m: M.btns([['วิธีใช้', '', 'pri']]) }
+        ] }
+      };
+      const ORDER = ['monitor', 'live', 'talkback', 'songs', 'setlists', 'settings'];
+      const sess = () => { try { return JSON.parse(localStorage.getItem('lsh_session')) || {}; } catch (e) { return {}; } };
+      const cardsOf = (p) => { const s = sess(), T = TOURS[p]; if (!T || s.userType === 'admin') return []; const guest = s.userType === 'guest'; return T.cards.filter((c) => !(guest && c.g === 0)); };
+      const rd = () => { try { return JSON.parse(localStorage.getItem(KEY)) || {}; } catch (e) { return {}; } };
+      const wr = (st) => { try { localStorage.setItem(KEY, JSON.stringify(st)); } catch (e) {} };
+      const setS = (p, v) => { const st = rd(); st[p] = v; wr(st); };
+      let el = null, cur = null;
+      function paint() {
+        const cs = cur.cards, i = cur.i, c = cs[i], last = i === cs.length - 1;
+        el.querySelector('.tour-bar i').style.width = ((i + 1) / cs.length * 100) + '%';
+        el.querySelector('.tour-cnt').textContent = 'ข้อ ' + (i + 1) + ' จาก ' + cs.length + (last ? '' : ' · เหลืออีก ' + (cs.length - i - 1) + ' ข้อ');
+        const body = el.querySelector('.tour-body'); body.classList.remove('in'); void body.offsetWidth;
+        body.innerHTML = '<div class="tour-mock">' + (c.m || '') + '</div><h4>' + esc(c.t) + '</h4><p>' + esc(c.d) + '</p>'; body.classList.add('in');
+        el.querySelector('.tour-next').textContent = last ? 'เสร็จสิ้น' : 'ถัดไป';
+        el.querySelector('.tour-skip').style.visibility = last ? 'hidden' : '';
+      }
+      function finish(done) {
+        if (!cur) return; const p = cur.page, n = cur.cards.length;
+        setS(p, { s: done ? 'done' : 'part', n: done ? n : Math.max(cur.i + 1, (rd()[p] || {}).n || 0), t: n });
+        const e = el; cur = null; el = null; if (e) { e.classList.remove('in'); setTimeout(() => e.remove(), 360); }
+        if (done && window.lshToast) window.lshToast('ดูทัวร์ "' + TOURS[p].name + '" ครบแล้ว', 'ok');
+        if (helpEl) renderHelp();
+      }
+      function start(page) {
+        close(true); const cards = cardsOf(page); if (!cards.length) return;
+        cur = { page: page, cards: cards, i: 0 };
+        el = document.createElement('div'); el.className = 'tour-card'; el.setAttribute('role', 'dialog'); el.setAttribute('aria-label', 'ทัวร์ ' + TOURS[page].name);
+        el.innerHTML = '<div class="tour-head"><span class="tour-name">' + esc(TOURS[page].name) + '</span><span class="tour-cnt"></span></div><div class="tour-bar"><i></i></div><div class="tour-body"></div><div class="tour-act"><button type="button" class="tour-skip">ข้ามทัวร์</button><button type="button" class="tour-next"></button></div>';
+        document.body.appendChild(el);
+        el.querySelector('.tour-skip').onclick = () => finish(false);
+        el.querySelector('.tour-next').onclick = () => { if (cur.i >= cards.length - 1) finish(true); else { cur.i++; const st = rd()[page] || {}; setS(page, { s: 'part', n: Math.max(cur.i + 1, st.n || 0), t: cards.length }); paint(); } };
+        const st = rd()[page]; if (!st) setS(page, { s: 'part', n: 1, t: cards.length });
+        paint(); requestAnimationFrame(() => el && el.classList.add('in'));
+      }
+      function close(silent) { if (!cur) return; if (silent) { const p = cur.page, n = cur.cards.length, st = rd()[p] || {}; setS(p, { s: st.s === 'done' ? 'done' : 'part', n: Math.max(cur.i + 1, st.n || 0), t: n }); const e = el; cur = null; el = null; if (e) e.remove(); } else finish(false); }
+      function auto(page) { setTimeout(() => { try { if (rd()[page] || cur || document.getElementById('roomModal') && !document.getElementById('roomModal').classList.contains('hidden')) return; if (!localStorage.getItem('lsh_session')) return; start(page); } catch (e) {} }, 1300); }
+      // ---- หน้าวิธีใช้ ----
+      let helpEl = null;
+      const IC_OK = '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>', IC_PART = '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M6 12h12"/></svg>';
+      function renderHelp() {
+        const st = rd(), list = helpEl.querySelector('.help-list');
+        list.innerHTML = ORDER.filter((p) => cardsOf(p).length).map((p) => { const n = cardsOf(p).length, s = st[p], k = s ? s.s : '';
+          return '<button type="button" class="help-row" data-p="' + p + '"><span class="help-st ' + k + '">' + (k === 'done' ? IC_OK : (k === 'part' ? IC_PART : '')) + '</span><span class="help-tx"><b>' + esc(TOURS[p].name) + '</b><i>' + n + ' ข้อ</i></span><svg class="ic help-c" aria-hidden="true"><use href="#i-chev-down"/></svg></button>'; }).join('');
+        list.querySelectorAll('.help-row').forEach((b) => b.onclick = () => { closeHelp(); setTimeout(() => start(b.dataset.p), 200); });
+      }
+      function openHelp() {
+        if (helpEl) return; close(true);
+        if (!ORDER.some((p) => cardsOf(p).length)) { if (window.lshToast) window.lshToast('บัญชีนี้ยังไม่มีวิธีใช้', 'warn'); return; }
+        helpEl = document.createElement('div'); helpEl.className = 'help-sheet';
+        helpEl.innerHTML = '<div class="help-top"><div class="help-title">วิธีใช้</div><button type="button" class="help-x" aria-label="ปิด">✕</button></div><div class="help-sub">เลือกหัวข้อที่อยากเรียนรู้ · <span class="help-st done">' + IC_OK + '</span> ดูครบแล้ว <span class="help-st part">' + IC_PART + '</span> ดูแล้วแต่ยังไม่ครบ</div><div class="help-list"></div><button type="button" class="help-reset">ล้างสถานะทั้งหมด</button>';
+        document.body.appendChild(helpEl); renderHelp();
+        helpEl.querySelector('.help-x').onclick = closeHelp;
+        helpEl.querySelector('.help-reset').onclick = () => { wr({}); renderHelp(); };
+        requestAnimationFrame(() => helpEl && helpEl.classList.add('in'));
+      }
+      function closeHelp() { if (!helpEl) return; const e = helpEl; helpEl = null; e.classList.remove('in'); setTimeout(() => e.remove(), 380); }
+      return { auto: auto, start: start, close: close, openHelp: openHelp, _tours: TOURS };
+    })();
+
     // ตัวกรองคีย์แบบย่อ: ปุ่มเล็ก แตะแล้วเปิดป็อบโอเวอร์เลือกคีย์ (ใช้ร่วมกันทุกหน้าที่กรองคีย์)
     window.lshKeyFilter = (function() {
       let pop = null, closer = null;
@@ -1635,6 +1767,7 @@
       <button onclick="menuAction('แฟ้มลิสต์เพลง')">แฟ้มลิสต์เพลง</button>
       <button onclick="menuAction('เพลงทั้งหมด')">เพลงทั้งหมด</button>
       <button onclick="menuAction('รายการเพลงรีเควส')">รายการเพลงรีเควส</button>
+      <button onclick="toggleDrawer(false); lshTour.openHelp();">วิธีใช้</button>
       <button onclick="openClearQueueConfirm()">เคลียร์คิว</button>
       <button onclick="menuAction('ตั้งค่า')">ตั้งค่า</button>
       <button onclick="openLogoutConfirm()" class="is-danger">ออกจากระบบ</button>
@@ -1887,7 +2020,7 @@
     };
 
     // ===== ตรวจเวอร์ชันแอป (2.0): เทียบเลขใน version.json บนเซิร์ฟเวอร์ กับเลขของโค้ดที่เปิดอยู่ =====
-    const LSH_APP_VER = '2.0.19';
+    const LSH_APP_VER = '2.0.20';
     try { const dv = document.getElementById('drawerVersion'); if (dv) dv.textContent = 'เวอร์ชัน ' + LSH_APP_VER; } catch (e) {}   // แสดงเลขเวอร์ชันท้ายเมนูแฮมเบอร์เกอร์
     let lshVerAt = 0;
     function lshCheckVersion() {
@@ -2741,6 +2874,7 @@
         return;
       }
 
+      try { if (window.lshTour) window.lshTour.close(true); } catch (e) {}
       try { if (window.__lv && window.__lv.dispose) window.__lv.dispose(); } catch (e) {}   // ออกจากหน้า Live: หยุด listener/ตัวจับเวลาของหน้านั้น
       window.__lv = null;
       const container = document.getElementById('mainContentArea');
@@ -2776,6 +2910,7 @@
       }
       // หน้าที่ไม่รอข้อมูลจาก Firebase (ตั้งค่า) ให้ซ่อนทันทีหลังโหลดเสร็จ
       if (pageName === 'settings') window.lshReady();
+      try { if (window.lshTour) window.lshTour.auto(pageName); } catch (e) {}
     }
 
     // เปิดหน้าต่าง Pop-up ประวัติเพลงรีเควส
