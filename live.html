@@ -627,7 +627,17 @@
     const cur = () => D || preview();
     const numberOf = (list, id) => { let n = 0; for (const x of list) { if (x.status === 'removed') continue; if (isSong(x)) n++; if (x.id === id) return n; } return 0; };
     const setCls = (x) => isBrk(x) || !isIns(x) ? 'var(--set-' + sn(x.set) + ', var(--set-1))' : (x.type === 'inserted-request' ? 'var(--request)' : 'var(--custom)');
-    const keyOf = (x) => (x.key && x.key !== '-') ? x.key : '';
+    const okKey = (k) => (k && String(k).trim() && String(k).trim() !== '-') ? String(k).trim() : '';
+    function libKey(x) {   // คีย์ของเพลงขอที่ไม่ได้ระบุคีย์ → หาจากฐานข้อมูลหลัก (ตาม id ก่อน แล้วชื่อเพลง+ศิลปิน) / ฐานรองที่โหลดไว้แล้ว (แสดงอย่างเดียว ไม่เขียนข้อมูล)
+      try {
+        const a = lib(), id = x.songId || x.songID, nm = (t) => String(t || '').trim().toLowerCase();
+        let s = (id && id !== '-') ? a.find((z) => z && String(z.id) === String(id)) : null;
+        if (!s && x.title) { const same = a.filter((z) => z && nm(z.title) === nm(x.title)); s = same.find((z) => nm(z.artist) === nm(x.artist)) || (same.length === 1 ? same[0] : null); }
+        const k = s ? okKey(s.key) : '';
+        return k || (window.lshKeyPick && x.songId ? okKey(lshKeyPick.origCached(x)) : '');
+      } catch (e) { return ''; }
+    }
+    const keyOf = (x) => okKey(x.key) || (x.type === 'inserted-request' ? libKey(x) : '');
     function onPlayChange() {
       const p = playingOf(Q.songs), id = p ? p.id : null;
       if (id !== ui.lastPlay) { ui.lastPlay = id; if (ui.follow) ui.exId = null; if (!D) setTimeout(() => { const el = document.querySelector('#lvList .lv-card.playing, #lvList .lv-bar.cur'); if (el && el.scrollIntoView) el.scrollIntoView({ block: 'start', behavior: 'smooth' }); }, 80); prefetch(); }
@@ -1140,7 +1150,7 @@
       document.querySelectorAll('#lvOv .lv-tabs2 > button').forEach((b) => b.classList.toggle('on', b.dataset.t === o.tab));
       const bd = $('lvInsBadge'); if (bd) { bd.textContent = reqVis().length; bd.style.display = reqVis().length ? '' : 'none'; }
       if (o.tab === 'req') {
-        body.innerHTML = reqVis().length ? reqVis().map((r) => '<div style="display:flex;align-items:center;gap:6px"><button type="button" class="lv-row pk" style="flex:1" data-a="inspick" data-k="request" data-s="' + jattr(r) + '"><span><b>' + esc(r.title) + '</b><br><span class="a">' + esc(r.artist && r.artist !== '-' ? r.artist : '') + '</span></span><span class="m">แตะเพื่อแทรก</span></button><button type="button" class="lv-x" data-a="reqdel" data-id="' + esc(r.id) + '" aria-label="ลบคำขอ">✕</button></div>').join('') : '<div class="lv-empty">ไม่มีคำขอเพลงที่รอจัดคิว</div>';
+        body.innerHTML = reqVis().length ? reqVis().map((r) => '<div style="display:flex;align-items:center;gap:6px"><button type="button" class="lv-row pk" style="flex:1" data-a="inspick" data-k="request" data-s="' + jattr(r) + '"><span><b>' + esc(r.title) + '</b><br><span class="a">' + esc([r.artist && r.artist !== '-' ? r.artist : '', (okKey(r.key) || libKey(r)) ? 'Key ' + (okKey(r.key) || libKey(r)) : ''].filter(Boolean).join(' · ')) + '</span></span><span class="m">แตะเพื่อแทรก</span></button><button type="button" class="lv-x" data-a="reqdel" data-id="' + esc(r.id) + '" aria-label="ลบคำขอ">✕</button></div>').join('') : '<div class="lv-empty">ไม่มีคำขอเพลงที่รอจัดคิว</div>';
         return;
       }
       const q = (o.q || '').toLowerCase().trim(), used = inQueue(D || Q.songs), cp = curSong();
@@ -1161,7 +1171,7 @@
     function songObj(s, kind) {   // แปลงเพลงจากคลัง/คำขอ/คลังคอร์ด เป็นรายการในคิว
       const fromReq = kind === 'request';
       const sid = fromReq ? ((s.songID && s.songID !== '-') ? s.songID : (s.songId || '')) : (s.id && s.id !== '-' ? s.id : (s.songId || ''));
-      const o = { id: 'ins_' + nowMs() + '_' + Math.floor(Math.random() * 1000), songId: sid || '', title: s.title, artist: s.artist || '-', key: s.key || '-', bpm: s.bpm || '-', note: s.note || '-', set: kind === 'custom' ? 'Set เพลงแทรก' : 'Set รีเควส', status: 'normal', type: kind === 'custom' ? 'inserted-custom' : 'inserted-request' };
+      const o = { id: 'ins_' + nowMs() + '_' + Math.floor(Math.random() * 1000), songId: sid || '', title: s.title, artist: s.artist || '-', key: okKey(s.key) || (fromReq ? libKey(s) : '') || '-', bpm: s.bpm || '-', note: s.note || '-', set: kind === 'custom' ? 'Set เพลงแทรก' : 'Set รีเควส', status: 'normal', type: kind === 'custom' ? 'inserted-custom' : 'inserted-request' };
       if (s.chordId) o.chordId = s.chordId;   // เพลงจากคลังคอร์ด (ฐานข้อมูลรอง): เก็บรหัสคลังไว้โหลดคอร์ดได้เร็วและครบ
       return o;
     }
@@ -1247,7 +1257,7 @@
       };
       reqCtx = { s: s, rec: rec };
       popBtns = [{ fn: () => { closeOv(); rec(true); lshToast('ส่งเข้ากล่องลูกค้าขอเพลงแล้ว', 'ok'); } }, { fn: () => reqPickPos(s) }];
-      showOv('<div class="lv-pop req" data-a="stop-prop"><div class="s0">เพลงที่ลูกค้าขอ</div><div class="nm">' + esc(s.title) + '</div>' + (s.artist && s.artist !== '-' ? '<div class="ar">' + esc(s.artist) + '</div>' : '') +
+      showOv('<div class="lv-pop req" data-a="stop-prop"><div class="s0">เพลงที่ลูกค้าขอ</div><div class="nm">' + esc(s.title) + '</div>' + (s.artist && s.artist !== '-' ? '<div class="ar">' + esc(s.artist) + '</div>' : '') + ((okKey(s.key) || libKey(s)) ? '<div class="ar">Key ' + esc(okKey(s.key) || libKey(s)) + '</div>' : '') +
         '<div class="bt"><button type="button" class="lv-pb pink" data-a="pb" data-i="0">ส่งเข้ากล่องลูกค้าขอเพลง</button><button type="button" class="lv-pb pinko qk" data-a="pb" data-i="1">ใส่ในคิวเลย</button></div></div>', 'center', 'pop');
     }
     let reqCtx = null, rqItems = [];
