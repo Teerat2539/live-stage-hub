@@ -280,42 +280,110 @@
           { g: 0, t: 'วิธีใช้', d: 'เมนูหลักของแอพ (ปุ่มขีดสามขีดมุมบน) มีรายการ "วิธีใช้" รวมทัวร์ทุกหน้า ดูซ้ำได้ และบอกว่าหัวข้อไหนดูครบแล้ว', m: M.btns([['วิธีใช้', '', 'pri']]) }
         ] }
       };
-      const ORDER = ['monitor', 'live', 'talkback', 'songs', 'setlists', 'settings'];
+      // เปลี่ยนเป็นทัวร์ชี้ส่วนของหน้าจริง: s = ตัวเลือก CSS ของส่วนที่ชี้, up = ขึ้นไปหา parent, land = ชี้เฉพาะแนวนอน ; ชี้ไม่เจอ → ป๊อปโอเวอร์กลางจอ + ภาพจำลอง
+      TOURS.shell = { name: 'เมนูหลักของแอพ', cards: [
+        { s: '.header-left .hdr-btn', t: 'เมนูหลัก', d: 'ปุ่มขีดสามขีดมุมบนซ้าย เปิดเมนูของแอพ: ลิสต์เพลง เพลงทั้งหมด ตั้งค่า วิธีใช้ และสลับโหมดกลางวัน/กลางคืน', m: M.btns([['☰ เมนู', '', 'ghost']]) },
+        { s: 'nav', t: 'แถบเมนูนำทางด้านล่าง', d: 'แตะเพื่อสลับระหว่างหน้า Monitor, Live และท็อคแบค เมนูที่ใช้บ่อยอยู่ที่นี่ตลอด', m: M.btns([['Monitor', ''], ['Live', ''], ['TalkBack', '']]) },
+        { s: '#showTimerDisplay', t: 'ชื่อวงและจอยวง', d: 'ชิปกลางหัวจอแสดงวงที่คุณอยู่ แตะเพื่อเปิดแผง "วงของฉัน" สำหรับสลับวงหรือจอยวง', m: M.btns([['● ชื่อวง', '', 'ghost']]) },
+        { s: '#showTimerDisplay', t: 'นาฬิกานับถอยหลังของโชว์', d: 'เมื่อมีการตั้งเวลาโชว์ ชิปกลางหัวจอจะเปลี่ยนเป็นนาฬิกานับถอยหลัง บอกว่าเหลือเวลาอีกเท่าไหร่', m: '<div class="tm-t" style="text-align:center">1:24:05</div>' },
+        { s: '#clockDisplay', t: 'นาฬิกาปัจจุบัน', d: 'มุมบนขวาแสดงเวลาตอนนี้ ดูได้โดยไม่ต้องควักโทรศัพท์ตัวอื่น', m: '<div class="tm-t" style="text-align:center">21:04:12</div>' }
+      ] };
+      const SEL = {
+        monitor: ['#monitorTopBar', '#tbSoundQuick', '.song-box-current', '#nextSongCardBox', '#standbyBox', '.monitor-progress-bar-container', { s: '.song-box-current', land: true }],
+        live: [{ s: '.lv-tag.live', up: '.lv-card' }, '.lv-card:not(.played)', '[data-a=next]', '[data-a=autosw]', '[data-a=timer]', '[data-a=played]', '#lvActs [data-a=edit]', null, null, '#lvActs [data-a=req]', '#lvActs .lv-badge', null, '[data-a=copy]'],
+        talkback: ['.tb-top-bar', '#tgBar', '#quickButtonsContainer', '#feelWrap', '#bottomControlBar', '#quickButtonsContainer'],
+        songs: ['#songSearchInput', '#btnToggleLine2', '#btnOpenAddSong', '#btnOpenAddSong', '#masterSongList > div'],
+        setlists: ['#btnOpenCalendar', '#btnOpenCreatePlaylist', '#masterPlaylistList > div', null, null, null, null, null],
+        settings: ['.settings-tabs', '.set-menu button:nth-child(1)', '.set-menu button:nth-child(2)', '.set-menu button:nth-child(3)', '.set-menu button:nth-child(4)', '.header-left .hdr-btn']
+      };
+      Object.keys(SEL).forEach((k) => TOURS[k].cards.forEach((c, i) => { const v = SEL[k][i]; if (v) Object.assign(c, typeof v === 'string' ? { s: v } : v); }));
+      const ORDER = ['shell', 'monitor', 'live', 'talkback', 'songs', 'setlists', 'settings'];
       const sess = () => { try { return JSON.parse(localStorage.getItem('lsh_session')) || {}; } catch (e) { return {}; } };
       const cardsOf = (p) => { const s = sess(), T = TOURS[p]; if (!T || s.userType === 'admin') return []; const guest = s.userType === 'guest'; return T.cards.filter((c) => !(guest && c.g === 0)); };
       const rd = () => { try { return JSON.parse(localStorage.getItem(KEY)) || {}; } catch (e) { return {}; } };
       const wr = (st) => { try { localStorage.setItem(KEY, JSON.stringify(st)); } catch (e) {} };
       const setS = (p, v) => { const st = rd(); st[p] = v; wr(st); };
-      let el = null, cur = null;
+      const curPage = () => { const b = document.querySelector('nav button.active'); return b ? b.id.replace('nav-', '') : ''; };
+      const vis = (n) => { if (!n) return false; const r = n.getBoundingClientRect(); return r.width > 0 && r.height > 0 && getComputedStyle(n).visibility !== 'hidden'; };
+      function findTarget(c, page) {
+        if (!c.s || (page !== 'shell' && curPage() !== page)) return null;
+        if (c.land && !(window.matchMedia && matchMedia('(orientation: landscape)').matches)) return null;
+        let n = null; document.querySelectorAll(c.s).forEach((x) => { if (!n && vis(x)) n = x; });
+        if (n && c.up) n = n.closest(c.up) || n;
+        return n;
+      }
+      let el = null, cur = null, ring = null, blk = null, onRe = null;
+      function clearTarget() { if (ring) { ring.remove(); ring = null; } if (blk) { blk.remove(); blk = null; } if (onRe) { window.removeEventListener('resize', onRe); window.removeEventListener('orientationchange', onRe); onRe = null; } }
+      function place() {
+        if (!el || !cur) return; const c = cur.cards[cur.i], tg = cur.tg;
+        if (!tg || !document.body.contains(tg) || !vis(tg)) { el.classList.remove('anchored'); el.style.top = el.style.left = el.style.width = ''; el.style.removeProperty('--ax'); if (ring) ring.style.opacity = 0; return; }
+        const r = tg.getBoundingClientRect(), pad = 6, vw = window.innerWidth, vh = window.innerHeight;
+        ring.style.opacity = 1; ring.style.left = (r.left - pad) + 'px'; ring.style.top = (r.top - pad) + 'px'; ring.style.width = (r.width + pad * 2) + 'px'; ring.style.height = (r.height + pad * 2) + 'px';
+        el.classList.add('anchored'); const w = Math.min(340, vw - 24); el.style.width = w + 'px'; const h = el.offsetHeight;
+        const below = vh - r.bottom - 16, above = r.top - 16; let top, dir;
+        if (below >= h + 14 || below >= above) { top = r.bottom + pad + 12; dir = 'up'; } else { top = r.top - pad - 12 - h; dir = 'down'; }
+        top = Math.max(8, Math.min(top, vh - h - 8));
+        const left = Math.max(12, Math.min(r.left + r.width / 2 - w / 2, vw - w - 12));
+        el.style.left = left + 'px'; el.style.top = top + 'px'; el.dataset.dir = dir; el.style.setProperty('--ax', Math.max(18, Math.min(w - 18, r.left + r.width / 2 - left)) + 'px');
+      }
       function paint() {
         const cs = cur.cards, i = cur.i, c = cs[i], last = i === cs.length - 1;
         el.querySelector('.tour-bar i').style.width = ((i + 1) / cs.length * 100) + '%';
         el.querySelector('.tour-cnt').textContent = 'ข้อ ' + (i + 1) + ' จาก ' + cs.length + (last ? '' : ' · เหลืออีก ' + (cs.length - i - 1) + ' ข้อ');
+        cur.tg = findTarget(c, cur.page);
         const body = el.querySelector('.tour-body'); body.classList.remove('in'); void body.offsetWidth;
-        body.innerHTML = '<div class="tour-mock">' + (c.m || '') + '</div><h4>' + esc(c.t) + '</h4><p>' + esc(c.d) + '</p>'; body.classList.add('in');
+        body.innerHTML = (cur.tg ? '' : '<div class="tour-mock">' + (c.m || '') + '</div>') + '<h4>' + esc(c.t) + '</h4><p>' + esc(c.d) + '</p>'; body.classList.add('in');
         el.querySelector('.tour-next').textContent = last ? 'เสร็จสิ้น' : 'ถัดไป';
         el.querySelector('.tour-skip').style.visibility = last ? 'hidden' : '';
+        if (cur.tg) { if (!blk) { blk = document.createElement('div'); blk.className = 'tour-blk'; document.body.appendChild(blk); }
+          if (!ring) { ring = document.createElement('div'); ring.className = 'tour-ring'; document.body.appendChild(ring); }
+          try { cur.tg.scrollIntoView({ block: 'center', behavior: 'smooth' }); } catch (e) {}
+          place(); setTimeout(place, 120); setTimeout(place, 420);
+        } else { if (ring) ring.style.opacity = 0; place(); }
       }
       function finish(done) {
-        if (!cur) return; const p = cur.page, n = cur.cards.length;
+        if (!cur) return; const p = cur.page, n = cur.cards.length, nx = cur.next;
         setS(p, { s: done ? 'done' : 'part', n: done ? n : Math.max(cur.i + 1, (rd()[p] || {}).n || 0), t: n });
-        const e = el; cur = null; el = null; if (e) { e.classList.remove('in'); setTimeout(() => e.remove(), 360); }
+        const e = el; cur = null; el = null; clearTarget(); if (e) { e.classList.remove('in'); setTimeout(() => e.remove(), 360); }
         if (done && window.lshToast) window.lshToast('ดูทัวร์ "' + TOURS[p].name + '" ครบแล้ว', 'ok');
         if (helpEl) renderHelp();
+        if (nx && !rd()[nx] && curPage() === nx) setTimeout(() => start(nx), 500);
       }
-      function start(page) {
+      function start(page, next) {
         close(true); const cards = cardsOf(page); if (!cards.length) return;
-        cur = { page: page, cards: cards, i: 0 };
+        cur = { page: page, cards: cards, i: 0, next: next || '' };
         el = document.createElement('div'); el.className = 'tour-card'; el.setAttribute('role', 'dialog'); el.setAttribute('aria-label', 'ทัวร์ ' + TOURS[page].name);
-        el.innerHTML = '<div class="tour-head"><span class="tour-name">' + esc(TOURS[page].name) + '</span><span class="tour-cnt"></span></div><div class="tour-bar"><i></i></div><div class="tour-body"></div><div class="tour-act"><button type="button" class="tour-skip">ข้ามทัวร์</button><button type="button" class="tour-next"></button></div>';
+        el.innerHTML = '<div class="tour-head"><span class="tour-name">' + esc(TOURS[page].name) + '</span><span class="tour-cnt"></span></div><div class="tour-bar"><i></i></div><div class="tour-body"></div><div class="tour-act"><button type="button" class="tour-skip">ข้ามทัวร์</button><button type="button" class="tour-next"></button></div><i class="tour-arrow"></i>';
         document.body.appendChild(el);
         el.querySelector('.tour-skip').onclick = () => finish(false);
         el.querySelector('.tour-next').onclick = () => { if (cur.i >= cards.length - 1) finish(true); else { cur.i++; const st = rd()[page] || {}; setS(page, { s: 'part', n: Math.max(cur.i + 1, st.n || 0), t: cards.length }); paint(); } };
         const st = rd()[page]; if (!st) setS(page, { s: 'part', n: 1, t: cards.length });
+        onRe = () => place(); window.addEventListener('resize', onRe); window.addEventListener('orientationchange', onRe);
         paint(); requestAnimationFrame(() => el && el.classList.add('in'));
       }
-      function close(silent) { if (!cur) return; if (silent) { const p = cur.page, n = cur.cards.length, st = rd()[p] || {}; setS(p, { s: st.s === 'done' ? 'done' : 'part', n: Math.max(cur.i + 1, st.n || 0), t: n }); const e = el; cur = null; el = null; if (e) e.remove(); } else finish(false); }
-      function auto(page) { setTimeout(() => { try { if (rd()[page] || cur || document.getElementById('roomModal') && !document.getElementById('roomModal').classList.contains('hidden')) return; if (!localStorage.getItem('lsh_session')) return; start(page); } catch (e) {} }, 1300); }
+      function close(silent) { if (!cur) return; if (silent) { const p = cur.page, n = cur.cards.length, st = rd()[p] || {}; setS(p, { s: st.s === 'done' ? 'done' : 'part', n: Math.max(cur.i + 1, st.n || 0), t: n }); const e = el; cur = null; el = null; clearTarget(); if (e) e.remove(); } else finish(false); }
+      // ---- คำถามติวเตอร์เรียลตอนล็อกอินครั้งแรก (ครั้งเดียวต่อเครื่อง) ----
+      let askEl = null;
+      function offer(page) {
+        if (askEl) return; try { localStorage.setItem('lsh_tour_asked', '1'); } catch (e) {}
+        askEl = document.createElement('div'); askEl.className = 'overlay tour-ask';
+        askEl.innerHTML = '<div class="box" style="text-align:center"><h3>ขอแนะนำการใช้งานสั้นๆ ไหม</h3><p style="font-size:13px;line-height:1.6;color:var(--text-2);margin:8px 0 16px">ติวเตอร์เรียลจะอธิบายทีละหน้าตอนที่คุณเปิดหน้านั้น ใช้เวลาประมาณ 1–3 นาทีต่อหน้า ข้ามได้ทุกเมื่อ และกลับมาดูภายหลังได้ที่เมนู "วิธีใช้"</p><button type="button" class="btn-primary" id="askGo">เริ่มติวเตอร์เรียล</button><button type="button" class="btn-ghost" id="askSkip" style="margin-top:8px">ข้ามไปใช้งานเลย</button></div>';
+        document.body.appendChild(askEl);
+        const done = (go) => { const e = askEl; askEl = null; e.remove();
+          if (go) { start('shell', page); }
+          else { const st = rd(); ORDER.forEach((p) => { const n = cardsOf(p).length; if (n && !st[p]) st[p] = { s: 'part', n: 0, t: n }; }); wr(st); } };
+        askEl.querySelector('#askGo').onclick = () => done(true); askEl.querySelector('#askSkip').onclick = () => done(false);
+      }
+      function auto(page) { setTimeout(() => { try {
+        if (cur || askEl || !localStorage.getItem('lsh_session')) return;
+        const rm = document.getElementById('roomModal'); if (rm && !rm.classList.contains('hidden')) return;
+        const ml = document.getElementById('memberLoginModal'); if (ml && !ml.classList.contains('hidden')) return;
+        const st = rd();
+        if (window.__lshFresh) { window.__lshFresh = false; if (!localStorage.getItem('lsh_tour_asked') && !Object.keys(st).length && sess().userType !== 'admin') { offer(page); return; } }
+        if (!cardsOf(page).length) return;
+        if (!st.shell && cardsOf('shell').length) { start('shell', st[page] ? '' : page); return; }
+        if (!st[page]) start(page);
+      } catch (e) {} }, 1300); }
       // ---- หน้าวิธีใช้ ----
       let helpEl = null;
       const IC_OK = '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>', IC_PART = '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M6 12h12"/></svg>';
@@ -2085,7 +2153,7 @@
     };
 
     // ===== ตรวจเวอร์ชันแอป (2.0): เทียบเลขใน version.json บนเซิร์ฟเวอร์ กับเลขของโค้ดที่เปิดอยู่ =====
-    const LSH_APP_VER = '2.0.24';
+    const LSH_APP_VER = '2.0.25';
     window.LSH_VER_TXT = LSH_APP_VER;
     try { const dv = document.getElementById('drawerVersion'); if (dv) dv.textContent = 'เวอร์ชัน ' + LSH_APP_VER; } catch (e) {}   // แสดงเลขเวอร์ชันท้ายเมนูแฮมเบอร์เกอร์
     let lshVerAt = 0;
@@ -2795,6 +2863,7 @@
     }
 
     function saveSession(room, nickname, role, userType, username, emoji, extra) {
+      window.__lshFresh = true;
       const now = new Date();
       const sessionData = {
         room: room,

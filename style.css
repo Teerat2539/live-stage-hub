@@ -2751,3 +2751,15 @@ nav button { transition: flex-grow 420ms var(--ease-out), background-color var(-
   .lnd-go { min-height: 46px; font-size: 16px; max-width: 320px; } .box .btn-admin-link, .lnd-foot .btn-admin-link { margin: 0; }
 }
 @media (prefers-reduced-motion: reduce) { .lnd { transition: none; } }
+
+/* ===== 2.0.25 ทัวร์ป๊อปโอเวอร์ชี้ส่วนของหน้า ===== */
+.tour-card.anchored { bottom: auto; right: auto; margin: 0; max-width: none; transition: opacity var(--dur) var(--ease-out), left var(--dur-slow) var(--ease-out), top var(--dur-slow) var(--ease-out); }
+.tour-blk { position: fixed; inset: 0; z-index: 15990; background: transparent; }
+.tour-ring { position: fixed; z-index: 15995; pointer-events: none; border-radius: 14px; border: 2px solid var(--live); box-shadow: 0 0 0 9999px rgba(0,0,0,.58), 0 0 18px 2px color-mix(in srgb, var(--live) 60%, transparent); opacity: 0; transition: left var(--dur-slow) var(--ease-out), top var(--dur-slow) var(--ease-out), width var(--dur-slow) var(--ease-out), height var(--dur-slow) var(--ease-out), opacity var(--dur) var(--ease-out); animation: tourRing 1.8s ease-in-out infinite; }
+@keyframes tourRing { 50% { border-color: color-mix(in srgb, var(--live) 50%, transparent); } }
+.tour-arrow { display: none; position: absolute; width: 14px; height: 14px; left: var(--ax, 50%); margin-left: -7px; background: var(--surface-2); border: 1px solid var(--line-strong); rotate: 45deg; }
+.tour-card.anchored .tour-arrow { display: block; }
+.tour-card.anchored[data-dir="up"] .tour-arrow { top: -8px; border-right: 0; border-bottom: 0; }
+.tour-card.anchored[data-dir="down"] .tour-arrow { bottom: -8px; border-left: 0; border-top: 0; }
+.tour-ask { z-index: 16100; }
+@media (prefers-reduced-motion: reduce) { .tour-ring { animation: none; transition: none; } .tour-card.anchored { transition: none; } }
