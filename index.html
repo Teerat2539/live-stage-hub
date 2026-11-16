@@ -284,7 +284,7 @@
     <h3 style="color:var(--c-f59e0b);margin-bottom:8px"><svg class="ic" aria-hidden="true"><use href="#i-alert"/></svg> ยังไม่ได้บันทึกข้อมูล</h3>
     <p class="modal-desc">คุณต้องการออกจากหน้าต่างนี้โดยไม่บันทึกใช่หรือไม่?</p>
     <div style="display:flex;gap:10px">
-      <button id="btnConfirmDiscard" style="flex:1;padding:10px;border-radius:6px;border:none;background:var(--c-ef4444);color:var(--c-ffffff);font-weight:bold;cursor:pointer">ยืนยัน (ไม่บันทึก)</button>
+      <button id="btnConfirmDiscard" style="flex:1;padding:10px;border-radius:6px;border:none;background:var(--c-ef4444);color:#ffffff;font-weight:bold;cursor:pointer">ยืนยัน (ไม่บันทึก)</button>
       <button id="btnCancelDiscard" style="flex:1;padding:10px;border-radius:6px;border:none;background:var(--c-333333);color:var(--c-ffffff);cursor:pointer">แก้ไขต่อ</button>
     </div>
   </div>
@@ -1790,7 +1790,7 @@
     };
 
     // ===== ตรวจเวอร์ชันแอป (2.0): เทียบเลขใน version.json บนเซิร์ฟเวอร์ กับเลขของโค้ดที่เปิดอยู่ =====
-    const LSH_APP_VER = '2.0.14';
+    const LSH_APP_VER = '2.0.15';
     try { const dv = document.getElementById('drawerVersion'); if (dv) dv.textContent = 'เวอร์ชัน ' + LSH_APP_VER; } catch (e) {}   // แสดงเลขเวอร์ชันท้ายเมนูแฮมเบอร์เกอร์
     let lshVerAt = 0;
     function lshCheckVersion() {

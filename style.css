@@ -144,7 +144,7 @@ header button:active { background: var(--surface-3); }
 }
 .ping-green  { background: var(--live-soft); color: var(--live); box-shadow: inset 0 0 0 1px var(--live-line); }
 .ping-yellow { background: var(--next-soft); color: var(--next); box-shadow: inset 0 0 0 1px rgba(255,194,51,.55); }
-.ping-red    { background: var(--danger); color: var(--c-ffffff); }
+.ping-red    { background: var(--danger); color: #ffffff; }
 
 main {
   flex: 1 1 auto; min-height: 0;
@@ -550,9 +550,9 @@ nav button.active::before {
   transition: transform .1s;
 }
 .popup-btn:active { transform: scale(.97); }
-.popup-btn-move   { background: var(--info);   color: var(--c-ffffff); }
+.popup-btn-move   { background: var(--info);   color: #ffffff; }
 .popup-btn-skip   { background: var(--next);   color: var(--next-ink); }
-.popup-btn-delete { background: var(--danger); color: var(--c-ffffff); }
+.popup-btn-delete { background: var(--danger); color: #ffffff; }
 .popup-btn-cancel { background: var(--surface-3); color: var(--text-2); margin-top: 4px; }
 
 /* ============================ 8. QUEUE PAGE ============================ */
@@ -1000,7 +1000,7 @@ input:disabled + .slider { opacity: .3; cursor: not-allowed; }
 [style*="background:var(--c-00f2d1)"],[style*="background: var(--c-00f2d1)"]{background:var(--live)!important;color:var(--live-ink)!important}
 [style*="color:var(--c-f59e0b)"],[style*="color: var(--c-f59e0b)"]{color:var(--next)!important}
 [style*="color:var(--c-ef4444)"],[style*="color: var(--c-ef4444)"]{color:var(--danger)!important}
-[style*="background:var(--c-ef4444)"],[style*="background: var(--c-ef4444)"]{background:var(--danger)!important;color:var(--c-ffffff)!important}
+[style*="background:var(--c-ef4444)"],[style*="background: var(--c-ef4444)"]{background:var(--danger)!important;color:#ffffff!important}
 [style*="color:var(--c-888888)"],[style*="color:var(--c-666666)"],[style*="color: var(--c-888888)"],[style*="color: var(--c-666666)"]{color:var(--text-3)!important}
 [style*="color:var(--c-aaaaaa)"],[style*="color:var(--c-cccccc)"],[style*="color: var(--c-aaaaaa)"],[style*="color: var(--c-cccccc)"]{color:var(--text-2)!important}
 [style*="background:var(--c-333333)"],[style*="background: var(--c-333333)"]{background:var(--surface-3)!important;color:var(--text)!important}
@@ -1342,7 +1342,7 @@ header .header-right { justify-content: flex-end; }
 
 /* แถบแจ้งเตือนเน็ตหลุด/กลับมา */
 .net-banner { position: fixed; left: 0; right: 0; top: calc(var(--header-h) + env(safe-area-inset-top, 0px)); z-index: 19000; padding: 8px 14px; text-align: center; font-size: 13px; font-weight: 800; }
-.net-banner.off { background: var(--danger); color: var(--c-ffffff); }
+.net-banner.off { background: var(--danger); color: #ffffff; }
 .net-banner.on { background: var(--live); color: var(--live-ink); }
 .net-banner.hidden { display: none; }
 
@@ -1586,7 +1586,7 @@ body.lsh-admin-mode .drawer-menu > button:not([onclick*="ตั้งค่า"]
 .band-list { display:flex; flex-direction:column; gap:10px; }
 .band-row { width:100%; display:flex; align-items:center; gap:14px; min-height:68px; padding:0 14px; border-radius:14px; background:var(--surface); border:1px solid var(--line); color:var(--text); }
 .band-row.on { border:1.5px solid var(--live); }
-.band-ic { width:44px; height:44px; border-radius:12px; background:var(--info); color:var(--c-ffffff); display:flex; align-items:center; justify-content:center; font-weight:800; font-size:18px; flex-shrink:0; }
+.band-ic { width:44px; height:44px; border-radius:12px; background:var(--info); color:#ffffff; display:flex; align-items:center; justify-content:center; font-weight:800; font-size:18px; flex-shrink:0; }
 .band-name { font-size:16px; font-weight:700; }
 .band-role { font-size:12px; color:var(--text-3); }
 .band-join { width:100%; min-height:52px; margin-top:14px; border-radius:14px; border:1px dashed var(--line-strong); background:transparent; color:var(--text); font-size:15px; font-weight:600; }
@@ -2452,3 +2452,72 @@ nav button:active:not(.active) { background: var(--surface-2); }
 .dsp-actions { display: flex; gap: 10px; padding: 4px 0 12px; }
 .dsp-actions button { flex: 1; }
 .dsp-actions button:disabled { opacity: .45; }
+
+/* =====================================================================
+   ระบบปุ่มกลาง + ชุดการเคลื่อนไหวกลาง (รอบ 2.0.15) — CSS เท่านั้น ไม่เปลี่ยน ID/ฟังก์ชัน/Firebase
+   หลัก: 1 หน้า = 1 ปุ่มหลัก (เขียวเต็ม) · ปุ่มรอง = พื้นอ่อน+ขอบ · ปุ่มอันตราย = แดงเต็ม แยกห่างจากปุ่มอื่น
+         พื้นที่แตะ ≥ 48px (ปุ่มบนเวที ≥ 56px) · กดแล้วย่อเล็กน้อยทุกปุ่ม · ความเร็ว/เส้นโค้งชุดเดียวทั้งแอป
+   ===================================================================== */
+:root { --dur-fast: 120ms; --dur: 200ms; --dur-slow: 320ms; --btn-h: 48px; --glow: color-mix(in srgb, var(--live) 24%, transparent); }
+
+/* ปุ่มทั่วไป: ตอบสนองการกด + สถานะปิดใช้งาน + โฟกัสคีย์บอร์ด */
+button { transition: background-color var(--dur-fast) var(--ease), border-color var(--dur-fast) var(--ease), color var(--dur-fast) var(--ease), box-shadow var(--dur) var(--ease), scale var(--dur-fast) var(--ease), filter var(--dur-fast); }
+button:active:not(:disabled) { scale: .97; }
+button:disabled, button[disabled] { opacity: .45; cursor: not-allowed; }
+button:focus-visible { outline: 2px solid var(--live); outline-offset: 2px; }
+
+/* ปุ่มหลัก */
+.btn-primary, .add-song-btn:not(.bk-open), .btn-action-primary, .btn-save-settings, .btn-send, .btn-next, .search-btn-submit, .bk-go {
+  background: var(--live); color: var(--live-ink); border: 1px solid var(--live);
+  min-height: 52px; border-radius: var(--r-md); font-weight: 800;
+  box-shadow: 0 6px 18px var(--glow);
+}
+.btn-primary:active:not(:disabled), .add-song-btn:active:not(:disabled), .btn-action-primary:active:not(:disabled), .btn-save-settings:active:not(:disabled),
+.btn-send:active:not(:disabled), .btn-next:active:not(:disabled), .search-btn-submit:active:not(:disabled), .bk-go:active:not(:disabled) { transform: none; scale: .97; filter: brightness(.94); }
+.btn-primary:disabled, .bk-go:disabled { box-shadow: none; }
+
+/* ปุ่มรอง */
+.btn-ghost, .bk-ghost { min-height: 52px; border-radius: var(--r-md); background: var(--surface-2); border: 1.5px solid var(--line-strong); color: var(--text); font-weight: 700; }
+.btn-ghost:active:not(:disabled) { transform: none; scale: .97; }
+
+/* ปุ่มอันตราย (แดงเต็ม ตัวขาว) */
+.btn-danger { min-height: 52px; border-radius: var(--r-md); background: var(--danger); color: #ffffff; font-weight: 800; border: 1px solid var(--danger); }
+.btn-danger:active:not(:disabled) { transform: none; scale: .97; }
+
+/* ปุ่มในหน้าต่างยืนยัน: ปุ่มหลักกับปุ่มรองสูงเท่ากัน วางคู่กัน */
+.modal-actions { gap: 10px; }
+.modal-actions > button { min-height: 52px; }
+
+/* เมนูลิ้นชัก: แถวสูงขึ้นให้กดง่าย */
+.drawer-menu button { min-height: 52px; }
+
+/* พื้นที่แตะของปุ่มเล็กที่เขียนสไตล์ฝังไว้ (ปฏิทิน, ปุ่มในตัวแก้ไขลิสต์ ฯลฯ) ให้ไม่เล็กกว่า 40px */
+button[style*="padding:4px"], button[style*="padding: 4px"], button[style*="padding:5px"], button[style*="padding:3px"], button[style*="padding:6px"] { min-height: 40px !important; min-width: 40px !important; }
+.editor-song-item button[style*="padding"] { min-height: 40px !important; min-width: 40px !important; }
+
+/* หน้าลิสต์เพลง */
+#btnPlayLiveSet { min-height: 44px; padding: 0 14px !important; font-size: 13px !important; border-radius: var(--r-md) !important; box-shadow: 0 6px 18px var(--glow); }
+#btnOpenSongSelector, #btnOpenMedley { min-height: 52px; border-radius: var(--r-md) !important; font-size: 15px; }
+#btnSubmitCreatePlaylist, #btnSaveSong, #btnExecuteSavePlaylist, #btnOpenSaveConfirm { min-height: 52px; }
+
+/* หน้าตั้งค่า: ปุ่มบันทึกกับยกเลิกของแท็บการแสดงผล */
+.dsp-actions button { min-height: 52px; }
+
+/* ===== การเคลื่อนไหวกลาง ===== */
+@keyframes lshFade { from { opacity: 0; } to { opacity: 1; } }
+@keyframes lshSheetUp { from { opacity: 0; transform: translateY(24px); } to { opacity: 1; transform: none; } }
+@keyframes lshPop { from { opacity: 0; transform: scale(.94); } to { opacity: 1; transform: none; } }
+/* เปลี่ยนหน้า: เฟดเนื้อหาเข้าเบาๆ (ไม่ใช้ transform เพื่อไม่กระทบหน้าต่างที่เป็น position:fixed ในหน้านั้น) */
+main > * { animation: lshFade var(--dur) var(--ease) both; }
+/* พื้นหลังมืดของหน้าต่างทุกแบบเฟดเข้า, แผ่นเนื้อหาเลื่อนขึ้น/เด้งเข้า */
+.overlay:not(.hidden), .set-overlay:not(.hidden), .sub-overlay:not(.hidden), .setlist-overlay:not(.hidden), .modal-overlay:not(.hidden), .bk-ov { animation: lshFade var(--dur) var(--ease) both; }
+.bk-box { animation: lshSheetUp var(--dur-slow) var(--ease) both; }
+.set-modal-box { animation: lshPop var(--dur) var(--ease) both; }
+
+/* ผู้ใช้ปิดการเคลื่อนไหวในระบบ: ลดแอนิเมชันที่ไม่จำเป็น (ไม่ปิดตัววิ่งชื่อเพลง/ท็อคแบค เพราะจำเป็นต่อการอ่าน) */
+@media (prefers-reduced-motion: reduce) {
+  button { transition-duration: .01ms !important; }
+  button:active:not(:disabled) { scale: 1; }
+  main > *, .overlay, .set-overlay, .sub-overlay, .setlist-overlay, .modal-overlay, .bk-ov, .bk-box, .set-modal-box { animation: none !important; }
+  html { scroll-behavior: auto !important; }
+}
