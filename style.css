@@ -2521,3 +2521,70 @@ main > * { animation: lshFade var(--dur) var(--ease) both; }
   main > *, .overlay, .set-overlay, .sub-overlay, .setlist-overlay, .modal-overlay, .bk-ov, .bk-box, .set-modal-box { animation: none !important; }
   html { scroll-behavior: auto !important; }
 }
+
+/* =====================================================================
+   รอบ 2.0.16 — การเคลื่อนไหวแบบนุ่มนวล (ช้าลงเล็กน้อย เข้าด้วยเส้นโค้งชะลอท้าย, ออกเร็วกว่าเข้า) + โครงเทา (skeleton)
+   ===================================================================== */
+:root { --dur-fast: 160ms; --dur: 300ms; --dur-slow: 460ms; --ease-out: cubic-bezier(.22, 1, .36, 1); --ease-in: cubic-bezier(.4, 0, .8, .4); --spring: cubic-bezier(.34, 1.32, .5, 1); }
+
+/* หน้าต่างกลางจอ / พื้นหลังมืด: เฟดเข้านุ่มๆ, กล่องเด้งเข้าเล็กน้อย */
+.overlay:not(.hidden), .set-overlay:not(.hidden), .sub-overlay:not(.hidden), .setlist-overlay:not(.hidden), .modal-overlay:not(.hidden), .bk-ov { animation: lshFade var(--dur) var(--ease-out) both; }
+.box, .set-modal-box { animation: lshPop 380ms var(--spring) both; }
+.bk-box { animation: lshSheetUp 480ms var(--ease-out) both; }
+@keyframes lshPop { from { opacity: 0; transform: scale(.94) translateY(8px); } to { opacity: 1; transform: none; } }
+@keyframes lshSheetUp { from { opacity: 0; transform: translateY(36px); } to { opacity: 1; transform: none; } }
+
+/* แผ่นเลื่อนขึ้นจากล่าง: ขาเข้า 460ms ชะลอท้าย, ขาออก 300ms (ต้องไม่เกินเวลาที่ JS ซ่อนหน้าต่าง) */
+.slide-up-content, .slide-modal-content { animation: slideUp 460ms var(--ease-out) both; }
+.setlists-page .setlist-slide-panel { transition: bottom 300ms var(--ease-in); }
+.setlists-page .setlist-slide-panel.open { transition: bottom 460ms var(--ease-out); }
+/* ลิ้นชักเมนู: เปิดนุ่ม ปิดเร็วกว่า */
+.drawer { transition: left 300ms var(--ease-in), box-shadow 300ms var(--ease-in); }
+.drawer.open { transition: left 460ms var(--ease-out), box-shadow 460ms var(--ease-out); }
+/* แผงวงของฉัน */
+#bandPanelModal { animation: bandFade 320ms ease both !important; }
+#bandPanelModal .band-sheet { animation: bandUp 480ms var(--ease-out) both !important; }
+#bandPanelModal.closing { animation: bandFadeOut 280ms ease both !important; }
+#bandPanelModal.closing .band-sheet { animation: bandDown 280ms var(--ease-in) both !important; }
+
+/* แจ้งเตือน (toast): ลอยขึ้นพร้อมขยายเล็กน้อย, หายไปเร็วกว่า */
+.lsh-toast { opacity: 0; transform: translateY(18px) scale(.96); transition: opacity 300ms var(--ease-in), transform 300ms var(--ease-in); }
+.lsh-toast.show { opacity: 1; transform: none; transition: opacity 420ms var(--ease-out), transform 460ms var(--spring); }
+
+/* กรอกผิด/ข้อมูลไม่ครบ: หน้าต่างสั่นแบบแดมป์ + ช่องกรอกวาบแดงอ่อน */
+@keyframes lshShake { 0%, 100% { transform: translateX(0); } 14% { transform: translateX(-9px); } 28% { transform: translateX(8px); } 42% { transform: translateX(-6px); } 56% { transform: translateX(4px); } 70% { transform: translateX(-2px); } 84% { transform: translateX(1px); } }
+@keyframes lshInvalid { 0% { box-shadow: 0 0 0 0 transparent; } 25% { border-color: var(--danger); box-shadow: 0 0 0 4px var(--danger-soft); } 100% { box-shadow: 0 0 0 0 transparent; } }
+.lsh-shake { animation: lshShake 620ms var(--ease-out) both !important; }
+.lsh-shake input, .lsh-shake select, .lsh-shake textarea { animation: lshInvalid 900ms ease both; }
+
+/* ช่องกรอก: โฟกัสแล้ววงแหวนค่อยๆ ปรากฏ */
+input, select, textarea { transition: border-color var(--dur-fast) var(--ease-out), box-shadow var(--dur) var(--ease-out), background-color var(--dur-fast); }
+input:focus, select:focus, textarea:focus { border-color: var(--live); box-shadow: 0 0 0 3px var(--live-soft); }
+
+/* แถบล่าง/สวิตช์/ความคืบหน้า: ขยับนุ่มขึ้น */
+nav button { transition: flex-grow 420ms var(--ease-out), background-color var(--dur) var(--ease-out), color var(--dur) var(--ease-out), gap var(--dur) var(--ease-out), scale var(--dur-fast) var(--ease-out); }
+.slider, .slider:before { transition: all 320ms var(--ease-out); }
+.progress-seg-item { transition: opacity 420ms var(--ease-out); }
+.queue-top-bar, .search-top-bar, .tb-top-bar { transition: grid-template-columns 520ms var(--ease-out); }
+
+/* แจ้งเตือนคำสั่งใหม่บนเวที: ยังกระพริบ 3 วินาทีเท่าเดิม แต่จังหวะช้าลงเป็นคลื่นเรืองแสงที่นุ่มกว่า (900ms x 3 แทน 500ms x 6) */
+[data-attn="talk"] > .top-box:first-child, [data-attn="next"] > .top-box:last-child,
+.monitor-container .monitor-top-section.flashing, .monitor-container .flash-cue-pink-active { animation: attnGlow 900ms ease-in-out 3 !important; }
+.flash-cue-pink-active { animation-duration: 900ms; animation-iteration-count: 3; }
+
+/* ===== โครงเทา (skeleton) ===== */
+.skl-layer { position: fixed; z-index: 700; background: var(--bg); overflow: hidden; touch-action: none; animation: lshFade var(--dur) var(--ease-out) both; }
+.skl-layer.out { opacity: 0; transition: opacity 360ms var(--ease-in); pointer-events: none; animation: none; }
+.skl-pg { display: flex; flex-direction: column; gap: 10px; padding: 14px; height: 100%; max-width: 820px; margin: 0 auto; }
+.skl-row { display: flex; gap: 10px; align-items: center; }
+.skl-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+.skl { flex: none; border-radius: 14px; background: linear-gradient(100deg, var(--surface-2) 30%, var(--surface-3) 50%, var(--surface-2) 70%); background-size: 240% 100%; animation: sklShimmer 1.9s ease-in-out infinite; }
+@keyframes sklShimmer { from { background-position: 120% 0; } to { background-position: -120% 0; } }
+
+@media (prefers-reduced-motion: reduce) {
+  .skl { animation: none; }
+  .lsh-shake, .lsh-shake input, .lsh-shake select, .lsh-shake textarea { animation: none !important; }
+  .lsh-toast, .lsh-toast.show { transition-duration: .01ms; }
+  .box, .set-modal-box, .slide-up-content, .slide-modal-content, #bandPanelModal, #bandPanelModal .band-sheet { animation-duration: .01ms !important; }
+  .drawer, .drawer.open, .setlists-page .setlist-slide-panel, .setlists-page .setlist-slide-panel.open { transition-duration: .01ms; }
+}
