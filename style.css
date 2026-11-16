@@ -2588,3 +2588,19 @@ nav button { transition: flex-grow 420ms var(--ease-out), background-color var(-
   .box, .set-modal-box, .slide-up-content, .slide-modal-content, #bandPanelModal, #bandPanelModal .band-sheet { animation-duration: .01ms !important; }
   .drawer, .drawer.open, .setlists-page .setlist-slide-panel, .setlists-page .setlist-slide-panel.open { transition-duration: .01ms; }
 }
+
+/* ===== ตัวกรองคีย์แบบย่อ (ป็อบโอเวอร์) 2.0.16 ===== */
+.lshkf-btn { display: inline-flex; align-items: center; gap: 6px; height: 34px; padding: 0 10px 0 12px; border-radius: 999px; border: 1px solid var(--line); background: var(--surface); color: var(--text); font-size: 14px; font-weight: 700; cursor: pointer; flex: none; transition: background var(--dur-fast), border-color var(--dur-fast), scale var(--dur-fast) var(--ease-out); }
+.lshkf-btn .l { font-weight: 500; color: var(--text-3); }
+.lshkf-btn .ic { width: 14px; height: 14px; opacity: .7; }
+.lshkf-btn.on { border-color: var(--live); color: var(--live); }
+.lshkf-btn:active { scale: .96; }
+.lshkf-pop { position: fixed; z-index: 20000; background: var(--surface-2); border: 1px solid var(--line-strong); border-radius: 16px; padding: 10px; box-shadow: var(--shadow-pop); overflow-y: auto; opacity: 0; scale: .94; transition: opacity var(--dur-fast) var(--ease-out), scale var(--dur) var(--spring); }
+.lshkf-pop.in { opacity: 1; scale: 1; }
+.lshkf-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+.lshkf-all { grid-column: 1 / -1; }
+.lshkf-g { grid-column: 1 / -1; font-size: 12px; color: var(--text-3); margin-top: 4px; }
+.lshkf-all, .lshkf-b { min-height: 44px; border-radius: 12px; border: 1px solid var(--line); background: var(--surface); color: var(--text); font-size: 15px; font-weight: 700; cursor: pointer; transition: background var(--dur-fast), scale var(--dur-fast) var(--ease-out); }
+.lshkf-all.on, .lshkf-b.on { background: var(--live); color: var(--live-ink); border-color: var(--live); }
+.lshkf-all:active, .lshkf-b:active { scale: .95; }
+@media (prefers-reduced-motion: reduce) { .lshkf-pop, .lshkf-btn { transition: none; } }

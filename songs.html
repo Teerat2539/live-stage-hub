@@ -270,6 +270,7 @@
       searchInput.onblur = () => {
         setTimeout(() => {
           if (document.activeElement !== document.getElementById('keyFilterSelect') &&
+              document.activeElement !== document.getElementById('keyFilterBtn') &&
               document.activeElement !== document.getElementById('sortSelect')) {
             hideLine2();
           }
@@ -288,6 +289,7 @@
 
     // Bind Controls
     populateKeyFilterSelect();
+    lshKeyFilter.fromSelect(document.getElementById('keyFilterSelect'), { id: 'keyFilterBtn' });
     populateFormKeySelect();
 
     document.getElementById('sortSelect').onchange = onSearchOrFilterChange;

@@ -86,21 +86,7 @@
       <div id="insLibWrap" style="flex:1;display:flex;flex-direction:column;overflow:hidden">
         <div style="font-size:12px;color:var(--c-00f2d1);font-weight:bold;margin-bottom:6px" id="recommendLabel"><svg class="ic" aria-hidden="true"><use href="#i-search"/></svg> ค้นหาเพลงจากคลัง / เพลงแนะนำ</div>
         
-        <div class="key-filter-bar" id="keyFilterContainer">
-          <button class="key-btn active" onclick="filterByKey('ALL')">ALL</button>
-          <button class="key-btn" onclick="filterByKey('C')">C/Am</button>
-          <button class="key-btn" onclick="filterByKey('Db')">Db/Bbm</button>
-          <button class="key-btn" onclick="filterByKey('D')">D/Bm</button>
-          <button class="key-btn" onclick="filterByKey('Eb')">Eb/Cm</button>
-          <button class="key-btn" onclick="filterByKey('E')">E/C#m</button>
-          <button class="key-btn" onclick="filterByKey('F')">F/Dm</button>
-          <button class="key-btn" onclick="filterByKey('F#')">F#/D#m</button>
-          <button class="key-btn" onclick="filterByKey('G')">G/Em</button>
-          <button class="key-btn" onclick="filterByKey('Ab')">Ab/Fm</button>
-          <button class="key-btn" onclick="filterByKey('A')">A/F#m</button>
-          <button class="key-btn" onclick="filterByKey('Bb')">Bb/Gm</button>
-          <button class="key-btn" onclick="filterByKey('B')">B/G#m</button>
-        </div>
+        <div class="key-filter-bar" id="keyFilterContainer" style="overflow:visible"></div>
 
         <input type="text" id="searchSongInput" placeholder="พิมพ์ค้นหาชื่อเพลง หรือศิลปิน..." oninput="filterBySearch()" style="width:100%;padding:8px;background:var(--c-12131a);border:1px solid var(--c-333333);border-radius:6px;color:var(--c-ffffff);font-size:13px;margin:6px 0">
         <div class="ins-hint">กดค้างที่เพลง แล้วลากลงไปวางในคิว</div>
@@ -1089,8 +1075,17 @@ window.executeInsertAfterPlaying = function() {
           else if (btnText === key) btn.classList.add('active');
           else btn.classList.remove('active');
         });
+        if (window.__qKf) window.__qKf.paint();
         renderSongLibrary();
       };
+      (function () {
+        const host = document.getElementById('keyFilterContainer'); if (!host) return;
+        const P = [['C','C/Am'],['Db','Db/Bbm'],['D','D/Bm'],['Eb','Eb/Cm'],['E','E/C#m'],['F','F/Dm'],['F#','F#/D#m'],['G','G/Em'],['Ab','Ab/Fm'],['A','A/F#m'],['Bb','Bb/Gm'],['B','B/G#m']];
+        window.__qKf = lshKeyFilter.mount(host, { id: 'keyFilterBtn', allText: 'ALL',
+          getOptions: () => P.map((x) => ({ v: x[0], t: x[1] })),
+          getValue: () => (window.currentKeyFilter === 'ALL' ? '' : window.currentKeyFilter),
+          onPick: (v) => window.filterByKey(v === '' ? 'ALL' : v) });
+      })();
 
       window.filterBySearch = function() {
         renderSongLibrary();

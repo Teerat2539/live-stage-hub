@@ -916,6 +916,7 @@
       });
       selectEl.innerHTML = html;
       selectEl.onchange = renderSelectorList;
+      if (!selectEl._kf) lshKeyFilter.fromSelect(selectEl, { id: 'selectorKeyFilterBtn' }); else selectEl._kf.paint();
     }
 
     document.getElementById('btnToggleSelectorLine2').onclick = function() {

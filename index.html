@@ -194,6 +194,57 @@
     //  ต้นฉบับ = rec.k ของคลังคอร์ด · วง = คีย์ในคลังเพลงหลัก (lsh_songs) · เลือก = คีย์ในคิว/ลิสต์ตอนนี้
     //  ไม่มีค่าไหนก็ไม่แสดงค่านั้น · มีแต่คีย์วงให้นับเลขจากคีย์วง · ไม่มีทั้งคู่ไม่แสดงเลข
     // ======================================================================
+    // ตัวกรองคีย์แบบย่อ: ปุ่มเล็ก แตะแล้วเปิดป็อบโอเวอร์เลือกคีย์ (ใช้ร่วมกันทุกหน้าที่กรองคีย์)
+    window.lshKeyFilter = (function() {
+      let pop = null, closer = null;
+      const esc = (t) => String(t).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+      function close() {
+        if (!pop) return; const p = pop; pop = null; document.removeEventListener('pointerdown', closer, true); document.removeEventListener('keydown', onKey, true);
+        p.classList.remove('in'); setTimeout(() => p.remove(), 240);
+      }
+      function onKey(e) { if (e.key === 'Escape') close(); }
+      // cfg: {label, getOptions():[{v,t,g?}], getValue(), onPick(v), allText}
+      function open(btn, cfg) {
+        close();
+        const opts = cfg.getOptions(), cur = String(cfg.getValue() == null ? '' : cfg.getValue());
+        let h = '<button type="button" class="lshkf-all' + (cur === '' ? ' on' : '') + '" data-v="">' + esc(cfg.allText || 'ทั้งหมด') + '</button>', grp = null;
+        opts.forEach((o) => { if (o.g && o.g !== grp) { h += '<div class="lshkf-g">' + esc(o.g) + '</div>'; grp = o.g; }
+          h += '<button type="button" class="lshkf-b' + (String(o.v) === cur ? ' on' : '') + '" data-v="' + esc(o.v) + '">' + esc(o.t) + '</button>'; });
+        pop = document.createElement('div'); pop.className = 'lshkf-pop'; pop.setAttribute('role', 'dialog'); pop.innerHTML = '<div class="lshkf-grid">' + h + '</div>';
+        document.body.appendChild(pop);
+        const r = btn.getBoundingClientRect(), w = Math.min(320, window.innerWidth - 24);
+        pop.style.width = w + 'px'; pop.style.left = Math.max(12, Math.min(r.left, window.innerWidth - w - 12)) + 'px';
+        const ph = pop.offsetHeight, below = window.innerHeight - r.bottom - 12;
+        if (below >= ph || below >= r.top - 12) { pop.style.top = (r.bottom + 8) + 'px'; pop.style.maxHeight = Math.max(160, below - 4) + 'px'; pop.style.transformOrigin = 'top left'; }
+        else { pop.style.bottom = (window.innerHeight - r.top + 8) + 'px'; pop.style.maxHeight = Math.max(160, r.top - 20) + 'px'; pop.style.transformOrigin = 'bottom left'; }
+        pop.addEventListener('click', (e) => { const b = e.target.closest('[data-v]'); if (!b) return; const v = b.getAttribute('data-v'); close(); cfg.onPick(v); });
+        closer = (e) => { if (pop && !pop.contains(e.target) && !btn.contains(e.target)) close(); };
+        document.addEventListener('pointerdown', closer, true); document.addEventListener('keydown', onKey, true);
+        requestAnimationFrame(() => pop && pop.classList.add('in'));
+      }
+      // สร้างปุ่มกรองใน host (คืน {set(v,text), btn})
+      function mount(host, cfg) {
+        const btn = document.createElement('button'); btn.type = 'button'; btn.className = 'lshkf-btn'; if (cfg.id) btn.id = cfg.id;
+        btn.setAttribute('aria-haspopup', 'dialog');
+        const paint = () => { const v = String(cfg.getValue() == null ? '' : cfg.getValue()), o = v ? cfg.getOptions().find((x) => String(x.v) === v) : null;
+          btn.classList.toggle('on', !!v); btn.innerHTML = '<span class="l">คีย์</span><b>' + esc(v ? (o ? o.t : v) : (cfg.allText || 'ทั้งหมด')) + '</b><svg class="ic" aria-hidden="true"><use href="#i-chev-down"/></svg>'; };
+        btn.onclick = () => open(btn, Object.assign({}, cfg, { onPick: (v) => { cfg.onPick(v); paint(); } }));
+        host.appendChild(btn); paint();
+        return { btn: btn, paint: paint };
+      }
+      // ใช้กับ <select> เดิม: ซ่อน select ไว้ (ID/ตรรกะเดิมไม่เปลี่ยน) แล้วใช้ปุ่ม+ป็อบโอเวอร์แทน
+      function fromSelect(sel, o) {
+        if (!sel || sel.dataset.lshkf) return null; o = o || {}; sel.dataset.lshkf = '1'; sel.style.display = 'none';
+        const MIN = /^[A-G][#b]?m$/;
+        const m = mount(sel.parentNode, { id: o.id, allText: o.allText || 'ทั้งหมด',
+          getOptions: () => Array.from(sel.options).filter((x) => x.value && x.value !== 'ALL').map((x) => ({ v: x.value, t: x.textContent, g: MIN.test(x.value) ? 'ไมเนอร์' : 'เมเจอร์' })).sort((a, b) => (a.g === b.g ? 0 : a.g === 'เมเจอร์' ? -1 : 1)),
+          getValue: () => (sel.value === 'ALL' ? '' : sel.value),
+          onPick: (v) => { sel.value = v === '' ? 'ALL' : v; if (typeof sel.onchange === 'function') sel.onchange.call(sel, { target: sel }); sel.dispatchEvent(new Event('input', { bubbles: true })); } });
+        sel.parentNode.insertBefore(m.btn, sel.nextSibling); sel._kf = m; return m;
+      }
+      return { mount: mount, fromSelect: fromSelect, close: close };
+    })();
+
     window.lshKeyPick = (function() {
       const MAJ = ['C', 'Db', 'D', 'Eb', 'E', 'F', 'Gb', 'G', 'Ab', 'A', 'Bb', 'B'], MIN = ['Cm', 'C#m', 'Dm', 'Ebm', 'Em', 'Fm', 'F#m', 'Gm', 'G#m', 'Am', 'Bbm', 'Bm'];
       const clean = (k) => { k = String(k == null ? '' : k).trim(); return k === '-' ? '' : k; };
@@ -1836,7 +1887,7 @@
     };
 
     // ===== ตรวจเวอร์ชันแอป (2.0): เทียบเลขใน version.json บนเซิร์ฟเวอร์ กับเลขของโค้ดที่เปิดอยู่ =====
-    const LSH_APP_VER = '2.0.16';
+    const LSH_APP_VER = '2.0.17';
     try { const dv = document.getElementById('drawerVersion'); if (dv) dv.textContent = 'เวอร์ชัน ' + LSH_APP_VER; } catch (e) {}   // แสดงเลขเวอร์ชันท้ายเมนูแฮมเบอร์เกอร์
     let lshVerAt = 0;
     function lshCheckVersion() {
