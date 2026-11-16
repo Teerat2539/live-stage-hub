@@ -239,11 +239,11 @@
           { g: 0, t: 'ตั้งเวลาโชว์', d: 'ปุ่มนาฬิกา "ตั้งเวลาโชว์" ใช้ตั้งความยาวของโชว์ แล้วดูเวลาที่เหลือได้จากหน้านี้', m: M.btns([['⏱ ตั้งเวลาโชว์', '', 'ghost']]) },
           { g: 0, t: 'เล่นไปแล้ว', d: 'เพลงที่เล่นจบแล้วจะถูกพับเก็บเป็นแถว "เล่นไปแล้ว N เพลง" แตะเพื่อขยายดู เมื่อจบโชว์จะมีปุ่ม "สรุปโชว์"', m: M.btns([['› เล่นไปแล้ว 5 เพลง', '', 'ghost']]) },
           { g: 0, t: 'จัดคิว', d: 'กด "จัดคิว" เพื่อแก้คิว: ลากที่จับด้านซ้ายของแถวเพื่อสลับลำดับ แตะป้ายคีย์เพื่อเปลี่ยนคีย์ให้ตรงกับนักร้อง และกด "คอร์ด" เพื่อกลับไปดูคอร์ด', m: M.btns([['จัดคิว', '', '']]) + M.rows([[SET[0], 'เสียดาย', 'Bodyslam', 'G'], [SET[0], 'เคลิ้ม', 'Slot Machine', 'G']]) },
-          { g: 0, t: 'บันทึกและเลิกทำ', d: 'การแก้ไขจะยังไม่ถูกส่งจนกว่าจะกด "บันทึก" ถ้าทำพลาดกด "เลิกทำ" เพื่อย้อนการแก้ไขที่ยังไม่บันทึก', m: M.btns([['เลิกทำ', '', 'ghost'], ['บันทึก', '', 'pri']]) },
-          { g: 0, t: 'แทรกเพลง', d: 'ในโหมดจัดคิวกด "แทรกเพลง" มี 2 แท็บ: "แทรกเพลงเอง" (ค้นหาจากคลัง กรองด้วยปุ่มคีย์) และ "เพลงลูกค้าขอ" แล้วเลือกว่าจะเล่นต่อทันทีหรือเลือกตำแหน่ง', m: '<div class="tm-tabs"><span class="on">แทรกเพลงเอง</span><span>เพลงลูกค้าขอ<b>1</b></span></div>' + M.btns([['คีย์ ทั้งหมด ▾', '', 'ghost']]) },
+          { g: 0, t: 'บันทึกและเลิกทำ', d: 'ปุ่ม "บันทึก" และ "เลิกทำ" จะโผล่ในโหมดจัดคิว (กด "จัดคิว" ก่อน) หลังแก้คิวแล้ว การแก้ไขจะยังไม่ถูกส่งจนกว่าจะกด "บันทึก" ถ้าทำพลาดกด "เลิกทำ" เพื่อย้อนการแก้ไขที่ยังไม่บันทึก', m: M.btns([['เลิกทำ', '', 'ghost'], ['บันทึก', '', 'pri']]) },
+          { g: 0, t: 'แทรกเพลง', d: 'กด "จัดคิว" ก่อน แล้วจะมีปุ่ม "แทรกเพลง" ที่ชี้อยู่ ซึ่งมี 2 แท็บ: "แทรกเพลงเอง" (ค้นหาจากคลัง กรองด้วยปุ่มคีย์) และ "เพลงลูกค้าขอ" แล้วเลือกว่าจะเล่นต่อทันทีหรือเลือกตำแหน่ง', m: '<div class="tm-tabs"><span class="on">แทรกเพลงเอง</span><span>เพลงลูกค้าขอ<b>1</b></span></div>' + M.btns([['คีย์ ทั้งหมด ▾', '', 'ghost']]) },
           { g: 0, t: 'ลูกค้าขอเพลง', d: 'ปุ่ม "ลูกค้าขอเพลง" ใช้ค้นหาเพลงที่ลูกค้าขอ แล้วเลือก "ส่งเข้ากล่องลูกค้าขอเพลง" เก็บไว้ก่อน หรือ "ใส่ในคิวเลย" ถ้าจะเล่นทันที', m: M.btns([['ส่งเข้ากล่องลูกค้าขอเพลง', '', 'req'], ['ใส่ในคิวเลย', '', 'small']]) },
           { g: 0, t: 'ป้ายชมพู', d: 'ตัวเลขที่ปุ่ม "จัดคิว" หรือ "แทรกเพลง" คือจำนวนเพลงในกล่องลูกค้าขอเพลงที่ยังไม่ได้ใส่คิว และจะเด้งเตือนเมื่อมีเพลงใหม่เข้ามา', m: M.btns([['แทรกเพลง', '', 'badge']]) },
-          { g: 0, t: 'คีย์ของเพลงที่ขอ', d: 'ถ้าเพลงอยู่ในคลัง จะแสดงคีย์ให้เลย เผื่อเปลี่ยนให้ตรงกับนักร้องหน้างาน (เช่นลูกค้าขอเพลงผู้หญิงในวันที่ร้องชาย)', m: M.rows([[PINK, 'คนธรรมดา', 'ชิน ชินวุฒ', 'F#']]) },
+          { g: 0, t: 'คีย์ของเพลงที่ขอ', d: 'ดูได้ที่ปุ่ม "ลูกค้าขอเพลง" หรือแท็บ "เพลงลูกค้าขอ" ในปุ่มแทรกเพลง ถ้าเพลงอยู่ในคลัง จะแสดงคีย์ให้เลย เผื่อเปลี่ยนให้ตรงกับนักร้องหน้างาน (เช่นลูกค้าขอเพลงผู้หญิงในวันที่ร้องชาย)', m: M.rows([[PINK, 'คนธรรมดา', 'ชิน ชินวุฒ', 'F#']]) },
           { t: 'ค้นหาคอร์ดของเพลง', d: 'ที่การ์ดเพลงมีไอคอนคัดลอกชื่อเพลง และเมื่อแตะการ์ดให้ขยาย ไอคอนจะเปลี่ยนเป็นค้นหาบนเว็บ', m: M.rows([[SET[0], 'เสียดาย', 'Bodyslam', 'G']]) }
         ] },
         talkback: { name: 'ท็อคแบค', cards: [
@@ -265,11 +265,11 @@
           { g: 0, t: 'แฟ้มลิสต์เพลง', d: 'เก็บลิสต์เพลงแยกตามร้านและวันที่เล่น แตะเพื่อเปิดดู ปุ่มปฏิทินด้านบนใช้ค้นหาตามวันที่ (กดเคลียร์การกรองเพื่อกลับมาดูทั้งหมด)', m: M.rows([[null, 'มายคลับ', 'จันทร์ 16 พ.ย.', '']]) },
           { g: 0, t: 'สร้างลิสต์ใหม่', d: 'กด "สร้างลิสต์เพลงใหม่" ใส่ชื่อร้าน/สถานที่กับวันที่เล่น (ต้องกรอกทั้งคู่) แล้วกด "สร้างและจัดเพลง"', m: M.btns([['สร้างลิสต์เพลงใหม่', '', 'pri']]) },
           { g: 0, t: 'รายละเอียดลิสต์', d: 'แตะลิสต์เพื่อเปิด ปุ่มด้านบนมีไอคอนดาว (ติดดาวลิสต์สำคัญ) ส่งออกลิสต์ แก้ไข และลบ และปุ่ม "เลือกเล่นลิสต์นี้"', m: M.btns([['★', '', 'ghost'], ['ส่งออก', '', 'ghost'], ['แก้ไข', '', 'ghost'], ['เลือกเล่นลิสต์นี้', '', 'pri']]) },
-          { g: 0, t: 'เพิ่มเพลงเข้าลิสต์', d: 'ในโหมด "แก้ไขลิสต์" กด "+ เลือกเพลงจากคลังใส่ลิสต์" กรองด้วยคีย์ เรียงตามชื่อ ศิลปิน คีย์ BPM หรือเล่นบ่อยสุด แล้วกด "ใส่ลงลิสต์"', m: M.btns([['+ เลือกเพลงจากคลังใส่ลิสต์', '', 'ghost']]) },
-          { g: 0, t: 'เมดเลย์', d: 'กด "+ เมดเลย์" เพื่อสร้างเมดเลย์ ใส่ชื่อ แล้ว "+ เพิ่มเพลงเข้าเมดเลย์" รวมหลายเพลงเป็นรายการเดียว', m: M.rows([[SET[1], 'เมดเลย์ครึ่งเพลง', '2 เพลง', '']]) },
-          { g: 0, t: 'คีย์และโน้ตต่อเพลง', d: 'แต่ละเพลงในลิสต์เลือกคีย์ และใส่โน้ตบันทึกพิเศษ เช่น วนท่อนอินโทร ได้', m: M.rows([[SET[0], 'เคลิ้ม', 'วนท่อนอินโทร', 'G']]) },
-          { g: 0, t: 'ส่งออกให้วง', d: 'ปุ่มส่งออกสร้างข้อความรายการเพลงให้ แชร์หรือคัดลอกส่งให้คนในวงได้', m: M.box(['<div class="tm-s">มายคลับ/จันทร์ 16 พ.ย.<br>1. เสียดาย — Bodyslam · G<br>2. เคลิ้ม — Slot Machine · G</div>']) },
-          { g: 0, t: 'ป้องกันพลาด', d: 'กด "บันทึก" แล้วมีหน้าต่างให้ยืนยันก่อน ถ้าออกโดยยังไม่บันทึกจะมีเตือน และการลบลิสต์ต้องยืนยันก่อนเสมอ', m: M.btns([['แก้ไขต่อ', '', 'ghost'], ['ยืนยัน (ไม่บันทึก)', '', 'danger']]) }
+          { g: 0, t: 'เพิ่มเพลงเข้าลิสต์', d: '(แตะลิสต์ที่ชี้ แล้วกดแก้ไข จึงจะเห็นส่วนนี้) ในโหมด "แก้ไขลิสต์" กด "+ เลือกเพลงจากคลังใส่ลิสต์" กรองด้วยคีย์ เรียงตามชื่อ ศิลปิน คีย์ BPM หรือเล่นบ่อยสุด แล้วกด "+ เพิ่ม" ที่เพลงนั้น', m: M.btns([['+ เลือกเพลงจากคลังใส่ลิสต์', '', 'ghost']]) },
+          { g: 0, t: 'เมดเลย์', d: '(แตะลิสต์ที่ชี้ แล้วกดแก้ไข จึงจะเห็นส่วนนี้) กด "+ เมดเลย์" เพื่อสร้างเมดเลย์ ใส่ชื่อ แล้ว "+ เพิ่มเพลงเข้าเมดเลย์" รวมหลายเพลงเป็นรายการเดียว', m: M.rows([[SET[1], 'เมดเลย์ครึ่งเพลง', '2 เพลง', '']]) },
+          { g: 0, t: 'คีย์และโน้ตต่อเพลง', d: '(แตะลิสต์ที่ชี้ แล้วกดแก้ไข จึงจะเห็นส่วนนี้) แต่ละเพลงในลิสต์เลือกคีย์ และใส่โน้ตบันทึกพิเศษ เช่น วนท่อนอินโทร ได้', m: M.rows([[SET[0], 'เคลิ้ม', 'วนท่อนอินโทร', 'G']]) },
+          { g: 0, t: 'ส่งออกให้วง', d: '(แตะลิสต์ที่ชี้ แล้วกดแก้ไข จึงจะเห็นส่วนนี้) ปุ่มส่งออกสร้างข้อความรายการเพลงให้ แชร์หรือคัดลอกส่งให้คนในวงได้', m: M.box(['<div class="tm-s">มายคลับ/จันทร์ 16 พ.ย.<br>1. เสียดาย — Bodyslam · G<br>2. เคลิ้ม — Slot Machine · G</div>']) },
+          { g: 0, t: 'ป้องกันพลาด', d: '(แตะลิสต์ที่ชี้ แล้วกดแก้ไข จึงจะเห็นส่วนนี้) กด "บันทึก" แล้วมีหน้าต่างให้ยืนยันก่อน ถ้าออกโดยยังไม่บันทึกจะมีเตือน และการลบลิสต์ต้องยืนยันก่อนเสมอ', m: M.btns([['แก้ไขต่อ', '', 'ghost'], ['ยืนยัน (ไม่บันทึก)', '', 'danger']]) }
         ] },
         settings: { name: 'ตั้งค่า', cards: [
           { g: 0, t: 'เมนูตั้งค่า', d: 'หน้านี้เป็นรายการเมนู แตะหัวข้อเพื่อเข้าหน้าย่อย แล้วใช้ปุ่มย้อนกลับมุมบนซ้ายเพื่อกลับมาที่เมนู', m: M.rows([[null, 'โปรไฟล์', '', ''], [null, 'คำสั่งด่วน', '', ''], [null, 'ค้นหา', '', ''], [null, 'การแสดงผล', '', '']]) },
@@ -290,13 +290,13 @@
       ] };
       const SEL = {
         monitor: ['#monitorTopBar', '#tbSoundQuick', '.song-box-current', '#nextSongCardBox', '#standbyBox', '.monitor-progress-bar-container', { s: '.song-box-current', land: true }],
-        live: [{ s: '.lv-tag.live', up: '.lv-card' }, '.lv-card:not(.played)', '[data-a=next]', '[data-a=autosw]', '[data-a=timer]', '[data-a=played]', '#lvActs [data-a=edit]', null, null, '#lvActs [data-a=req]', '#lvActs .lv-badge', null, '[data-a=copy]'],
+        live: [{ s: '.lv-tag.live', up: '.lv-card' }, '.lv-card:not(.played)', '[data-a=next]', '[data-a=autosw]', '[data-a=timer]', '[data-a=played]', '#lvActs [data-a=edit]', ['#lvActs [data-a=save]', '#lvUndo [data-a=undo]', '#lvActs [data-a=edit]', '#lvActs [data-a=insert]'], ['#lvActs [data-a=insert]', '#lvActs [data-a=edit]'], '#lvActs [data-a=req]', '#lvActs .lv-badge', ['#lvActs [data-a=req]', '#lvActs [data-a=insert]'], '[data-a=copy]'],
         talkback: ['.tb-top-bar', '#tgBar', '#quickButtonsContainer', '#feelWrap', '#bottomControlBar', '#quickButtonsContainer'],
         songs: ['#songSearchInput', '#btnToggleLine2', '#btnOpenAddSong', '#btnOpenAddSong', '#masterSongList > div'],
-        setlists: ['#btnOpenCalendar', '#btnOpenCreatePlaylist', '#masterPlaylistList > div', null, null, null, null, null],
+        setlists: ['#btnOpenCalendar', '#btnOpenCreatePlaylist', '#masterPlaylistList > div', ['#masterPlaylistList > div', '#btnOpenCreatePlaylist'], ['#masterPlaylistList > div', '#btnOpenCreatePlaylist'], ['#masterPlaylistList > div', '#btnOpenCreatePlaylist'], ['#masterPlaylistList > div', '#btnOpenCreatePlaylist'], ['#masterPlaylistList > div', '#btnOpenCreatePlaylist']],
         settings: ['.settings-tabs', '.set-menu button:nth-child(1)', '.set-menu button:nth-child(2)', '.set-menu button:nth-child(3)', '.set-menu button:nth-child(4)', '.header-left .hdr-btn']
       };
-      Object.keys(SEL).forEach((k) => TOURS[k].cards.forEach((c, i) => { const v = SEL[k][i]; if (v) Object.assign(c, typeof v === 'string' ? { s: v } : v); }));
+      Object.keys(SEL).forEach((k) => TOURS[k].cards.forEach((c, i) => { const v = SEL[k][i]; if (v) Object.assign(c, (typeof v === 'string' || Array.isArray(v)) ? { s: v } : v); }));
       const ORDER = ['shell', 'monitor', 'live', 'talkback', 'songs', 'setlists', 'settings'];
       const sess = () => { try { return JSON.parse(localStorage.getItem('lsh_session')) || {}; } catch (e) { return {}; } };
       const cardsOf = (p) => { const s = sess(), T = TOURS[p]; if (!T || s.userType === 'admin') return []; const guest = s.userType === 'guest'; return T.cards.filter((c) => !(guest && c.g === 0)); };
@@ -308,7 +308,7 @@
       function findTarget(c, page) {
         if (!c.s || (page !== 'shell' && curPage() !== page)) return null;
         if (c.land && !(window.matchMedia && matchMedia('(orientation: landscape)').matches)) return null;
-        let n = null; document.querySelectorAll(c.s).forEach((x) => { if (!n && vis(x)) n = x; });
+        let n = null; (Array.isArray(c.s) ? c.s : [c.s]).forEach((q) => { if (!n) document.querySelectorAll(q).forEach((x) => { if (!n && vis(x)) n = x; }); });
         if (n && c.up) n = n.closest(c.up) || n;
         return n;
       }
@@ -2153,7 +2153,7 @@
     };
 
     // ===== ตรวจเวอร์ชันแอป (2.0): เทียบเลขใน version.json บนเซิร์ฟเวอร์ กับเลขของโค้ดที่เปิดอยู่ =====
-    const LSH_APP_VER = '2.0.27';
+    const LSH_APP_VER = '2.0.28';
     window.LSH_VER_TXT = LSH_APP_VER;
     try { const dv = document.getElementById('drawerVersion'); if (dv) dv.textContent = 'เวอร์ชัน ' + LSH_APP_VER; } catch (e) {}   // แสดงเลขเวอร์ชันท้ายเมนูแฮมเบอร์เกอร์
     let lshVerAt = 0;
