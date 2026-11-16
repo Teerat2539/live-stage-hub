@@ -1836,10 +1836,25 @@
       <h3>เข้าสู่ระบบ</h3>
       <p style="font-size:12px;color:var(--c-aaaaaa);margin:5px 0">ล็อกอินครั้งเดียวอยู่ได้จนถึงเที่ยงวันของวันที่ 7 <b id="loginRoomLabel" hidden></b></p>
       <input type="text" id="usernameInput" placeholder="Username" style="width:100%;padding:8px;margin:5px 0"><br>
-      <input type="password" id="pinInput" inputmode="numeric" pattern="[0-9]*" maxlength="6" placeholder="PIN" autocomplete="off" style="width:100%;padding:8px;margin:5px 0;font-size:16px" onkeydown="if(event.key==='Enter')submitMemberLogin()"><br><br>
+      <div class="pin-lbl">PIN 4 หลัก</div>
+      <div class="pin-row" id="pinRow" data-n="4"><i class="pin-box"></i><i class="pin-box"></i><i class="pin-box"></i><i class="pin-box"></i>
+        <input type="password" id="pinInput" class="pin-real" inputmode="numeric" pattern="[0-9]*" maxlength="4" autocomplete="off" aria-label="PIN 4 หลัก" onkeydown="if(event.key==='Enter')submitMemberLogin()"></div>
       <button onclick="submitMemberLogin()" class="btn-primary">เข้าสู่ระบบ</button>
       <div class="login-or"><span></span>ไม่ได้เป็นสมาชิกวง?<span></span></div>
       <button type="button" onclick="openJoinBand()" class="btn-join-outline">จอยวง</button>
+      <button type="button" class="btn-admin-link" onclick="openAdminLogin()">สำหรับแอดมิน</button>
+    </div>
+  </div>
+
+  <!-- POPUP ล็อกอินแอดมิน (PIN 6 หลัก ไม่ต้องกรอก Username) -->
+  <div id="adminLoginModal" class="overlay hidden" onclick="closeAdminLogin()">
+    <div class="box" onclick="event.stopPropagation()">
+      <h3>สำหรับแอดมิน</h3>
+      <p style="font-size:12px;color:var(--c-aaaaaa);margin:5px 0">กรอก PIN 6 หลัก</p>
+      <div class="pin-row six" id="adminPinRow" data-n="6"><i class="pin-box"></i><i class="pin-box"></i><i class="pin-box"></i><i class="pin-box"></i><i class="pin-box"></i><i class="pin-box"></i>
+        <input type="password" id="adminLoginPin" class="pin-real" inputmode="numeric" pattern="[0-9]*" maxlength="6" autocomplete="off" aria-label="PIN แอดมิน 6 หลัก" onkeydown="if(event.key==='Enter')submitAdminLogin()"></div>
+      <button onclick="submitAdminLogin()" class="btn-primary">เข้าสู่ระบบ</button>
+      <button type="button" onclick="closeAdminLogin()" class="btn-ghost" style="margin-top:8px">ยกเลิก</button>
     </div>
   </div>
 
@@ -2022,7 +2037,7 @@
     };
 
     // ===== ตรวจเวอร์ชันแอป (2.0): เทียบเลขใน version.json บนเซิร์ฟเวอร์ กับเลขของโค้ดที่เปิดอยู่ =====
-    const LSH_APP_VER = '2.0.22';
+    const LSH_APP_VER = '2.0.23';
     try { const dv = document.getElementById('drawerVersion'); if (dv) dv.textContent = 'เวอร์ชัน ' + LSH_APP_VER; } catch (e) {}   // แสดงเลขเวอร์ชันท้ายเมนูแฮมเบอร์เกอร์
     let lshVerAt = 0;
     function lshCheckVersion() {
@@ -2588,12 +2603,40 @@
     }
 
     // ล็อกอินด้วย Username + PIN: แอดมิน -> เข้าเฉพาะตั้งค่าขั้นสูง / สมาชิก -> เข้าวงที่แอดมินจัดให้
+    // ช่อง PIN แบบกรอบ n ช่อง: input จริงซ่อนทับกรอบ (วางรหัส/ออโต้ฟิล/ลบถอยหลังทำงานปกติ)
+    window.lshPin = (function() {
+      const rows = {};
+      function paint(row) {
+        const inp = row.querySelector('.pin-real'), boxes = row.querySelectorAll('.pin-box'), v = inp.value, focus = document.activeElement === inp;
+        boxes.forEach((b, i) => { b.classList.toggle('fill', i < v.length); b.classList.toggle('cur', focus && i === Math.min(v.length, boxes.length - 1)); });
+      }
+      function bind(rowId, onFull) {
+        const row = document.getElementById(rowId); if (!row || rows[rowId]) return; rows[rowId] = row;
+        const inp = row.querySelector('.pin-real'), n = parseInt(row.dataset.n, 10);
+        inp.addEventListener('input', () => { const c = inp.value.replace(/\D/g, '').slice(0, n); if (c !== inp.value) inp.value = c; row.classList.remove('bad', 'ok'); paint(row); if (c.length === n && onFull) onFull(); });
+        inp.addEventListener('focus', () => paint(row)); inp.addEventListener('blur', () => paint(row));
+        paint(row);
+      }
+      function reset(rowId) { const row = document.getElementById(rowId); if (!row) return; row.querySelector('.pin-real').value = ''; row.classList.remove('bad', 'ok'); paint(row); }
+      // ผิด: กรอบแดง (กล่องสั่นมาจาก lshToast) ล้างช่องแล้วกลับไปช่องแรก
+      function bad(rowId) { const row = document.getElementById(rowId); if (!row) return; row.classList.remove('ok'); row.classList.add('bad'); const inp = row.querySelector('.pin-real');
+        setTimeout(() => { inp.value = ''; row.classList.remove('bad'); paint(row); try { inp.focus(); } catch (e) {} }, 750); }
+      // ถูก: กรอบเขียว + เด้งเล็กน้อย แล้วรอให้เห็นก่อนเข้า
+      function ok(rowId) { const row = document.getElementById(rowId); if (!row) return Promise.resolve(); row.classList.remove('bad'); row.classList.add('ok'); const bx = row.closest('.box'); if (bx) { bx.classList.remove('lsh-ok'); void bx.offsetWidth; bx.classList.add('lsh-ok'); }
+        return new Promise((r) => setTimeout(r, 520)); }
+      return { bind: bind, reset: reset, bad: bad, ok: ok, paint: (id) => { const r = document.getElementById(id); if (r) paint(r); } };
+    })();
+
+    let lshLoginBusy = false;
+    lshPin.bind('pinRow', () => submitMemberLogin());
+    lshPin.bind('adminPinRow', () => submitAdminLogin());
     async function submitMemberLogin() {
+      if (lshLoginBusy) return;
       const uName = document.getElementById('usernameInput').value.trim().toLowerCase();
       const pin = document.getElementById('pinInput').value.trim();
 
-      if (!uName || !pin) {
-        lshAlert('กรุณากรอก Username และ PIN ให้ครบถ้วน');
+      if (!uName || !/^[0-9]{4}$/.test(pin)) {
+        lshAlert(!uName ? 'กรุณากรอก Username' : 'กรุณากรอก PIN ให้ครบ 4 หลัก');
         return;
       }
       // กันเดา PIN: ผิดครบ 5 ครั้งล็อก 10 นาที (นับในเครื่องนี้)
@@ -2608,22 +2651,19 @@
         if (lk.n >= 5) { lk = { n: 0, until: Date.now() + 10 * 60000 }; }
         localStorage.setItem('lsh_login_lock', JSON.stringify(lk));
       };
+      const wrong = () => { fail(); lshAlert('Username หรือ PIN ไม่ถูกต้อง'); lshPin.bad('pinRow'); };
 
+      lshLoginBusy = true;
       try {
+        if (uName === 'admin') { wrong(); return; }   // แอดมินเข้าทางปุ่ม "สำหรับแอดมิน" เท่านั้น
         const snapshot = await db.ref('users/' + uName).once('value');
-        if (!snapshot.exists()) { fail(); lshAlert('Username หรือ PIN ไม่ถูกต้อง'); return; }
+        if (!snapshot.exists()) { wrong(); return; }
         const userData = snapshot.val();
-        if (String(userData.pin) !== String(pin)) { fail(); lshAlert('Username หรือ PIN ไม่ถูกต้อง'); return; }
+        if (String(userData.pin) !== String(pin)) { wrong(); return; }
         localStorage.removeItem('lsh_login_lock');
+        await lshPin.ok('pinRow');
 
         const expiresAt = lshSessionExpiry(new Date());
-        if (uName === 'admin') {
-          saveSession('', 'ผู้ดูแลระบบ', 'Admin', 'admin', 'admin', '🛠️', { expiresAt: expiresAt, bands: [] });
-          localStorage.setItem('lsh_last_page', 'settings');
-          closeAllModals();
-          applySession();
-          return;
-        }
 
         // หาวงที่สมาชิกคนนี้อยู่ (roomConfig/{วง}/members/{username})
         const roomsSnap = await db.ref('rooms').once('value');
@@ -2656,7 +2696,33 @@
         applySession();
       } catch (error) {
         lshAlert('เกิดข้อผิดพลาดในการเชื่อมต่อ: ' + error.message);
-      }
+      } finally { lshLoginBusy = false; }
+    }
+
+    // ===== ล็อกอินแอดมิน: PIN 6 หลัก ไม่ต้องกรอก Username (บัญชี users/admin เดิม) =====
+    function openAdminLogin() { const m = document.getElementById('adminLoginModal'); if (!m) return; m.classList.remove('hidden'); lshPin.reset('adminPinRow'); setTimeout(() => { try { document.getElementById('adminLoginPin').focus(); } catch (e) {} }, 120); }
+    function closeAdminLogin() { const m = document.getElementById('adminLoginModal'); if (m) m.classList.add('hidden'); lshPin.reset('adminPinRow'); }
+    async function submitAdminLogin() {
+      if (lshLoginBusy) return;
+      const pin = document.getElementById('adminLoginPin').value.trim();
+      if (!/^[0-9]{6}$/.test(pin)) { lshAlert('กรุณากรอก PIN ให้ครบ 6 หลัก'); return; }
+      let lk = {}; try { lk = JSON.parse(localStorage.getItem('lsh_login_lock') || '{}'); } catch (e) {}
+      if (lk.until && Date.now() < lk.until) { lshAlert('กรอกผิดหลายครั้ง กรุณารออีก ' + Math.ceil((lk.until - Date.now()) / 60000) + ' นาที'); return; }
+      const wrong = () => { lk.n = (lk.n || 0) + 1; if (lk.n >= 5) lk = { n: 0, until: Date.now() + 10 * 60000 }; localStorage.setItem('lsh_login_lock', JSON.stringify(lk)); lshAlert('PIN ไม่ถูกต้อง'); lshPin.bad('adminPinRow'); };
+      lshLoginBusy = true;
+      try {
+        const snapshot = await db.ref('users/admin').once('value');
+        if (!snapshot.exists() || String(snapshot.val().pin) !== pin) { wrong(); return; }
+        localStorage.removeItem('lsh_login_lock');
+        await lshPin.ok('adminPinRow');
+        const expiresAt = lshSessionExpiry(new Date());
+        saveSession('', 'ผู้ดูแลระบบ', 'Admin', 'admin', 'admin', '🛠️', { expiresAt: expiresAt, bands: [] });
+        localStorage.setItem('lsh_last_page', 'settings');
+        closeAllModals();
+        applySession();
+      } catch (error) {
+        lshAlert('เกิดข้อผิดพลาดในการเชื่อมต่อ: ' + error.message);
+      } finally { lshLoginBusy = false; }
     }
 
     // หมดอายุเวลา 12:00 น. ของวันที่ 7 (นับวันที่ล็อกอินเป็นวันที่ 1)
@@ -2817,9 +2883,11 @@
       document.getElementById('guestFormModal').classList.add('hidden');
       document.getElementById('sessionExpiredModal').classList.add('hidden');
       document.getElementById('logoutConfirmModal').classList.add('hidden');
+      const am = document.getElementById('adminLoginModal'); if (am) am.classList.add('hidden');
       
       document.getElementById('usernameInput').value = '';
       document.getElementById('pinInput').value = '';
+      if (window.lshPin) { lshPin.reset('pinRow'); lshPin.reset('adminPinRow'); }
       document.getElementById('guestNameInput').value = '';
     }
 

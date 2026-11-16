@@ -627,8 +627,8 @@
       const oldPin = document.getElementById('oldPinInput').value.trim();
       const newPin = document.getElementById('newPinInput').value.trim();
 
-      if (!oldPin || newPin.length !== 4) {
-        lshAlert('กรุณากรอก PIN เดิม และ PIN ใหม่ให้ครบถ้วน (4 หลัก)');
+      if (!oldPin || !/^[0-9]{4}$/.test(newPin)) {
+        lshAlert('กรุณากรอก PIN เดิม และ PIN ใหม่ให้ครบถ้วน (ตัวเลข 4 หลัก)');
         return;
       }
 
