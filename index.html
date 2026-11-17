@@ -66,9 +66,6 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.2/Sortable.min.js"></script>
 </head>
 <body>
-  <div id="lshRotateHint" role="alert">
-    <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="7" y="2" width="10" height="20" rx="2"/><path d="M11 18h2"/></svg>
-    <div>กรุณาหมุนเครื่องเป็นแนวตั้ง</div>
   </div>
   <!-- หน้าโหลดตอนเปิดแอป: ซ่อนอัตโนมัติเมื่อหน้าแรกได้ข้อมูลจาก Firebase (สูงสุด 8 วินาที) -->
   <div id="lshSplash" role="status" aria-live="polite">
@@ -2153,7 +2150,7 @@
     };
 
     // ===== ตรวจเวอร์ชันแอป (2.0): เทียบเลขใน version.json บนเซิร์ฟเวอร์ กับเลขของโค้ดที่เปิดอยู่ =====
-    const LSH_APP_VER = '2.0.28';
+    const LSH_APP_VER = '2.0.29';
     window.LSH_VER_TXT = LSH_APP_VER;
     try { const dv = document.getElementById('drawerVersion'); if (dv) dv.textContent = 'เวอร์ชัน ' + LSH_APP_VER; } catch (e) {}   // แสดงเลขเวอร์ชันท้ายเมนูแฮมเบอร์เกอร์
     let lshVerAt = 0;
@@ -2220,12 +2217,7 @@
           document.body.classList.toggle('lsh-page-monitor', page === 'monitor');
           document.body.classList.toggle('lsh-page-talkback', page === 'talkback');
           document.body.classList.toggle('lsh-page-live', page === 'live');   // 2.0: Live หมุนแนวนอนได้ (ดูคอร์ดอย่างเดียว)
-          try {
-            if (screen.orientation && screen.orientation.lock) {
-              if (page === 'monitor' || page === 'talkback' || page === 'live') screen.orientation.unlock();
-              else screen.orientation.lock('portrait').catch(() => {});
-            }
-          } catch (e) {}
+          try { if (screen.orientation && screen.orientation.unlock) screen.orientation.unlock(); } catch (e) {}   // ไม่ล็อกแนวตั้งแล้ว: ทุกหน้าหมุนได้
         }
       };
     })();

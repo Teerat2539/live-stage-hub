@@ -184,7 +184,7 @@ nav button.active::before {
 
 /* ---- Overlay / Dialog กลาง ---- */
 .overlay {
-  position: fixed; inset: 0; z-index: 999;
+  position: fixed; inset: 0; z-index: 15200;   /* โมดัลของเชลล์ (ล็อกอิน/เลือกวง/ยืนยัน ฯลฯ) ต้องอยู่เหนือแผ่นของทุกหน้า (12000–14700) */
   background: rgba(4,5,8,.78); backdrop-filter: blur(6px);
   display: flex; justify-content: center; align-items: center; padding: 20px;
   animation: fadeIn .18s ease-out;
@@ -203,7 +203,7 @@ nav button.active::before {
 
 /* ---- Drawer ---- */
 .drawer {
-  position: fixed; top: 0; left: -360px; z-index: 1000;
+  position: fixed; top: 0; left: -360px; z-index: 15201;
   width: min(86vw, 320px); height: 100%;
   background: var(--surface); border-right: 1px solid var(--line-strong);
   box-shadow: none;
@@ -1352,16 +1352,6 @@ header .header-right { justify-content: flex-end; }
 .drawer-menu .drawer-install { margin-top: 12px; border-top: 1px solid var(--line); color: var(--live); }
 .drawer-menu .drawer-install.hidden { display: none; }
 
-
-/* ล็อกแนวตั้ง: ทุกหน้าที่ไม่ใช่มอนิเตอร์ ถ้าโทรศัพท์ถูกหมุนเป็นแนวนอน (iOS ล็อกจากโค้ดไม่ได้) ให้ขอให้หมุนกลับ */
-#lshRotateHint { display: none; }
-@media (orientation: landscape) and (max-height: 500px) {
-  body:not(.lsh-page-monitor):not(.lsh-page-talkback):not(.lsh-page-live) #lshRotateHint {
-    position: fixed; inset: 0; z-index: 99999; display: flex; flex-direction: column;
-    align-items: center; justify-content: center; gap: 12px;
-    background: var(--bg, var(--c-0b0c10)); color: var(--text, var(--c-f2f3f5)); font-size: 16px; font-weight: 700;
-  }
-}
 
 /* คำสั่งด่วนมีสีตามที่ผู้ใช้ตั้ง (--qc) */
 .btn-quick[style*="--qc"] {
