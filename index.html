@@ -699,6 +699,92 @@
       return { norm: norm, clean: clean, tagsOf: tagsOf, all: all, rank: rank, filter: filter, canEdit: canEdit, mountFilter: mountFilter, edit: edit, exportCho: exportCho, _zip: zipBlob, _cho: choText, MAX: MAX, esc: esc };
     })();
 
+    // ===== โหมดซ้อม (2.3): ข้อมูลฉบับร่างของลิสต์ที่กำลังซ้อม — ใช้ร่วมกันระหว่างหน้าลิสต์ / หน้าซ้อม / เมนู =====
+    window.lshRehearsal = (function() {
+      const DAY = 24 * 3600 * 1000;
+      const sess = () => { try { return JSON.parse(localStorage.getItem('lsh_session') || '{}'); } catch (e) { return {}; } };
+      const room = () => lshRoom(sess());
+      const me = () => { const s = sess(); return s.nickname || s.username || ''; };
+      const ref = (id, p) => db.ref('rooms/' + room() + '/rehearsal/' + id + (p ? '/' + p : ''));
+      const ordered = (o) => { const ix = (k) => { const m = /(\d+)$/.exec(k); return m ? parseInt(m[1], 10) : 1e15; }; return Object.keys(o || {}).map((k, p) => ({ k: k, p: p, n: ix(k) })).sort((a, b) => (a.n - b.n) || (a.p - b.p)).map((x) => x.k); };
+      const isMed = (it) => !!(it && Array.isArray(it.parts) && it.parts.length);
+      const str = (v) => (v == null || v === '-') ? '' : String(v).trim();
+      let idn = 0;
+      const newId = () => 'r' + Date.now().toString(36) + (idn++).toString(36) + Math.floor(Math.random() * 1296).toString(36);
+      // ลิสต์ในแฟ้ม → ฉบับร่าง {items, order}
+      function fromList(pl, songs) {
+        const items = {}, order = [];
+        ordered(pl && pl.songs).forEach((k) => {
+          const it = pl.songs[k], id = newId(); order.push(id);
+          if (isMed(it)) { items[id] = { kind: 'medley', title: it.name || 'เมดเลย์', set: it.set || 'Set 1', note: it.note || '', parts: it.parts.map((pt) => ({ songId: pt.songId, key: pt.key || '', secs: (pt.secs || []).map((x) => ({ i: x.i, n: x.n || '' })) })) }; return; }
+          const m = (songs && songs[it.songId]) || {};
+          items[id] = { songId: it.songId || '', title: m.title || it.title || 'เพลงถูกลบแล้ว', artist: m.artist || '', key: str(it.key) || str(m.key), bpm: str(it.bpm) || str(m.bpm), set: it.set || 'Set 1', note: it.note || '' };
+        });
+        return { items: items, order: order };
+      }
+      // ฉบับร่าง → ข้อมูล songs ของลิสต์ (s_0, s_1, …)
+      function toSongs(node, songs) {
+        const out = {}; let n = 0;
+        const items = node.items || {};
+        toOrder(node).forEach((id) => {
+          const it = items[id]; if (!it) return;
+          if (it.kind === 'medley') out['s_' + n++] = { name: it.title || '', set: it.set || 'Set 1', parts: (it.parts || []).map((pt) => ({ songId: pt.songId, key: pt.key || '', secs: (pt.secs || []).map((x) => ({ i: x.i, n: x.n || '' })) })) };
+          else {
+            const m = (songs && songs[it.songId]) || {}, o = { songId: it.songId, set: it.set || 'Set 1', key: it.key || str(m.key), note: it.note || '' };
+            if (str(it.bpm) && str(it.bpm) !== str(m.bpm)) o.bpm = str(it.bpm);   // BPM เก็บเฉพาะในลิสต์นี้ ไม่แก้ที่เพลงต้นฉบับ
+            out['s_' + n++] = o;
+          }
+        });
+        return out;
+      }
+      const toOrder = (node) => (Array.isArray(node && node.order) ? node.order : Object.values((node && node.order) || {})).filter((id) => node.items && node.items[id] && !node.items[id].removed);
+      const sigOf = (node) => JSON.stringify(toOrder(node).map((id) => { const it = node.items[id]; return [it.songId || '', it.title, it.key || '', it.bpm || '', it.set || '', it.note || '', it.kind === 'medley' ? JSON.stringify(it.parts) : '']; }));
+      const changedOf = (node) => !!node && !!node.base && sigOf(node) !== sigOf(node.base);
+      const live = (n) => !!n && n.status === 'open' && (Date.now() - (n.updatedAt || n.startedAt || 0)) < DAY;
+      // เริ่ม/เข้าร่วมการซ้อมของลิสต์ (ถ้ามีร่างที่ยังไม่หมดอายุอยู่แล้วใช้ร่างเดิม)
+      async function start(listId, pl, songs) {
+        const d = fromList(pl, songs), r = ref(listId);
+        const res = await r.transaction((cur) => {
+          if (live(cur)) return;   // มีอยู่แล้ว: ไม่แตะ
+          return { status: 'open', startedBy: me(), startedAt: Date.now(), updatedAt: Date.now(), venue: pl.venue || '', date: pl.date || '', items: d.items, order: d.order, base: { items: d.items, order: d.order } };
+        });
+        return res.snapshot.val();
+      }
+      async function get(listId) { const s = await ref(listId).once('value'); return s.val(); }
+      async function openDraft(listId) {   // ร่างที่ยังเปิดอยู่และมีการแก้ไขจริง
+        try { const n = await get(listId); return (live(n) && changedOf(n)) ? n : null; } catch (e) { return null; }
+      }
+      function enter(listId) {
+        try { localStorage.setItem('lsh_rehearsal_list', listId); } catch (e) {}
+        window.__rehearsalList = listId; syncMenu();
+        if (typeof loadPage === 'function') { document.querySelectorAll('nav button').forEach((b) => b.classList.remove('active')); loadPage('rehearsal'); }
+      }
+      function leave() { try { localStorage.removeItem('lsh_rehearsal_list'); } catch (e) {} window.__rehearsalList = null; syncMenu(); }
+      function back() { const id = window.__rehearsalList || localStorage.getItem('lsh_rehearsal_list'); if (id) { toggleDrawer(false); enter(id); } }
+      function syncMenu() { const b = document.getElementById('menuRehearsal'); if (b) b.style.display = (window.__rehearsalList || localStorage.getItem('lsh_rehearsal_list')) ? '' : 'none'; }
+      // จบการซ้อม: mode = overwrite | new | discard
+      async function commit(listId, mode, o) {
+        o = o || {};
+        const snap = await ref(listId).once('value'), node = snap.val();
+        if (!node || node.status !== 'open') throw new Error('ลิสต์นี้ปิดการซ้อมไปแล้ว');
+        const songs = (await db.ref('songs').once('value')).val() || {}, base = 'rooms/' + room() + '/', up = {};
+        const now = Date.now(), by = o.by || me();
+        if (mode === 'overwrite') {
+          const old = (await db.ref(base + 'setlists/' + listId + '/songs').once('value')).val();
+          up[base + 'setlists/' + listId + '/songs'] = toSongs(node, songs);
+          if (old) up[base + 'setlists/' + listId + '/prevVersion'] = { at: now, by: by, songs: old };   // เก็บฉบับก่อนหน้าไว้ย้อนกลับ
+        } else if (mode === 'new') {
+          const nid = db.ref(base + 'setlists').push().key;
+          up[base + 'setlists/' + nid] = { venue: o.name || ((node.venue || 'ลิสต์') + ' (ซ้อม)'), date: node.date || '', favorite: false, createdAt: now, songs: toSongs(node, songs) };
+        }
+        up[base + 'rehearsal/' + listId + '/status'] = mode === 'discard' ? 'discarded' : (mode === 'new' ? 'savednew' : 'saved');
+        up[base + 'rehearsal/' + listId + '/closedBy'] = by; up[base + 'rehearsal/' + listId + '/closedAt'] = now; up[base + 'rehearsal/' + listId + '/updatedAt'] = now;
+        await db.ref().update(up);
+        return true;
+      }
+      return { fromList: fromList, toSongs: toSongs, toOrder: toOrder, sigOf: sigOf, changedOf: changedOf, live: live, start: start, get: get, openDraft: openDraft, enter: enter, leave: leave, back: back, syncMenu: syncMenu, commit: commit, ref: ref, newId: newId, me: me, str: str, isMed: isMed, DAY: DAY };
+    })();
+
     window.lshKeyPick = (function() {
       const MAJ = ['C', 'Db', 'D', 'Eb', 'E', 'F', 'Gb', 'G', 'Ab', 'A', 'Bb', 'B'], MIN = ['Cm', 'C#m', 'Dm', 'Ebm', 'Em', 'Fm', 'F#m', 'Gm', 'G#m', 'Am', 'Bbm', 'Bm'];
       const clean = (k) => { k = String(k == null ? '' : k).trim(); return k === '-' ? '' : k; };
@@ -2097,6 +2183,7 @@
       <div id="sessionCountdown" style="font-size:18px;font-weight:bold;color:var(--c-00f2d1);margin-top:4px">--:--:--</div>
     </div>
     <div class="drawer-menu">
+      <button id="menuRehearsal" style="display:none" onclick="lshRehearsal.back()">กลับเข้าห้องซ้อม</button>
       <button onclick="menuAction('แฟ้มลิสต์เพลง')">แฟ้มลิสต์เพลง</button>
       <button onclick="menuAction('เพลงทั้งหมด')">เพลงทั้งหมด</button>
       <button onclick="menuAction('รายการเพลงรีเควส')">รายการเพลงรีเควส</button>
@@ -2367,7 +2454,7 @@
     };
 
     // ===== ตรวจเวอร์ชันแอป (2.0): เทียบเลขใน version.json บนเซิร์ฟเวอร์ กับเลขของโค้ดที่เปิดอยู่ =====
-    const LSH_APP_VER = '2.2.1';
+    const LSH_APP_VER = '2.3.0';
     window.LSH_VER_TXT = LSH_APP_VER;
     try { const dv = document.getElementById('drawerVersion'); if (dv) dv.textContent = 'เวอร์ชัน ' + LSH_APP_VER; } catch (e) {}   // แสดงเลขเวอร์ชันท้ายเมนูแฮมเบอร์เกอร์
     let lshVerAt = 0;
@@ -2433,7 +2520,8 @@
           // มอนิเตอร์ ท็อคแบค และ Live หมุนได้ (ท็อคแบคแนวนอนใช้ได้เฉพาะคำสั่งด่วน) ทุกหน้าอื่นล็อกแนวตั้ง
           document.body.classList.toggle('lsh-page-monitor', page === 'monitor');
           document.body.classList.toggle('lsh-page-talkback', page === 'talkback');
-          document.body.classList.toggle('lsh-page-live', page === 'live');   // 2.0: Live หมุนแนวนอนได้ (ดูคอร์ดอย่างเดียว)
+          document.body.classList.toggle('lsh-page-live', page === 'live');
+          document.body.classList.toggle('lsh-page-rehearsal', page === 'rehearsal');   // 2.3: โหมดซ้อม — ไม่มีแถบเมนูล่าง   // 2.0: Live หมุนแนวนอนได้ (ดูคอร์ดอย่างเดียว)
           try { if (screen.orientation && screen.orientation.unlock) screen.orientation.unlock(); } catch (e) {}   // ไม่ล็อกแนวตั้งแล้ว: ทุกหน้าหมุนได้
         }
       };
@@ -2467,6 +2555,7 @@
       const overlay = document.getElementById('drawerOverlay');
       if (open) {
         if (window.lshLanding) lshLanding.themeBtns();
+        try { lshRehearsal.syncMenu(); } catch (e) {}
         drawer.classList.add('open');
         overlay.classList.remove('hidden');
       } else {
@@ -3276,6 +3365,8 @@
       try { if (window.lshTour) window.lshTour.close(true); } catch (e) {}
       try { if (window.__lv && window.__lv.dispose) window.__lv.dispose(); } catch (e) {}   // ออกจากหน้า Live: หยุด listener/ตัวจับเวลาของหน้านั้น
       window.__lv = null;
+      try { if (window.__rh && window.__rh.dispose) window.__rh.dispose(); } catch (e) {}   // ออกจากหน้าซ้อม
+      window.__rh = null;
       const container = document.getElementById('mainContentArea');
       container.innerHTML = '';
       window.lshWaitPage(pageName);

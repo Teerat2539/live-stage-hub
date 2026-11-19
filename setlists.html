@@ -74,6 +74,7 @@
           <button id="btnPlayLiveSet" style="background:var(--c-00f2d1);border:none;color:var(--c-00382f);font-weight:bold;padding:6px 10px;border-radius:6px;font-size:12px;cursor:pointer;display:flex;align-items:center;gap:4px">
             <svg class="ic" aria-hidden="true"><use href="#i-play"/></svg> เลือกเล่นลิสต์นี้
           </button>
+          <button id="btnRehearse" style="background:var(--c-222430);border:1px solid var(--c-f59e0b);color:var(--c-f59e0b);font-weight:bold;padding:6px 10px;border-radius:6px;font-size:12px;cursor:pointer;display:flex;align-items:center;gap:4px">ซ้อม</button>
         </div>
 
         <!-- ขวา: ดาว / ดินสอ / ถังขยะ -->
@@ -176,6 +177,19 @@
   </div>
 
   <!-- Pop-up ยืนยันการบันทึก -->
+  <!-- เตือนตอนเริ่มโชว์: ลิสต์นี้มีร่างที่ซ้อมกันมาและยังไม่ได้บันทึก -->
+  <div id="rehearseWarnModal" class="setlist-overlay hidden" style="z-index:15000">
+    <div class="setlist-form-box u-center">
+      <h3 class="modal-title">ลิสต์นี้มีที่ซ้อมกันมา</h3>
+      <p class="modal-desc">มีการแก้ไขจากห้องซ้อมที่ยังไม่ได้บันทึก จะเล่นลิสต์แบบไหน?</p>
+      <div class="u-row-center" style="flex-direction:column;gap:8px">
+        <button id="btnWarnRehearsed" class="btn-primary">ที่ซ้อมกันมา (บันทึกทับลิสต์แล้วเล่น)</button>
+        <button id="btnWarnOriginal" class="btn-ghost">ลิสต์ดั้งเดิม</button>
+        <button id="btnWarnCancel" class="btn-ghost">ยกเลิก</button>
+      </div>
+    </div>
+  </div>
+
   <div id="saveConfirmModal" class="setlist-overlay hidden" style="z-index:15000">
     <div class="setlist-form-box u-center">
       <h3 class="modal-title"><svg class="ic" aria-hidden="true"><use href="#i-save"/></svg> ยืนยันการบันทึก</h3>
@@ -493,7 +507,7 @@
           const songMaster = allSongsData[item.songId] || {};
           const title = songMaster.title || 'เพลงถูกลบแล้ว';
           const artist = songMaster.artist || 'ไม่ระบุศิลปิน';
-          const bpm = songMaster.bpm || '-';
+          const bpm = item.bpm || songMaster.bpm || '-';
           const displayKey = item.key || songMaster.key || '-';
           const setNum = (item.set || 'Set 1').replace('Set ', '');
 
@@ -533,6 +547,26 @@
     // 🎵 กดปุ่มเล่นลิสต์นี้ -> เคลียร์คิวและท็อคแบคเก่าทิ้ง แล้วบันทึกข้อมูลลิสต์ใหม่ลงฐานข้อมูลห้อง
     document.getElementById('btnPlayLiveSet').onclick = async function() {
       if (!currentPlaylistId) return;
+      // มีร่างที่ซ้อมกันมาและยังไม่ได้บันทึก: ให้เลือกก่อนว่าจะเล่นฉบับไหน (ไม่ล็อกการเริ่มโชว์)
+      let draft = null;
+      try { draft = window.lshRehearsal ? await lshRehearsal.openDraft(currentPlaylistId) : null; } catch (e) {}
+      if (draft) {
+        const m = document.getElementById('rehearseWarnModal'), done = () => m.classList.add('hidden');
+        m.classList.remove('hidden');
+        document.getElementById('btnWarnCancel').onclick = done;
+        document.getElementById('btnWarnOriginal').onclick = () => { done(); startPlayLive(); };
+        document.getElementById('btnWarnRehearsed').onclick = async () => {
+          done();
+          try { await lshRehearsal.commit(currentPlaylistId, 'overwrite'); } catch (e) { lshAlert('บันทึกลิสต์ที่ซ้อมไม่สำเร็จ: ' + (e.message || e)); return; }
+          // รอให้ข้อมูลลิสต์ที่เพิ่งบันทึกกลับมาในหน้านี้ก่อนค่อยเล่น
+          setTimeout(startPlayLive, 700);
+        };
+        return;
+      }
+      startPlayLive();
+    };
+    async function startPlayLive() {
+      if (!currentPlaylistId) return;
       const pl = allPlaylistsData[currentPlaylistId];
       if (!pl || !pl.songs) {
         lshAlert('ในแฟ้มลิสต์นี้ยังไม่มีเพลง กรุณาเพิ่มเพลงก่อนเล่นครับ');
@@ -554,7 +588,7 @@
         }
         const songMaster = allSongsData[item.songId] || {};
         
-        let rawBpm = songMaster.bpm;
+        let rawBpm = item.bpm || songMaster.bpm;   // BPM ที่ตั้งเฉพาะลิสต์ (จากห้องซ้อม) มาก่อนค่าในคลังเพลง
         let finalBpm = (rawBpm !== undefined && rawBpm !== null && String(rawBpm).trim() !== '') ? rawBpm : '-';
         
         queuePayload.push({
@@ -615,6 +649,18 @@
       } catch (e) {
         lshAlert('เกิดข้อผิดพลาดในการตั้งค่าคิว: ' + e.message);
       }
+    }
+
+    // 🎸 เข้าห้องซ้อมของลิสต์นี้ (ร่างสำเนา — ลิสต์จริงไม่เปลี่ยนจนกว่าจะกดบันทึก)
+    document.getElementById('btnRehearse').onclick = async function() {
+      if (!currentPlaylistId) return;
+      const pl = allPlaylistsData[currentPlaylistId];
+      if (!pl || !pl.songs) { lshAlert('ในแฟ้มลิสต์นี้ยังไม่มีเพลง กรุณาเพิ่มเพลงก่อนซ้อมครับ'); return; }
+      try {
+        await lshRehearsal.start(currentPlaylistId, pl, allSongsData);
+        closePlaylistDetailDrawer();
+        lshRehearsal.enter(currentPlaylistId);
+      } catch (e) { lshAlert('เปิดห้องซ้อมไม่สำเร็จ: ' + (e.message || e)); }
     };
 
     document.getElementById('btnDetailStar').onclick = function() {
@@ -872,6 +918,7 @@
           key: item.key || (allSongsData[item.songId] ? allSongsData[item.songId].key : ''),
           note: item.note || ''
         };
+        if (item.bpm) songsPayload['s_' + i].bpm = item.bpm;   // BPM ของลิสต์นี้ (ตั้งจากห้องซ้อม) — ไม่ทำหาย
       });
 
       try {

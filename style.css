@@ -2847,3 +2847,6 @@ nav button { transition: flex-grow 420ms var(--ease-out), background-color var(-
 .songs-container.sel-active #masterSongList { padding-bottom: 16px; }
 
 .songs-container .song-card { -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; }
+
+/* ===== 2.3.0 โหมดซ้อม: ไม่มีแถบเมนูล่าง ===== */
+body.lsh-page-rehearsal > nav { display: none !important; }

@@ -1,0 +1,757 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Live Stage Hub - ซ้อม</title>
+  <link rel="stylesheet" href="style.css">
+  <style>
+    /* ===== หน้า Live (2.0): รวมหน้าคอร์ด + หน้าจัดคิว — ใช้ตัวแปรสีเดิมจาก style.css ===== */
+    .lv { --set-1:var(--c-5b8cff); --set-2:var(--c-f5a524); --set-3:var(--c-3ddc84); --set-4:var(--c-b084ff); --set-5:var(--c-22d3ee); --live:var(--c-35e6c0); --live-ink:var(--c-0a0c10); --live-soft:rgba(53,230,192,.12); --live-line:rgba(53,230,192,.6); --bg:var(--c-0a0c10); --surface:var(--c-12151b); --surface-2:var(--c-171b23); --surface-3:var(--c-1f242e); --line:var(--c-232832); --line-strong:var(--c-2a303c); --text:var(--c-eef1f6); --text-2:var(--c-c4cad6); --text-3:var(--c-8a93a3); --next:var(--c-f5a524); --next-ink:var(--c-0a0c10); --next-soft:rgba(245,165,36,.14); --danger:var(--c-ff6b6b); --danger-soft:rgba(255,107,107,.14); --request:var(--c-ff5fd2); --request-soft:rgba(255,95,210,.14); background: var(--bg); position: relative; display: flex; flex-direction: column; flex: 1 1 auto; min-height: 0; height: 100%; color: var(--text); }
+    .lv * { box-sizing: border-box; }
+    .lv button { font-family: inherit; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+    .lv .lv-top { display: flex; gap: 10px; padding: 12px 16px 0; flex: none; }
+    .lv .lv-top .top-box { flex: 1; min-width: 0; }
+    .lv-scroll { flex: 1 1 auto; min-height: 0; overflow-y: auto; overflow-x: hidden; padding: 0 0 190px; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; }
+    /* แถบควบคุม */
+    .lv-strip { display: flex; align-items: center; gap: 8px; padding: 12px 16px 0; }
+    .lv-venue { flex: 1; min-width: 0; font-size: 19px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .lv-pp { flex: none; width: 44px; height: 44px; border-radius: 50%; border: 1.5px solid var(--live-line); background: var(--live-soft); display: flex; align-items: center; justify-content: center; padding: 0; color: var(--live); }
+    .lv-pp.paused { border-color: var(--next); background: var(--next-soft); color: var(--next); }
+    .lv-pp svg { width: 20px; height: 20px; fill: currentColor; }
+    .lv-autolbl { font-size: 12px; color: var(--text-3); line-height: 1.2; width: 54px; }
+    .lv-sw { flex: none; width: 52px; height: 30px; border-radius: 999px; padding: 3px; border: 0; background: var(--surface-3); display: flex; justify-content: flex-start; }
+    .lv-sw i { width: 24px; height: 24px; border-radius: 50%; background: var(--bg); display: block; }
+    .lv-sw[aria-checked="true"] { background: var(--live); justify-content: flex-end; }
+    .lv-tchip { flex: none; display: flex; align-items: center; gap: 6px; height: 40px; padding: 0 12px; border: 1px solid var(--line); border-radius: 999px; background: var(--surface); color: var(--text-2); font-size: 14px; font-weight: 600; }
+    .lv-tchip svg { width: 18px; height: 18px; stroke: var(--live); fill: none; stroke-width: 2; stroke-linecap: round; }
+    .lv-tchip.over { border-color: var(--danger); color: var(--danger); }
+    .lv-chev { display: flex; justify-content: center; padding-top: 6px; }
+    .lv-chev button { width: 46px; height: 22px; border-radius: 0 0 12px 12px; border: 1px solid var(--c-2a303c); border-top: 0; background: var(--c-171b23); color: var(--text-3); display: flex; align-items: center; justify-content: center; padding: 0; }
+    .lv-chev button.on { border-color: var(--c-1f6b5c); background: var(--c-0f2a26); color: var(--c-35e6c0); }
+    .lv-chev button.brk { border-color: var(--c-7a5a1e); background: var(--c-2a2112); color: var(--c-f5a524); }
+    /* แถบควบคุม 2.0: บรรทัด 1 (ชื่อร้าน + ตามเพลงที่เล่น) · บรรทัด 2 (ตั้งเวลา · พอส · เลื่อนอัตโนมัติ เฉพาะสมาชิกหลัก) · แถบย่อเต็มความกว้าง 4 สี */
+    .lv-strip { display: block; padding: 0; }
+    .lv-r1 { display: flex; align-items: center; gap: 10px; padding: 12px 16px 8px; }
+    .lv-r2 { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 4px 16px 8px; }
+    .lv-r2l, .lv-r2r { display: flex; align-items: center; gap: 10px; flex: 1; min-width: 0; }
+    .lv-r2r { justify-content: flex-end; }
+    .lv-r2m { flex: none; width: 56px; height: 56px; display: flex; align-items: center; justify-content: center; }
+    .lv-r2m .lv-pp { width: 56px; height: 56px; }
+    .lv-r1 .lv-autolbl { width: auto; text-align: right; }
+    .lv-sw.white[aria-checked="true"] { background: var(--c-eef1f6); }
+    .lv-sbar { --bc: var(--c-3a404c); --bk: var(--c-8a93a3); position: relative; height: 30px; display: flex; align-items: center; justify-content: center; margin-top: 2px; }
+    .lv-sbar::before { content: ''; position: absolute; left: 0; right: 0; top: 50%; height: 3px; margin-top: -1px; background: var(--bc); }
+    .lv-sbar[data-s="follow"] { --bc: var(--c-eef1f6); --bk: var(--c-eef1f6); }
+    .lv-sbar[data-s="auto"] { --bc: var(--c-6ee7c3); --bk: var(--c-6ee7c3); }
+    .lv-sbar[data-s="both"] { --bc: linear-gradient(90deg, var(--c-eef1f6), var(--c-6ee7c3)); --bk: var(--c-cfeee3); }
+    .lv-sbar button { position: relative; width: 52px; height: 24px; border-radius: 12px; border: 1.5px solid var(--bk); background: var(--bg); color: var(--bk); display: flex; align-items: center; justify-content: center; padding: 0; }
+    .lv-sbar[data-s="off"] button { border-color: var(--c-3a404c); }
+    .lv-sbar button svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; }
+    /* ===== แนวนอน (หน้าจอสูง ≤ 640px): ดูคอร์ดอย่างเดียว ===== */
+    .lv-land { display: none; }
+    .lv-ntag, .lv-nkey { display: none; }
+    @media (orientation: landscape) and (max-height: 640px) {
+      body.lsh-page-live { display: grid !important; grid-template-columns: 64px minmax(0,1fr); grid-template-rows: auto auto 1fr auto; height: 100dvh; }
+      body.lsh-page-live > header { display: contents; }
+      body.lsh-page-live .header-left, body.lsh-page-live #showTimerDisplay, body.lsh-page-live .hdr-acct { display: none !important; }
+      body.lsh-page-live > nav #nav-search, body.lsh-page-live > nav #nav-queue { display: none; }
+      body.lsh-page-live > nav { grid-column: 1; grid-row: 3; flex-direction: column; justify-content: flex-start; height: auto; padding: 10px 8px; gap: 8px; align-items: stretch; min-height: 0; border-top: 0; background: var(--bg); }
+      body.lsh-page-live > nav button { width: 100%; height: auto; min-height: 0; max-height: none; margin: 0; flex: 3 1 0; border-radius: 14px; justify-content: center; }
+      body.lsh-page-live > nav button.active { flex: 1 1 0; }
+      body.lsh-page-live > nav button .nav-label { display: none; }
+      body.lsh-page-live > nav button.active::before { border-radius: 14px; }
+      body.lsh-page-live > nav button .nav-ico .ic, body.lsh-page-live > nav button svg { width: 26px; height: 26px; }
+      body.lsh-page-live .header-right { grid-column: 1; grid-row: 4; flex-direction: column; gap: 6px; padding: 6px 0 10px; background: var(--bg); justify-content: center; }
+      body.lsh-page-live #pingBadge { font-size: 10px; }
+      body.lsh-page-live > main { grid-column: 2; grid-row: 1 / -1; min-height: 0; border-left: 1px solid var(--line); }
+      .lv #lvStrip, .lv #lvActs, .lv #lvScroll, .lv #lvCtrl, .lv #lvUndo { display: none !important; }
+      .lv { height: 100%; }
+      .lv-land { display: flex; position: relative; flex: 1 1 0; height: auto; min-height: 0; }
+      /* แถบล่าง: ท็อคแบคล่าสุด + เพลงถัดไป (ใช้กล่องเดิมของแนวตั้ง) */
+      .lv .lv-top { order: 9; padding: 6px 12px 10px; gap: 10px; }
+      .lv .lv-top .top-box { display: flex; flex-direction: column; justify-content: center; min-height: 52px; padding: 6px 12px; border-radius: 14px; }
+      .lv .lv-top #topTalkbackBox { flex: 1.6; }
+      .lv .lv-top #topNextBox { flex: 1; flex-direction: row; align-items: center; gap: 10px; border: 1.5px solid var(--nxc, var(--set-1)) !important; border-left-width: 1.5px !important; }
+      .lv .lv-top #topNextBox .top-title { display: none; }
+      .lv-ntag { display: inline-block !important; flex: none; padding: 3px 9px; border-radius: 999px; background: color-mix(in srgb, var(--nxc, var(--set-1)) 20%, transparent); color: var(--text); font-size: 12px; font-weight: 700; white-space: nowrap; }
+      .lv-nkey { display: inline-block !important; flex: none; margin-left: auto; font-size: 15px; font-weight: 700; color: var(--text-2); }
+      .lv .lv-top #topNextBox .top-content { flex: 1; min-width: 0; color: var(--text); }
+      .lv-lseg { flex: none; width: 34px; margin: 0; padding: 12px 10px; border: 0; background: transparent; display: flex; flex-direction: column; gap: 3px; cursor: pointer; }
+      .lv-lsg { flex: 1 1 0; min-height: 3px; border-radius: 4px; background: var(--c); display: block; }
+      .lv-lsg.done { opacity: .35; }
+      .lv-lsg.now { background: var(--live); }
+      .lv-lsg.view { box-shadow: 0 0 0 2px var(--c-eef1f6); }
+      .lv-lmain { flex: 1; min-width: 0; overflow-y: auto; overscroll-behavior: contain; padding: 0 16px 16px 6px; }
+      .lv-lmain .lv-exp { margin: 0; padding: 0; width: auto; flex: none; }
+      .lv-lmain .lv-tools { margin-top: 0; padding: 8px 0; flex-wrap: nowrap; border-top: 0; position: sticky; top: 0; background: var(--bg); z-index: 1; }
+      .lv-lt { flex: 1; min-width: 0; display: flex; flex-direction: column; line-height: 1.25; }
+      .lv-lt b { font-size: 17px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+      .lv-lt span { font-size: 12px; color: var(--text-3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+      .lv-lscrim { position: absolute; inset: 0; z-index: 4; background: rgba(0,0,0,.35); }
+      .lv-lpanel { position: absolute; left: 0; top: 0; bottom: 0; width: min(300px, 62%); z-index: 5; background: var(--c-0d0f14); border-right: 1px solid var(--line-strong); box-shadow: 8px 0 24px rgba(0,0,0,.5); display: flex; flex-direction: column; min-height: 0; }
+      .lv-lph { display: flex; align-items: center; gap: 10px; padding: 10px 12px 6px; flex: none; }
+      .lv-lph .lv-venue { font-size: 16px; }
+      .lv-lhint { padding: 0 12px 8px; font-size: 12px; color: var(--text-3); flex: none; }
+      .lv-lrows { flex: 1; min-height: 0; overflow-y: auto; padding: 0 10px 10px; display: flex; flex-direction: column; gap: 5px; }
+      .lv-lrow { position: relative; display: flex; align-items: center; gap: 8px; width: 100%; flex: none; padding: 8px 10px 8px 14px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); color: var(--text); text-align: left; font-size: 14px; font-weight: 600; }
+      .lv-lrow::before { content: ''; position: absolute; left: 0; top: 8px; bottom: 8px; width: 3px; border-radius: 0 2px 2px 0; background: var(--c); }
+      .lv-lrow .n { width: 18px; font-size: 12px; color: var(--text-3); font-weight: 400; flex: none; }
+      .lv-lrow .t { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+      .lv-lrow.done { opacity: .5; }
+      .lv-lrow.now { border: 1.5px solid var(--live); background: var(--live-soft); }
+      .lv-lrow.nxt { border: 1.5px solid var(--c-5b7cff); background: var(--c-0f1424); }
+      .lv-lrow.view { box-shadow: 0 0 0 2px var(--c-eef1f6); }
+      .lv-lt1 { font-size: 11px; color: var(--live); } .lv-lt2 { font-size: 11px; color: var(--c-eef1f6); } .lv-lt3 { font-size: 11px; color: var(--c-8fa4ff); }
+    }
+    .lv-tchip.ic { width: 40px; padding: 0; justify-content: center; border-radius: 50%; }
+    .lv-chev svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; }
+    /* แถวปุ่ม: ลูกค้าขอเพลง / จัดคิว */
+    .lv-acts { display: flex; align-items: center; gap: 8px; padding: 12px 16px 8px; }
+    .lv-btn { height: 38px; border-radius: 12px; border: 1px solid var(--line); background: var(--surface); color: var(--text-2); display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 14px; font-weight: 600; padding: 0 14px; position: relative; }
+    .lv-btn svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+    .lv-btn.req { flex: 1; border-color: var(--request); background: var(--request-soft); color: var(--request); font-weight: 700; }
+    .lv-btn.ins { flex: 1; background: var(--surface-3); border: 1px solid var(--text-2); color: var(--text); }
+    .lv-btn.save { background: var(--live); border-color: var(--live); color: var(--live-ink); font-weight: 700; }
+    .lv-btn.save.ring { box-shadow: 0 0 0 3px rgba(46,242,184,.55), 0 0 0 7px rgba(46,242,184,.22); animation: lvRing 1s ease-in-out infinite; }
+    .lv-btn.save.fail { background: var(--danger); border-color: var(--danger); color: #ffffff; }
+    @keyframes lvRing { 50% { box-shadow: 0 0 0 1px rgba(46,242,184,.2), 0 0 0 3px rgba(46,242,184,.1); } }
+    .lv-badge { position: absolute; top: -7px; right: -7px; min-width: 20px; height: 20px; padding: 0 5px; border-radius: 10px; background: var(--request); color: var(--bg); font-size: 12px; font-weight: 700; display: flex; align-items: center; justify-content: center; box-shadow: 0 0 0 3px rgba(255,95,210,.35); }
+    /* รายการ */
+    .lv-list { padding: 0 16px; display: flex; flex-direction: column; gap: 8px; }
+    .lv-played { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--text-3); padding: 2px 4px; background: none; border: 0; text-align: left; }
+    .lv-played svg { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 2.5; stroke-linecap: round; transition: transform .15s; }
+    .lv-played.open svg { transform: rotate(90deg); }
+    .lv-card { --c: var(--set-1); display: flex; align-items: flex-start; gap: 12px; padding: 12px 14px; border: 1px solid var(--line); border-left: 4px solid var(--c); border-radius: 16px; background: var(--surface); position: relative; }
+    .lv-card.next { border: 1.5px solid var(--c-5b7cff); background: var(--c-0f1424); }
+    .lv-card.next .lv-tag { color: var(--c-8fa4ff); }
+    .lv-card.playing { border: 1.5px solid var(--live); border-left: 4px solid var(--c); }
+    .lv-card.played { opacity: .5; }
+    .lv-card.played.open { opacity: 1; }
+    .lv-card.played.open .lv-main { opacity: .6; }
+    .lv-card.req { --c: var(--request); } .lv-card.custom { --c: var(--custom); }
+    .lv-card.removed { opacity: .6; }
+    .lv-no { width: 18px; flex: none; color: var(--text-3); font-size: 15px; padding-top: 2px; }
+    .lv-body { flex: 1; min-width: 0; }
+    .lv-tag { font-size: 11px; font-weight: 700; color: var(--c); }
+    .lv-tag.live { color: var(--live); display: flex; align-items: center; gap: 6px; font-size: 12px; }
+    .lv-tag.live i { width: 8px; height: 8px; border-radius: 50%; background: var(--live); display: inline-block; }
+    .lv-title { font-size: 16px; font-weight: 700; word-break: break-word; }
+    .lv-art { font-size: 13px; color: var(--text-3); margin-top: 1px; }
+    .lv-key { display: inline-block; margin-left: 8px; padding: 0 6px; border: 1px solid var(--c); border-radius: 6px; font-size: 13px; color: var(--text-2); }
+    .lv-ic { flex: none; width: 36px; height: 36px; margin: -6px -6px 0 0; display: flex; align-items: center; justify-content: center; background: none; border: 0; color: var(--text-3); padding: 0; }
+    .lv-ic svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+    .lv-ic.go svg { stroke: var(--live); }
+    .lv-bar { --c: var(--set-1); height: 12px; margin: 2px 0; border-radius: 6px; background: var(--c); }
+    .lv-bar.cur { height: 20px; box-shadow: 0 0 0 3px var(--bg), 0 0 0 4.5px var(--live); }
+    .lv-bar.passed { opacity: .45; }
+    .lv-bar.nextb { height: 20px; }
+    .lv-barrow { display: flex; align-items: center; gap: 10px; padding: 6px 10px; border-radius: 16px; background: var(--surface); border: 1px solid var(--line); }
+    .lv-barrow .lv-bar { flex: 1; margin: 0; height: 10px; }
+    .lv-prog { margin-top: 8px; }
+    .lv-prog .tr { height: 6px; border-radius: 3px; background: var(--surface-3); } .lv-prog .tr i { display: block; height: 6px; border-radius: 3px; background: var(--c); width: 0; }
+    .lv-prog .tm { display: flex; justify-content: space-between; margin-top: 4px; font-size: 12px; color: var(--text-3); font-variant-numeric: tabular-nums; }
+    /* การ์ดขยาย: คอร์ด */
+    .lv-exp { flex: 0 0 100%; min-width: 0; margin: 8px -14px 0 -30px; padding-left: 30px; width: calc(100% + 44px); }
+    .lv-card .lv-main { display: flex; align-items: flex-start; gap: 12px; width: 100%; }
+    .lv-card.open { flex-direction: column; align-items: stretch; }
+    .lv-tools { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; padding: 8px 0; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); margin-top: 8px; }
+    .lv-seg { display: flex; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
+    .lv-seg button { width: 40px; height: 34px; border: 0; background: var(--surface); color: var(--text-2); font-size: 13px; font-weight: 700; display: flex; align-items: center; justify-content: center; padding: 0; }
+    .lv-seg button.on { background: var(--live); color: var(--live-ink); }
+    .lv-seg svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round; }
+    .lv-seg.lv-one button.on { background: var(--live); color: var(--live-ink); }
+    .lv-as { align-items: stretch; }
+    .lv-as button { width: 34px; }
+    .lv-as button[data-v="p"] { width: 40px; }
+    .lv-as button[data-v="p"] svg { fill: currentColor; stroke: none; width: 16px; height: 16px; }
+    .lv-as .lv-spd { display: flex; align-items: center; padding: 0 8px; font-size: 12px; font-weight: 700; color: var(--text-2); background: var(--surface); }
+    .lv-exp.cols2 .lv-as { display: none; }
+    .lv-status { margin-top: 12px; font-size: 13px; color: var(--text-3); }
+    .lv-exp .ch-body { padding-top: 12px; padding-bottom: 20px; }
+    .lv-exp.lyr .ch-c, .lv-exp.lyr .ch-rawc { display: none; }
+    .lv-exp.lyr .ch-seg { display: inline; } .lv-exp.lyr .ch-t { display: inline; white-space: pre-wrap; }
+    .lv-exp.cols2 .ch-body { column-count: 2; column-gap: 24px; column-rule: 1px solid var(--line); }
+    /* ปุ่มลอยมุมขวาล่าง */
+    .lv-ctrl { position: absolute; right: 14px; bottom: 14px; display: flex; flex-direction: column; align-items: flex-end; gap: 10px; z-index: 20; }
+    .lv-ctrl .row { display: flex; align-items: center; gap: 10px; }
+    .lv-fab { width: 52px; height: 52px; border-radius: 50%; border: 1px solid var(--line-strong); background: var(--c-0f1218); color: var(--text); display: flex; align-items: center; justify-content: center; box-shadow: 0 6px 18px rgba(0,0,0,.5); padding: 0; }
+    .lv-fab svg { width: 22px; height: 22px; fill: currentColor; stroke: none; }
+    .lv-fab.go { background: var(--live); border-color: var(--live); color: var(--live-ink); }
+    .lv-fab.big { width: 64px; height: 64px; } .lv-fab.big svg { width: 28px; height: 28px; }
+    .lv-fab.resume { background: var(--next); border-color: var(--next); color: var(--next-ink); }
+    .lv-fab.stop { background: var(--c-ff6b6b); border-color: var(--c-ff6b6b); color: var(--c-0a0c10); }
+    .lv-pill { display: flex; align-items: center; gap: 10px; padding: 6px; border-radius: 999px; border: 1px solid var(--c-2a303c); background: var(--c-171b23); box-shadow: 0 6px 18px rgba(0,0,0,.5); }
+    .lv-pill .lv-fab { box-shadow: none; }
+    .lv-pc { width: 34px; height: 34px; border-radius: 50%; border: 0; background: transparent; display: flex; align-items: center; justify-content: center; padding: 0; color: var(--text-3); }
+    .lv-pc svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; }
+    .lv-ptab { width: 40px; height: 56px; border-radius: 28px 0 0 28px; margin-right: -14px; border: 1px solid var(--c-2a303c); border-right: 0; background: var(--c-171b23); display: flex; align-items: center; justify-content: center; padding: 0; color: var(--text-2); box-shadow: 0 6px 18px rgba(0,0,0,.5); }
+    .lv-ptab svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; }
+    .lv-fab.ring { box-shadow: 0 0 0 3px rgba(46,242,184,.55), 0 0 0 7px rgba(46,242,184,.22); }
+    .lv-fab:disabled { opacity: .35; }
+    .lv-cap { height: 64px; padding: 0 24px; border-radius: 32px; border: 0; background: var(--c-e8a838); color: var(--c-0a0c10); font-size: 17px; font-weight: 700; display: flex; align-items: center; gap: 8px; box-shadow: 0 6px 18px rgba(0,0,0,.5); }
+    .lv-cap svg { width: 24px; height: 24px; fill: currentColor; }
+    .lv-cap.ring { box-shadow: 0 0 0 3px rgba(255,194,51,.55), 0 0 0 7px rgba(255,194,51,.22); }
+    .lv-hold { padding: 6px 12px; border-radius: 10px; background: var(--surface-2); border: 1px solid var(--line-strong); font-size: 12px; color: var(--text-2); box-shadow: 0 6px 18px rgba(0,0,0,.5); }
+    .lv-undo { position: absolute; left: 14px; bottom: 14px; z-index: 20; height: 44px; padding: 0 16px; border-radius: 22px; border: 1px solid var(--line-strong); background: var(--surface-2); color: var(--text-2); display: flex; align-items: center; gap: 6px; font-size: 14px; font-weight: 700; box-shadow: 0 6px 18px rgba(0,0,0,.5); }
+    .lv-undo svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+    /* แบนเนอร์ */
+    .lv-banner { margin: 10px 16px 0; padding: 10px 14px; border-radius: 14px; border: 1px solid; font-size: 13px; display: flex; gap: 10px; align-items: flex-start; }
+    .lv-banner b { display: block; font-size: 14px; } .lv-banner span { color: var(--text-2); }
+    .lv-banner.ok { background: var(--c-0f2a26); border-color: var(--live); color: var(--live); }
+    .lv-banner.warn { background: var(--c-2a2112); border-color: var(--next); color: var(--next); }
+    .lv-banner.err { background: var(--c-2a1517); border-color: var(--c-ff8d8d); color: var(--c-ff8d8d); }
+    .lv-dirty { font-size: 11px; font-weight: 700; color: var(--next); background: var(--next-soft); padding: 1px 7px; border-radius: 999px; display: inline-block; margin-left: 6px; }
+    /* โหมดจัดคิว */
+    .lv-grip { flex: none; width: 22px; height: 28px; display: flex; align-items: center; justify-content: center; color: var(--text-3); touch-action: none; }
+    .lv-grip svg { width: 16px; height: 22px; fill: currentColor; }
+    .lv-card.locked { border-color: var(--live); }
+    .lv-card.locked.playing { position: sticky; top: 6px; z-index: 6; box-shadow: 0 6px 16px rgba(0,0,0,.22); }   /* หน้าจัดคิว: แถบกำลังเล่นติดบนสุดตลอด เลื่อนรายการก็ยังเห็น */
+    .lv-card.locked.playing.flash { animation: lvNowFlash .9s var(--ease) 1; }
+    @keyframes lvNowFlash { 0% { transform: translateY(-8px); box-shadow: 0 0 0 0 var(--live), 0 6px 16px rgba(0,0,0,.22); } 35% { transform: none; box-shadow: 0 0 0 5px var(--live), 0 6px 16px rgba(0,0,0,.22); } 100% { box-shadow: 0 0 0 0 transparent, 0 6px 16px rgba(0,0,0,.22); } }
+    @media (prefers-reduced-motion: reduce) { .lv-card.locked.playing.flash { animation: none; } }
+    .lv-card:has(> .lv-main) { flex-direction: column; align-items: stretch; gap: 0; }
+    .lv-card.edit.next, .lv-card.edit.open { border: 1.5px solid var(--c-5b7cff); border-left: 4px solid var(--c); background: var(--c-0f1424); }
+    .lv-kchip { flex: none; align-self: center; padding: 0 8px; height: 24px; line-height: 22px; border: 1px solid var(--c); border-radius: 6px; font-size: 14px; color: var(--text-2); }
+    .lv-lock { flex: none; width: 22px; height: 28px; display: flex; align-items: center; justify-content: center; color: var(--live); align-self: center; }
+    .lv-lock svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+    .lv-card .lv-dirty { align-self: center; margin: 0; white-space: nowrap; }
+    .lv-rest { flex: none; align-self: center; border: 0; background: none; font-size: 13px; font-weight: 700; padding: 6px 0 6px 6px; }
+    .lv-etools button { display: flex; align-items: center; justify-content: center; gap: 6px; }
+    .lv-etools button svg { flex: none; width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+    .lv-etools { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; width: 100%; }
+    .lv-etools button { flex: 1 1 0; min-width: 0; height: 40px; padding: 0 6px; border-radius: 10px; border: 1px solid var(--line); background: var(--surface); color: var(--text-2); font-size: 13px; font-weight: 700; white-space: nowrap; }
+    .lv-etools button.del { color: var(--c-ff8d8d); }
+    .lv-etools button.full { flex: 1 1 100%; border-color: var(--c-7a5a1e); background: var(--c-2a2112); color: var(--next); }
+    .lv-etools select.lv-in { height: 40px; border-radius: 10px; border: 1px solid var(--line); background: var(--surface); color: var(--text-2); font-size: 13px; font-weight: 700; }
+    .lv-etools button:disabled { opacity: .35; }
+    .lv-ov.pov { background: transparent; }
+    .lv-kpop { position: absolute; width: min(320px, calc(100% - 16px)); max-height: 80%; overflow-y: auto; padding: 12px; border-radius: 16px; background: var(--c-171b23); border: 1px solid var(--c-2a303c); box-shadow: 0 12px 30px rgba(0,0,0,.6); animation: lvDown .15s var(--ease); }
+    button.lv-kchip { background: none; font-family: inherit; }
+    .lv-pop.req { max-width: 342px; }
+    .lv-pop.req .s0 { font-size: 12px; color: var(--text-3); } .lv-pop.req .nm { font-size: 18px; font-weight: 700; } .lv-pop.req .ar { font-size: 13px; color: var(--text-3); }
+    .lv-pop.req .bt { margin-top: 6px; display: flex; flex-direction: column; gap: 8px; }
+    .lv-pb.pinko { height: 46px; border-color: var(--request); background: var(--request-soft); color: var(--request); }
+    .lv-pop.req .lv-pb.pink { height: 52px; font-size: 16px; }
+    .lv-pop.req .lv-pb.qk { height: 36px; font-size: 13px; font-weight: 600; align-self: center; padding: 0 18px; width: auto; }
+    .lv-pick { padding: 10px 12px; border: 1px solid var(--line); border-radius: 12px; background: var(--c-0f1218); text-align: left; color: var(--text); font-size: 15px; font-weight: 700; width: 100%; }
+    .lv-pick.cur { border: 1.5px solid var(--live); background: var(--c-0f2a26); cursor: default; }
+    .lv-pick small { display: block; font-size: 11px; font-weight: 700; color: var(--live); }
+    .lv-pline { height: 6px; margin: 0 20px; border-radius: 3px; background: var(--request); flex: none; }
+    .lv-sort-ghost { opacity: .4; }
+    /* หน้าต่างลอย */
+    .lv-ov { position: absolute; inset: 0; z-index: 50; background: rgba(0,0,0,.66); display: flex; flex-direction: column; justify-content: flex-start; }
+    .lv-ov.center { justify-content: center; align-items: center; padding: 24px; }
+    .lv-sheet { background: var(--surface-2); border-bottom: 1px solid var(--line-strong); border-radius: 0 0 20px 20px; padding: 14px 16px 16px; max-height: 88%; display: flex; flex-direction: column; gap: 10px; box-shadow: var(--shadow-pop); animation: lvDown .22s var(--ease); }
+    @keyframes lvDown { from { transform: translateY(-30px); opacity: 0; } }
+    .lv-sheet.full { flex: 1; max-height: none; border-radius: 0; }
+    .lv-sheet.tall { height: calc(100% - 56px); max-height: none; }
+    .lv-sheet.half { height: 54%; max-height: none; }
+    .lv-pb.lv-pbset { position: relative; border-left: 6px solid var(--c); display: flex; align-items: center; justify-content: center; gap: 8px; }
+    .lv-pb.lv-pbset i { width: 10px; height: 10px; border-radius: 50%; background: var(--c); flex: none; }
+    .lv-ov.dragging { background: transparent; pointer-events: none; }
+    .lv-ov.dragging .lv-sheet { opacity: 0; }
+    .lv-row[data-a="inspick"] { touch-action: pan-y; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
+    .lv-dghost { position: fixed; z-index: 9999; pointer-events: none; width: 300px; padding: 10px 14px; border-radius: 14px; background: rgba(60,20,50,.92); border: 1.5px solid var(--c-ff4fa8); color: var(--c-ffffff); box-shadow: 0 10px 28px rgba(0,0,0,.55); transform: rotate(-2deg); display: flex; flex-direction: column; gap: 2px; font-family: inherit; }
+    .lv-dghost b { font-size: 16px; } .lv-dghost span { font-size: 13px; opacity: .7; }
+    .lv-dline { position: fixed; z-index: 9998; height: 3px; border-radius: 2px; background: var(--c-ff4fa8); box-shadow: 0 0 8px var(--c-ff4fa8); pointer-events: none; }
+    .lv-dzone { position: fixed; z-index: 9997; height: 48px; border: 1.5px dashed var(--c-ff4fa8); border-radius: 12px; display: flex; align-items: center; justify-content: center; color: var(--c-ff8fc8); font-size: 14px; background: rgba(40,10,30,.7); pointer-events: none; font-family: inherit; }
+    .lv-dzone.on { background: rgba(255,79,168,.25); color: var(--c-ffffff); }
+    .lv-sheet.pinkb { border-bottom: 2px solid var(--request); }
+    .lv-sheet h4.pk { color: var(--request); }
+    .lv-sin { position: relative; flex: 1; min-width: 0; display: flex; align-items: center; }
+    .lv-sin svg { position: absolute; left: 12px; width: 18px; height: 18px; fill: none; stroke: var(--text-3); stroke-width: 2; stroke-linecap: round; pointer-events: none; }
+    .lv-sin .lv-in { padding-left: 40px; width: 100%; }
+    .lv-tabs2 { display: flex; gap: 6px; }
+    .lv-tabs2 button { flex: 1; height: 42px; border-radius: 12px; border: 0; background: transparent; color: var(--text-2); font-size: 15px; font-weight: 700; display: flex; align-items: center; justify-content: center; gap: 8px; }
+    .lv-tabs2 button.on { background: var(--c-eef1f6); color: var(--c-0a0c10); }
+    .lv-tabs2 .lv-badge { position: static; box-shadow: none; }
+    .lv-badge.ping { animation: lvPing 1.2s cubic-bezier(.34,1.32,.5,1); }
+    @keyframes lvPing { 0% { scale: .4; box-shadow: 0 0 0 0 rgba(255,95,210,.7); } 40% { scale: 1.35; } 70% { scale: 1; box-shadow: 0 0 0 12px rgba(255,95,210,0); } 100% { scale: 1; box-shadow: 0 0 0 3px rgba(255,95,210,.35); } }
+    @media (prefers-reduced-motion: reduce) { .lv-badge.ping { animation: none; } }
+    .lv-keys { display: flex; align-items: center; gap: 6px; overflow-x: auto; flex: none; padding-bottom: 2px; }
+    .lv-keys span.l { font-size: 13px; color: var(--text-3); margin-right: 2px; }
+    .lv-keys button { flex: none; height: 30px; padding: 0 12px; border-radius: 999px; border: 1px solid var(--line); background: var(--surface); color: var(--text-2); font-size: 13px; font-weight: 700; }
+    .lv-keys button.on { background: var(--c-eef1f6); color: var(--c-0a0c10); border-color: var(--c-eef1f6); }
+    .lv-hint { font-size: 12px; color: var(--text-3); }
+    .lv-pl { flex: none; height: 24px; line-height: 22px; padding: 0 8px; border-radius: 8px; border: 1px solid var(--line-strong); font-size: 12px; font-weight: 700; color: var(--text-3); white-space: nowrap; }
+    .lv-pl.ok { border-color: var(--live-line); color: var(--live); background: var(--live-soft); }
+    .lv-pls { margin-left: auto; display: flex; gap: 6px; }
+    .lv-sh { display: flex; align-items: center; justify-content: center; gap: 8px; }
+    .lv-sh svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+    .lv-pop { width: 100%; max-width: 360px; background: var(--surface-2); border: 1px solid var(--line-strong); border-radius: 20px; padding: 18px; box-shadow: var(--shadow-pop); display: flex; flex-direction: column; gap: 10px; max-height: 86%; overflow-y: auto; }
+    .lv-pop h4 { margin: 0; font-size: 16px; }
+    .lv-pop .sub { font-size: 13px; color: var(--text-2); line-height: 1.5; }
+    .lv-pb { min-height: 44px; border-radius: 12px; border: 1px solid var(--line-strong); background: var(--surface-3); color: var(--text); font-size: 15px; font-weight: 700; padding: 0 14px; }
+    .lv-pb.live { background: var(--live); border-color: var(--live); color: var(--live-ink); }
+    .lv-pb.pink { background: var(--request); border-color: var(--request); color: var(--c-0a0c10); }
+    .lv-pb.warn { border-color: var(--next); color: var(--next); background: var(--next-soft); }
+    .lv-pb.danger { background: var(--danger); border-color: var(--danger); color: #ffffff; }
+    .lv-srow { display: flex; gap: 8px; }
+    .lv-in { flex: 1; min-width: 0; height: 44px; border-radius: 12px; border: 1px solid var(--line-strong); background: var(--bg); color: var(--text); padding: 0 12px; font-size: 16px; font-family: inherit; }
+    .lv-chk { flex: none; width: 48px; height: 44px; border-radius: 12px; border: 0; background: var(--request); color: var(--c-0a0c10); display: flex; align-items: center; justify-content: center; padding: 0; }
+    .lv-chk svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; }
+    .lv-res { overflow-y: auto; display: flex; flex-direction: column; gap: 6px; min-height: 0; }
+    .lv-res .hd { font-size: 11px; font-weight: 700; color: var(--text-3); padding: 2px 4px; }
+    .lv-row { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 12px; border: 1px solid var(--line); background: var(--surface); text-align: left; color: var(--text); width: 100%; }
+    .lv-row b { font-size: 15px; } .lv-row span.a { font-size: 13px; color: var(--text-3); } .lv-row .m { margin-left: auto; font-size: 12px; color: var(--text-2); white-space: nowrap; }
+    .lv-row.pk { border-color: var(--request); }
+    .lv-tabs { display: flex; gap: 6px; }
+    .lv-tabs button { flex: 1; height: 38px; border-radius: 10px; border: 1px solid var(--line); background: var(--surface); color: var(--text-2); font-weight: 700; position: relative; }
+    .lv-tabs button.on { border-color: var(--live); color: var(--live); background: var(--live-soft); }
+    .lv-grp { font-size: 12px; font-weight: 700; color: var(--text-2); padding: 6px 4px 0; }
+    .lv-x { margin-left: 4px; width: 32px; height: 32px; border-radius: 8px; border: 1px solid var(--line-strong); background: var(--surface-3); color: var(--text-2); font-size: 16px; padding: 0; flex: none; }
+    /* สรุปโชว์ */
+    .lv-sum { padding: 16px; display: flex; flex-direction: column; gap: 12px; }
+    .lv-sum h3 { margin: 0; font-size: 20px; }
+    .lv-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .lv-stat { border: 1px solid var(--line); border-radius: 14px; background: var(--surface); padding: 10px 12px; }
+    .lv-stat b { display: block; font-size: 22px; font-variant-numeric: tabular-nums; } .lv-stat span { font-size: 12px; color: var(--text-3); }
+    .lv-tg { font-size: 11px; font-weight: 700; padding: 1px 7px; border-radius: 999px; margin-left: 6px; }
+    .lv-tg.pl { color: var(--live); background: var(--live-soft); } .lv-tg.np { color: var(--text-3); background: var(--surface-3); } .lv-tg.sk { color: var(--next); background: var(--next-soft); } .lv-tg.dl { color: var(--c-ff8d8d); background: var(--danger-soft); }
+    .lv-empty { padding: 40px 20px; text-align: center; color: var(--text-3); }
+    .lv .hidden { display: none !important; }
+      /* ===== โหมดซ้อม (2.3) ===== */
+    .rh-act { flex: none; min-height: 0; padding: 0 16px; font-size: 13px; color: var(--next); }
+    .rh-act:not(:empty) { padding: 8px 16px 0; }
+    .rh-act div { padding: 6px 12px; border-radius: 10px; background: var(--next-soft); border: 1px solid var(--c-7a5a1e); margin-bottom: 4px; }
+    .rh-head { display: flex; align-items: center; gap: 10px; padding: 12px 16px 8px; }
+    .rh-head .lv-venue { font-size: 18px; }
+    .rh-tag { flex: none; font-size: 11px; font-weight: 800; letter-spacing: .5px; padding: 3px 9px; border-radius: 999px; background: var(--next-soft); color: var(--next); border: 1px solid var(--c-7a5a1e); }
+    .rh-bar { display: flex; align-items: center; gap: 10px; padding: 4px 16px 8px; }
+    .rh-bar .lv-btn { flex: none; }
+    .rh-bar .sp { flex: 1; }
+    .lv-btn.end { border-color: var(--danger); color: var(--c-ff8d8d); background: var(--danger-soft); font-weight: 700; }
+    .lv-btn.add { flex: none; position: absolute; right: 14px; bottom: 14px; height: 52px; border-radius: 999px; padding: 0 20px; background: var(--live); color: var(--live-ink); border-color: var(--live); font-weight: 800; font-size: 15px; white-space: nowrap; box-shadow: 0 6px 18px rgba(0,0,0,.5); z-index: 20; }
+    .rh .lv-scroll { padding-bottom: 110px; }
+    .rh-card .rh-chev { flex: none; align-self: center; width: 34px; height: 34px; border-radius: 10px; border: 1px solid var(--line); background: var(--surface-2); color: var(--text-3); padding: 0; display: flex; align-items: center; justify-content: center; }
+    .rh-card .rh-chev svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; transition: transform .15s; }
+    .rh-card .rh-chev.on svg { transform: rotate(180deg); }
+    .rh-card.playing { box-shadow: 0 0 0 1px var(--live), 0 0 18px rgba(53,230,192,.45); animation: rhGlow 2.4s ease-in-out infinite; }
+    @keyframes rhGlow { 50% { box-shadow: 0 0 0 1px var(--live), 0 0 6px rgba(53,230,192,.2); } }
+    .rh-card .rh-meta { display: flex; gap: 6px; align-items: center; margin-top: 2px; flex-wrap: wrap; }
+    .rh-card .rh-pl { font-size: 11px; color: var(--text-3); border: 1px solid var(--line); border-radius: 6px; padding: 0 6px; }
+    .rh-card .rh-note { font-size: 12px; color: var(--next); margin-top: 3px; }
+    .rh-tools { flex-direction: column; }
+    .rh-tools .rh-row { display: flex; gap: 6px; width: 100%; align-items: center; }
+    .rh-tools .rh-row > * { min-width: 0; }
+    .rh-in { height: 40px; border-radius: 10px; border: 1px solid var(--line-strong); background: var(--bg); color: var(--text); padding: 0 10px; font-size: 14px; font-family: inherit; flex: 1; }
+    textarea.rh-in { height: 64px; padding: 8px 10px; resize: none; width: 100%; }
+    .rh-tools .rh-lbl { flex: none; font-size: 12px; color: var(--text-3); width: 44px; }
+    .rh-tools button.go { border-color: var(--live); background: var(--live-soft); color: var(--live); }
+    .rh-sum { display: flex; flex-direction: column; gap: 10px; padding: 16px; overflow-y: auto; }
+    .rh-sum h4 { margin: 0; font-size: 18px; }
+    .rh-sum .li { font-size: 13px; color: var(--text-2); padding: 6px 10px; border-radius: 10px; border: 1px solid var(--line); background: var(--surface); }
+    .rh-sum .li b { color: var(--text); }
+    .rh-sum .li i { font-style: normal; color: var(--text-3); }
+    .rh-undo { position: absolute; left: 14px; right: 14px; bottom: 80px; z-index: 30; display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 10px 14px; border-radius: 14px; background: var(--c-171b23); border: 1px solid var(--line-strong); box-shadow: 0 8px 22px rgba(0,0,0,.55); font-size: 14px; }
+    .rh-undo button { height: 34px; border-radius: 10px; border: 1px solid var(--live); background: var(--live-soft); color: var(--live); padding: 0 14px; font-weight: 700; }
+    .rh-empty-hint { padding: 28px 20px; text-align: center; color: var(--text-3); }
+  </style>
+</head>
+<body>
+
+<div class="lv rh" id="lvRoot">
+  <div id="rhAct" class="rh-act"></div>
+  <div id="lvStrip"></div>
+  <div class="lv-scroll" id="lvScroll">
+    <div class="lv-list" id="lvList"><div class="lv-empty">กำลังเปิดห้องซ้อม…</div></div>
+  </div>
+  <div id="lvCtrl" class="lv-ctrl"></div>
+  <div id="lvOv"></div>
+</div>
+
+<script>
+  window.initRehearsalPageModule = function() {
+    if (window.__rh && window.__rh.dispose) { try { window.__rh.dispose(); } catch (e) {} }
+    const $ = (id) => document.getElementById(id);
+    let session = {}; try { session = JSON.parse(localStorage.getItem('lsh_session') || '{}'); } catch (e) {}
+    const room = lshRoom(session), R = window.lshRehearsal;
+    const me = session.nickname || session.username || '', myKey = String(me || 'x').replace(/[.#$\[\]\/]/g, '_');
+    const listId = window.__rehearsalList || localStorage.getItem('lsh_rehearsal_list');
+    const esc = (t) => String(t == null ? '' : t).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+    const jattr = (o) => esc(JSON.stringify(o));
+    const NO_CHORD_TXT = 'ยังไม่มีข้อมูลคอร์ดในฐานข้อมูล';
+    const root = $('lvRoot');
+    if (!room || !listId || !R) { try { if (R) R.leave(); } catch (e) {} if (window.lshReady) window.lshReady(); if (typeof setActiveNav === 'function') setActiveNav('setlists'); return; }
+    const nowMs = () => Date.now();
+    const lsSave = (k, v) => { try { localStorage.setItem(k, v); } catch (e) {} };
+    const ui = { exId: null, toolId: null, follow: true, stripOpen: true, fs: 20, cols2: false, lyr: false, ov: null, lastPlayAt: null, closing: false, undo: null, addAfter: null, deferred: false };
+    try { ui.fs = parseInt(localStorage.getItem('lsh_chord_fs'), 10) || 20; ui.lyr = localStorage.getItem('lsh_chord_lyr') === '1'; ui.cols2 = localStorage.getItem('lsh_chord_cols') === '2'; ui.follow = localStorage.getItem('lsh_rh_follow') !== '0'; ui.stripOpen = localStorage.getItem('lsh_rh_strip') !== '0'; } catch (e) {}
+    let N = null, disposed = false, nodeOff = null, actTimer = 0, undoTimer = 0, dt = {}, fills = [];
+    const IC = {
+      plus: '<svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>',
+      chev: '<svg viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg>',
+      chevUp: '<svg viewBox="0 0 24 24"><path d="M6 15l6-6 6 6"/></svg>',
+      search: '<svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5"/><path d="M20 20l-4.2-4.2"/></svg>',
+      cols1: '<svg viewBox="0 0 24 24"><rect x="6" y="4" width="12" height="16" rx="2"/></svg>',
+      cols2: '<svg viewBox="0 0 24 24"><rect x="3.5" y="4" width="7.5" height="16" rx="2"/><rect x="13" y="4" width="7.5" height="16" rx="2"/></svg>',
+      chords: '<svg viewBox="0 0 24 24"><path d="M4 7h16M4 12h10M4 17h13"/></svg>',
+      lyrics: '<svg viewBox="0 0 24 24"><path d="M4 9h16M4 14h12M4 19h14"/></svg>',
+      grip: '<svg viewBox="0 0 18 24"><circle cx="5" cy="6" r="1.8"/><circle cx="13" cy="6" r="1.8"/><circle cx="5" cy="12" r="1.8"/><circle cx="13" cy="12" r="1.8"/><circle cx="5" cy="18" r="1.8"/><circle cx="13" cy="18" r="1.8"/></svg>',
+      trash: '<svg viewBox="0 0 24 24"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/></svg>',
+      play: '<svg viewBox="0 0 24 24"><path d="M7 4.5v15l13-7.5z"/></svg>'
+    };
+    const okKey = (k) => (k && String(k).trim() && String(k).trim() !== '-') ? String(k).trim() : '';
+    const sn = (s) => String(s || 'Set 1').replace(/\D/g, '') || '1';
+    const setCls = (it) => 'var(--set-' + sn(it && it.set) + ', var(--set-1))';
+    const lib = () => { try { return JSON.parse(localStorage.getItem('lsh_songs')) || []; } catch (e) { return []; } };
+    const libOf = (sid) => { if (!sid) return null; const a = lib(); return a.find((z) => z && String(z.id) === String(sid)) || null; };
+    const ref = (p) => R.ref(listId, p);
+    const upd = (o) => { o.updatedAt = nowMs(); return R.ref(listId).update(o); };
+
+    // ===== มุมมองของแต่ละรายการ =====
+    const orderIds = () => (N ? R.toOrder(N) : []);
+    function partsOf(it) { return (it.parts || []).map((pt) => { const m = libOf(pt.songId) || {}; return { songId: pt.songId, title: m.title || 'เพลงถูกลบแล้ว', artist: m.artist || '', key: pt.key || okKey(m.key) || '-', secs: pt.secs || [] }; }); }
+    function V(id) {
+      const it = N && N.items && N.items[id]; if (!it) return null;
+      const v = Object.assign({ id: id }, it);
+      if (it.kind === 'medley') v.parts = partsOf(it);
+      return v;
+    }
+    const docKeys = {};
+    function docKeyOf(v) {
+      if (!v || v.kind === 'medley' || !v.title) return '';
+      if (v.id in docKeys) return docKeys[v.id];
+      docKeys[v.id] = '';
+      docFor(v).then((d) => { const k = okKey(d && d.rec && d.rec.k); if (k) { docKeys[v.id] = k; setTimeout(render, 0); } }).catch(() => {});
+      return '';
+    }
+    function libKey(v) { const m = libOf(v.songId); return m ? okKey(m.key) : ''; }
+    const keyOf = (v) => okKey(v.key) || libKey(v) || docKeyOf(v);
+
+    // ===== คอร์ด =====
+    const docs = {};
+    async function bkFor(item) {
+      if (item.chordId) return item.chordId;
+      const L = window.lshChordLookup && window.lshChordLookup._bulk; if (!L) return null;
+      try { const ix = await L.getIdx(); const e = ix.byKey.get(L.bkKey(item.title, item.artist)); return e ? e[0] : null; } catch (e) { return null; }
+    }
+    function docFor(item) {
+      const X = window.lshChords && window.lshChords._x; if (!X) return Promise.reject(new Error('nox'));
+      const med = item.kind === 'medley';
+      const ck = med ? 'med:' + item.id + ':' + JSON.stringify(item.parts) : (item.songId ? 'id:' + item.songId : 'bk:' + (item.chordId || item.title + '|' + item.artist));
+      let p = docs[ck];
+      if (!p) {
+        p = docs[ck] = (async () => {
+          if (med) return X.getMedleyDoc(item.parts, Math.max(1, orderIds().indexOf(item.id) + 1));
+          if (item.songId) { try { return await X.getDoc(item.songId); } catch (e) { if (!e || e.message !== 'notfound') throw e; } }
+          const bk = await bkFor(item);
+          if (bk) return X.getDocBk(bk, item.key, item.title);
+          throw new Error('notfound');
+        })();
+        p.catch((e) => { if (!e || e.message !== 'notfound') delete docs[ck]; });
+      }
+      return p;
+    }
+    function fillChords(box, v) {
+      const st = box.querySelector('.lv-status'), body = box.querySelector('.ch-body'), X = window.lshChords && window.lshChords._x;
+      const none = () => { st.textContent = NO_CHORD_TXT; body.innerHTML = ''; };
+      if (!X || (!v.songId && v.kind !== 'medley' && !v.chordId && !v.title)) { none(); return; }
+      const pr = docFor(v).then((d) => {
+        if (!box.isConnected) return;
+        const a = d.at(v.key || '-'); body.innerHTML = X.sectionsHtml(d.rec.s, a.n, a.flat); st.textContent = '';
+      }).catch((e) => { if (!box.isConnected) return; if (e && e.message === 'notfound') none(); else st.textContent = 'โหลดคอร์ดไม่ได้ (ตรวจสอบอินเทอร์เน็ต แล้วลองใหม่)'; });
+      fills.push(pr);
+    }
+    const colsLbl = () => ui.cols2 ? '2 คอลัมน์ (แตะเพื่อสลับเป็น 1 คอลัมน์)' : '1 คอลัมน์ (แตะเพื่อสลับเป็น 2 คอลัมน์)';
+    const modeLbl = () => ui.lyr ? 'เนื้ออย่างเดียว (แตะเพื่อสลับเป็นคอร์ด+เนื้อ)' : 'คอร์ด+เนื้อ (แตะเพื่อสลับเป็นเนื้ออย่างเดียว)';
+    function expHtml(xid) {
+      return '<div data-xid="' + esc(xid) + '" class="lv-exp' + (ui.lyr ? ' lyr' : '') + (ui.cols2 ? ' cols2' : '') + '" data-a="stop-prop"><div class="lv-tools">' +
+        '<div class="lv-seg lv-one" data-k="cols"><button type="button" data-v="t" class="on" aria-label="' + colsLbl() + '">' + (ui.cols2 ? IC.cols2 : IC.cols1) + '</button></div>' +
+        '<div class="lv-seg lv-one" data-k="mode"><button type="button" data-v="t" class="on" aria-label="' + modeLbl() + '">' + (ui.lyr ? IC.lyrics : IC.chords) + '</button></div>' +
+        '<div class="lv-seg" data-k="fs"><button type="button" data-v="-">A−</button><button type="button" data-v="+">A+</button></div></div>' +
+        '<div class="lv-status">กำลังโหลดคอร์ด…</div><div class="ch-body" style="font-size:' + ui.fs + 'px"></div></div>';
+    }
+    function toggleSeg(btn) {
+      const k = btn.parentNode.dataset.k, v = btn.dataset.v;
+      if (k === 'cols') { ui.cols2 = !ui.cols2; lsSave('lsh_chord_cols', ui.cols2 ? '2' : '1'); }
+      else if (k === 'mode') { ui.lyr = !ui.lyr; lsSave('lsh_chord_lyr', ui.lyr ? '1' : '0'); }
+      else if (k === 'fs') { ui.fs = Math.max(12, Math.min(40, ui.fs + (v === '+' ? 2 : -2))); lsSave('lsh_chord_fs', String(ui.fs)); }
+      document.querySelectorAll('.lv-exp').forEach((exp) => {
+        exp.classList.toggle('lyr', ui.lyr); exp.classList.toggle('cols2', ui.cols2);
+        const bd = exp.querySelector('.ch-body'); if (bd) bd.style.fontSize = ui.fs + 'px';
+        const cb = exp.querySelector('[data-k="cols"] button'); if (cb) { cb.innerHTML = ui.cols2 ? IC.cols2 : IC.cols1; cb.setAttribute('aria-label', colsLbl()); }
+        const mb = exp.querySelector('[data-k="mode"] button'); if (mb) { mb.innerHTML = ui.lyr ? IC.lyrics : IC.chords; mb.setAttribute('aria-label', modeLbl()); }
+      });
+    }
+
+    // ===== วาดหน้า =====
+    function render() { if (disposed || !N) return; renderStrip(); renderAct(); renderList(); renderCtrl(); renderUndo(); }
+    function renderStrip() {
+      const el = $('lvStrip'); if (!el) return;
+      const head = '<div class="rh-head"><div class="lv-venue">' + esc(N.venue || 'ลิสต์เพลง') + '</div><span class="rh-tag">ซ้อม</span></div>';
+      const bar = ui.stripOpen ? '<div class="rh-bar"><button type="button" class="lv-btn end" data-a="end">จบการซ้อม</button><span class="sp"></span><span class="lv-autolbl" style="width:auto;text-align:right">ตามเพลง<br>ที่ซ้อม</span><button type="button" class="lv-sw white" role="switch" aria-checked="' + (ui.follow ? 'true' : 'false') + '" data-a="followsw" aria-label="ตามเพลงที่ซ้อม"><i></i></button></div>' : '';
+      const btn = '<button type="button" aria-label="' + (ui.stripOpen ? 'ย่อแถบควบคุม' : 'เปิดแถบควบคุม') + '" data-a="strip">' + (ui.stripOpen ? IC.chevUp : IC.chev) + '</button>';
+      el.innerHTML = '<div class="lv-strip">' + head + bar + '</div><div class="lv-sbar" data-s="off">' + btn + '</div>';
+    }
+    function renderAct() {
+      const el = $('rhAct'); if (!el || !N) return;
+      const a = N.activity || {}, t = nowMs();
+      el.innerHTML = Object.keys(a).filter((k) => k !== myKey && a[k] && t - (a[k].at || 0) < 10000).map((k) => '<div>' + esc(a[k].name || '') + ' ' + esc(a[k].text || '') + '</div>').join('');
+    }
+    function cardHtml(id, no) {
+      const v = V(id); if (!v) return '';
+      const med = v.kind === 'medley', playing = !!(N.playing && N.playing.id === id), open = ui.exId === id, tools = ui.toolId === id, k = med ? '' : keyOf(v);
+      const sub = med ? v.parts.map((pt) => esc(pt.title)).join(' · ') : esc(v.artist && v.artist !== '-' ? v.artist : '');
+      const bpm = !med && okKey(v.bpm) ? '<span class="rh-pl">BPM ' + esc(v.bpm) + '</span>' : '';
+      let h = '<div class="lv-card edit rh-card mv' + (playing ? ' playing' : '') + (open || tools ? ' open' : '') + '" style="--c:' + setCls(v) + '" data-a="card" data-id="' + esc(id) + '"><div class="lv-main"><span class="lv-grip">' + IC.grip + '</span><span class="lv-no">' + no + '</span>' +
+        '<div class="lv-body">' + (playing ? '<div class="lv-tag live"><i></i>กำลังซ้อม</div>' : '') + '<div class="lv-title">' + esc(v.title) + '</div><div class="lv-art">' + sub + '</div>' + (bpm ? '<div class="rh-meta">' + bpm + '</div>' : '') + ((v.note && !med) ? '<div class="rh-note">' + esc(v.note) + '</div>' : '') + '</div>' +
+        (k ? '<span class="lv-kchip">' + esc(k) + '</span>' : '') +
+        '<button type="button" class="rh-chev' + (tools ? ' on' : '') + '" data-a="tools" data-id="' + esc(id) + '" aria-label="' + (tools ? 'ย่อเมนูเพลง' : 'เปิดเมนูเพลง') + '">' + IC.chev + '</button></div>';
+      if (tools) {
+        const setSel = '<select class="rh-in" data-f="set" data-id="' + esc(id) + '">' + [1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((n) => '<option value="Set ' + n + '"' + ((v.set || 'Set 1') === 'Set ' + n ? ' selected' : '') + '>Set ' + n + '</option>').join('') + '</select>';
+        h += '<div class="lv-etools rh-tools" data-a="stop-prop">' +
+          '<div class="rh-row">' + (med ? '' : '<button type="button" data-a="keypop" data-id="' + esc(id) + '" style="flex:none;width:96px">คีย์ ' + esc(k || '-') + '</button><input class="rh-in" data-f="bpm" data-id="' + esc(id) + '" inputmode="numeric" placeholder="BPM" value="' + esc(okKey(v.bpm)) + '" style="width:80px;flex:none">') + setSel + '</div>' +
+          (med ? '' : '<div class="rh-row"><textarea class="rh-in" data-f="note" data-id="' + esc(id) + '" placeholder="โน้ตบันทึกพิเศษ (ทุกคนเห็นร่วมกัน)">' + esc(v.note || '') + '</textarea></div>') +
+          '<div class="rh-row"><button type="button" class="del" data-a="del" data-id="' + esc(id) + '">' + IC.trash + 'ลบเพลง</button><button type="button" class="go" data-a="rehearse" data-id="' + esc(id) + '">' + IC.play + 'ซ้อมเพลงนี้</button></div></div>';
+      }
+      if (open) h += expHtml(id);
+      return h + '</div>';
+    }
+    function renderList() {
+      const el = $('lvList'); if (!el) return;
+      const ids = orderIds();
+      if (!ids.length) { el.innerHTML = '<div class="rh-empty-hint">ยังไม่มีเพลงในรายการซ้อม<br>กด “เพิ่มเพลง” ที่มุมขวาล่าง</div>'; return; }
+      const sc = $('lvScroll'), top = sc ? sc.scrollTop : 0;
+      fills = [];
+      el.innerHTML = '<div id="rhSort" style="display:flex;flex-direction:column;gap:8px">' + ids.map((id, i) => cardHtml(id, i + 1)).join('') + '</div>';
+      el.querySelectorAll('.lv-exp[data-xid]').forEach((box) => { const v = V(box.dataset.xid); if (v) fillChords(box, v); });
+      if (sc && !ui.jump) { sc.scrollTop = top; Promise.all(fills.slice()).then(() => { if (!ui.jump) sc.scrollTop = top; }); }
+      const box = $('rhSort');
+      if (box && window.lshDnD) window.lshDnD.make(box, { handle: '.lv-grip', draggable: '.mv', delay: 0, ghostClass: 'lv-sort-ghost', onEnd: () => {
+        const nu = Array.from(box.children).filter((c) => c.dataset && c.dataset.id).map((c) => c.dataset.id), old = orderIds();
+        if (nu.length !== old.length || nu.every((x, i) => x === old[i])) { renderList(); return; }
+        const moved = nu.find((x, i) => x !== old[i]); const mv = V(moved);
+        upd({ order: nu }).then(() => log('ย้ายตำแหน่ง', moved)).catch(() => lshToast('ย้ายเพลงไม่สำเร็จ', 'error'));
+        say('กำลังย้ายเพลง ' + (mv ? mv.title : ''));
+      } });
+    }
+    function renderCtrl() {
+      const el = $('lvCtrl'); if (!el) return;
+      el.innerHTML = '<button type="button" class="lv-btn add" data-a="add">' + IC.plus + 'เพิ่มเพลง</button>';
+    }
+    function renderUndo() {
+      let el = $('rhUndo');
+      if (!ui.undo) { if (el) el.remove(); return; }
+      if (!el) { el = document.createElement('div'); el.id = 'rhUndo'; el.className = 'rh-undo'; root.appendChild(el); }
+      el.innerHTML = '<span>ลบ “' + esc(ui.undo.title) + '” แล้ว</span><button type="button" data-a="undo">เรียกคืน</button>';
+    }
+
+    // ===== เขียนข้อมูลร่วม =====
+    function log(what, id, extra) {
+      const v = id ? V(id) : null;
+      try { ref('changes').push(Object.assign({ by: me, at: nowMs(), id: id || '', title: v ? v.title : '', what: what }, extra || {})); } catch (e) {}
+    }
+    function say(text) {
+      try { const r = ref('activity/' + myKey); r.set({ name: me, text: text, at: nowMs() }); clearTimeout(actTimer); actTimer = setTimeout(() => { try { r.remove(); } catch (e) {} }, 8000); } catch (e) {}
+    }
+    function setField(id, f, val) {
+      const v = V(id); if (!v) return;
+      const old = f === 'key' ? (v.key || '') : (v[f] || '');
+      if (String(old) === String(val)) return;
+      const lbl = { key: 'คีย์', set: 'เซ็ต', bpm: 'BPM', note: 'โน้ต' }[f];
+      const o = {}; o['items/' + id + '/' + f] = val;
+      upd(o).then(() => log(lbl + ' ' + (old || '-') + ' → ' + (val || '-'), id)).catch(() => lshToast('บันทึกไม่สำเร็จ', 'error'));
+    }
+    const orderTx = (fn) => ref('order').transaction((cur) => { const a = Array.isArray(cur) ? cur.slice() : (cur ? Object.values(cur) : []); const r = fn(a); return r || a; });
+    function addSong(s) {
+      const sid = s.id && s.id !== '-' ? s.id : (s.songId || '');
+      const ids = orderIds(), after = (ui.addAfter && ids.includes(ui.addAfter)) ? ui.addAfter : (N.playing && ids.includes(N.playing.id) ? N.playing.id : null);
+      const anc = V(after || ids[ids.length - 1]), id = R.newId();
+      const item = { songId: sid, title: s.title || '', artist: s.artist && s.artist !== '-' ? s.artist : '', key: okKey(s.key), bpm: okKey(s.bpm), set: anc ? (anc.set || 'Set 1') : 'Set 1', note: '' };
+      const o = {}; o['items/' + id] = item;
+      say('กำลังเพิ่มเพลง ' + item.title);
+      upd(o).then(() => orderTx((a) => { const i = after ? a.indexOf(after) : -1; if (i >= 0) a.splice(i + 1, 0, id); else a.push(id); })).then(() => { ui.addAfter = id; log('เพิ่มเพลง', id); lshToast('เพิ่ม “' + item.title + '” แล้ว', 'ok'); renderInsert(); }).catch(() => lshToast('เพิ่มเพลงไม่สำเร็จ', 'error'));
+    }
+    function removeItem(id) {
+      const v = V(id); if (!v) return; const ids = orderIds(), prev = ids[ids.indexOf(id) - 1] || '';
+      const o = {}; o['items/' + id + '/removed'] = true; o['items/' + id + '/prevId'] = prev;
+      if (N.playing && N.playing.id === id) o.playing = null;
+      if (ui.toolId === id) ui.toolId = null; if (ui.exId === id) ui.exId = null;
+      say('ลบเพลง ' + v.title);
+      upd(o).then(() => orderTx((a) => { const i = a.indexOf(id); if (i >= 0) a.splice(i, 1); })).then(() => { log('ลบเพลง', id); }).catch(() => lshToast('ลบเพลงไม่สำเร็จ', 'error'));
+      ui.undo = { id: id, title: v.title, prev: prev }; clearTimeout(undoTimer); undoTimer = setTimeout(() => { ui.undo = null; renderUndo(); }, 8000);
+    }
+    function undoRemove() {
+      const u = ui.undo; if (!u) return; ui.undo = null; clearTimeout(undoTimer);
+      const o = {}; o['items/' + u.id + '/removed'] = null;
+      upd(o).then(() => orderTx((a) => { if (a.includes(u.id)) return; const i = u.prev ? a.indexOf(u.prev) : -1; a.splice(i + 1, 0, u.id); })).then(() => log('เรียกคืนเพลง', u.id)).catch(() => {});
+      renderUndo();
+    }
+    function rehearse(id) {
+      const v = V(id); if (!v) return;
+      const o = { playing: { id: id, by: me, at: nowMs() } }; o['rehearsed/' + id] = { by: me, at: nowMs(), title: v.title };
+      ui.lastPlayAt = o.playing.at; ui.exId = id; ui.toolId = null; ui.jump = true; say('กำลังซ้อมเพลง ' + v.title);
+      upd(o).catch(() => {}); render(); scrollToCard(id);
+    }
+    function scrollToCard(id) {
+      setTimeout(() => { const el = document.querySelector('#lvList .lv-card[data-id="' + id + '"]'); if (el && el.scrollIntoView) el.scrollIntoView({ block: 'start', behavior: 'smooth' }); setTimeout(() => { ui.jump = false; }, 700); }, 80);
+    }
+
+    // ===== รับข้อมูลร่วมจาก Firebase =====
+    function onNode(snap) {
+      if (disposed) return;
+      const v = snap.val();
+      if (!v || v.status !== 'open') { closedByOther(v); return; }
+      const first = !N; N = v;
+      const p = N.playing;
+      if (first) { ui.lastPlayAt = p ? p.at : null; if (ui.follow && p && orderIds().includes(p.id)) { ui.exId = p.id; ui.jump = true; scrollToCard(p.id); } }
+      else if (p && p.at !== ui.lastPlayAt) {
+        ui.lastPlayAt = p.at;
+        if (p.by !== me && ui.follow && orderIds().includes(p.id)) { ui.exId = p.id; ui.toolId = null; ui.jump = true; scrollToCard(p.id); }
+      }
+      if (ui.exId && !orderIds().includes(ui.exId)) ui.exId = null;
+      if (ui.toolId && !orderIds().includes(ui.toolId)) ui.toolId = null;
+      const ae = document.activeElement;
+      if (!first && ae && ae.classList && ae.classList.contains('rh-in') && root.contains(ae)) { ui.deferred = true; renderAct(); return; }   // กำลังพิมพ์อยู่: ยังไม่วาดใหม่ทับ
+      render();
+    }
+    function closedByOther(v) {
+      if (ui.closing || disposed) return;
+      ui.closing = true;
+      const by = v && v.closedBy ? v.closedBy : 'มีคน';
+      const msg = !v ? 'ห้องซ้อมนี้ถูกปิดแล้ว' : v.status === 'saved' ? by + ' บันทึกทับลิสต์แล้ว' : v.status === 'savednew' ? by + ' บันทึกเป็นลิสต์ใหม่แล้ว' : by + ' จบการซ้อมแล้ว (ไม่บันทึกการแก้ไข)';
+      showOv('<div class="lv-pop" data-a="stop-prop"><h4>' + esc(msg) + '</h4><button type="button" class="lv-pb live" data-a="leave">ตกลง</button></div>', 'center', 'closed');
+    }
+    function exitToLists() { ui.closing = true; try { R.leave(); } catch (e) {} if (typeof setActiveNav === 'function') setActiveNav('setlists'); }
+
+    // ===== หน้าต่างย่อย =====
+    function closeOv() { ui.ov = null; const o = $('lvOv'); if (o) o.innerHTML = ''; }
+    function showOv(html, cls, kind, data) { ui.ov = Object.assign({ kind: kind || 'pop' }, data || {}); const o = $('lvOv'); if (o) o.innerHTML = '<div class="lv-ov ' + (cls || 'center') + '" data-a="ovbg">' + html + '</div>'; }
+    let popBtns = [];
+    function pop(title, sub, btns, extra) {
+      popBtns = btns;
+      showOv('<div class="lv-pop" data-a="stop-prop"><h4>' + title + '</h4>' + (sub ? '<div class="sub">' + sub + '</div>' : '') + (extra || '') + btns.map((b, i) => '<button type="button" class="lv-pb ' + (b.c || '') + '" data-a="pb" data-i="' + i + '">' + b.t + '</button>').join('') + '</div>', 'center', 'pop');
+    }
+    function openKeyPop(id, el) {
+      const v = V(id), KP = window.lshKeyPick; if (!v) return;
+      if (!KP) { lshToast('ต้องอัปเดตแอปก่อน: ปิดแอปแล้วเปิดใหม่', 'error'); return; }
+      const rr = root.getBoundingClientRect(), r = el.getBoundingClientRect();
+      const mk = (ori) => KP.html({ ori: ori, band: KP.bandOf(v), cur: keyOf(v), color: setCls(v), attr: 'data-a="keyset" data-id="' + esc(id) + '"' }), below = r.bottom - rr.top + 6, up = (rr.height - below) < 340;
+      showOv('<div class="lv-kpop" id="lvKpop" data-a="stop-prop" style="left:' + Math.max(8, Math.min(r.left - rr.left, rr.width - 328)) + 'px;' + (up ? 'bottom:' + (rr.bottom - r.top + 6) + 'px' : 'top:' + below + 'px') + '">' + mk(KP.origCached(v) || '') + '</div>', 'pov', 'keypop');
+      if (KP.origCached(v) === undefined) KP.origLoad(v).then((o) => { const box = $('lvKpop'); if (box && ui.ov && ui.ov.kind === 'keypop' && o) box.innerHTML = mk(o); });
+    }
+    // เพิ่มเพลง: ค้นหาอย่างเดียว (ชื่อ / แท็ก # / คีย์เดิมของเพลง)
+    const KEYS12 = [['C', 'C'], ['Db', 'C#/Db'], ['D', 'D'], ['Eb', 'D#/Eb'], ['E', 'E'], ['F', 'F'], ['F#', 'F#/Gb'], ['G', 'G'], ['Ab', 'G#/Ab'], ['A', 'A'], ['Bb', 'A#/Bb'], ['B', 'B']];
+    const kPc = (k) => (window.lshKeyPick ? lshKeyPick._pc(String(k || '').trim()) : -1), kMin = (k) => /^[A-G][#b]?m(?!aj)/.test(String(k || '').trim());
+    function openAdd() {
+      ui.addAfter = null;
+      showOv('<div class="lv-sheet half" data-a="stop-prop"><div style="display:flex;justify-content:space-between;align-items:center"><h4 style="margin:0;font-size:18px">เพิ่มเพลง</h4><button type="button" class="lv-x" data-a="ovclose" aria-label="ปิด">✕</button></div>' +
+        '<div id="lvInsTop" style="display:flex;flex-direction:column;gap:10px;flex:none"><div class="lv-srow"><div class="lv-sin">' + IC.search + '<input class="lv-in" id="lvInsQ" type="search" placeholder="ค้นหาชื่อเพลง (ฐานหลัก)" autocomplete="off"></div></div><div id="lvKeyHost" style="display:flex"></div></div>' +
+        '<div class="lv-res" id="lvInsBody"></div></div>', 'top', 'insert', { q: '', k: '' });
+      if (window.lshKeyFilter && $('lvKeyHost')) lshKeyFilter.mount($('lvKeyHost'), { allText: 'เดิมของเพลง', getOptions: () => KEYS12.map((x) => ({ v: x[0], t: x[1] })), getValue: () => (ui.ov && ui.ov.kind === 'insert' ? ui.ov.k : ''), onPick: (v) => { if (ui.ov && ui.ov.kind === 'insert') { ui.ov.k = v; renderInsert(); } } });
+      if (window.lshTags && ui.ov) { const row = document.querySelector('#lvInsTop .lv-srow'); if (row) { const tf = lshTags.mountFilter(row, { getSongs: () => lib(), onChange: () => renderInsert() }); tf.btn.style.height = '44px'; ui.ov.tagF = tf; } }
+      renderInsert();
+    }
+    function renderInsert() {
+      const o = ui.ov; if (!o || o.kind !== 'insert') return; const body = $('lvInsBody'); if (!body) return;
+      const q = (o.q || '').toLowerCase().trim(), used = new Set(orderIds().map((id) => { const v = V(id); return String(v && (v.songId || v.title)); }));
+      const tagSel = o.tagF ? o.tagF.sel : null, hasTag = !!(tagSel && tagSel.size);
+      if (!q && !o.k && !hasTag) { body.innerHTML = '<div class="lv-hint">พิมพ์ชื่อเพลง หรือเลือกคีย์ / แท็ก เพื่อค้นหา</div>'; return; }
+      let list = lib().filter((s) => !used.has(String(s.id || s.title)));
+      const by = (x, y) => (x.title || '').localeCompare(y.title || '', 'th');
+      if (o.k) { const kp = kPc(o.k); list = list.filter((s) => kPc(s.key) === kp && !kMin(s.key)); }
+      if (q) { const p1 = [], p2 = [], p3 = []; list.forEach((s) => { const t = (s.title || '').toLowerCase(), a = (s.artist || '').toLowerCase(); if (t.startsWith(q)) p1.push(s); else if (t.includes(q)) p2.push(s); else if (a.includes(q)) p3.push(s); }); list = [].concat(p1.sort(by), p2.sort(by), p3.sort(by)); }
+      else list = list.slice().sort(by);
+      if (hasTag) list = lshTags.filter(list, tagSel);
+      list = list.slice(0, 40);
+      body.innerHTML = list.length ? list.map((s) => '<button type="button" class="lv-row" data-a="addpick" data-s="' + jattr({ id: s.id, title: s.title, artist: s.artist, key: s.key, bpm: s.bpm }) + '"><span><b>' + esc(s.title) + '</b><br><span class="a">' + esc(s.artist && s.artist !== '-' ? s.artist : '') + '</span></span><span class="m">' + esc([okKey(s.key) ? 'คีย์ ' + s.key : '', okKey(s.bpm) ? 'BPM ' + s.bpm : ''].filter(Boolean).join(' · ')) + '</span></button>').join('') : '<div class="lv-empty">ไม่พบเพลงในคลัง</div>';
+    }
+
+    // ===== จบการซ้อม =====
+    function endRehearsal() {
+      if (!R.changedOf(N)) { R.commit(listId, 'discard', { by: me }).then(() => { lshToast('จบการซ้อมแล้ว (ไม่มีการแก้ไข)', 'ok'); exitToLists(); }).catch((e) => lshToast(e.message || 'ปิดไม่สำเร็จ', 'error')); return; }
+      const ch = Object.values(N.changes || {}).sort((a, b) => a.at - b.at), rh = Object.values(N.rehearsed || {}).sort((a, b) => a.at - b.at);
+      const chH = ch.length ? ch.map((c) => '<div class="li"><b>' + esc(c.by) + '</b> · ' + esc(c.what) + (c.title ? ' <i>— ' + esc(c.title) + '</i>' : '') + '</div>').join('') : '<div class="li"><i>ไม่มีรายการ</i></div>';
+      const rhH = rh.length ? rh.map((c) => '<div class="li"><b>' + esc(c.title) + '</b> <i>— ' + esc(c.by) + '</i></div>').join('') : '<div class="li"><i>ยังไม่มีการกด “ซ้อมเพลงนี้”</i></div>';
+      showOv('<div class="lv-sheet full rh-sum" data-a="stop-prop"><h4>สรุปการซ้อม</h4><div class="lv-grp">ใครแก้อะไร</div>' + chH + '<div class="lv-grp">เพลงที่ซ้อม</div>' + rhH +
+        '<button type="button" class="lv-pb live" data-a="sv-over">บันทึกทับลิสต์เดิม</button><button type="button" class="lv-pb" data-a="sv-new">บันทึกเป็นลิสต์ใหม่</button><button type="button" class="lv-pb warn" data-a="sv-drop">ทิ้งการแก้ไข</button><button type="button" class="lv-pb" data-a="ovclose">กลับไปซ้อมต่อ</button></div>', 'top', 'summary');
+    }
+    function doCommit(mode, o, okMsg) {
+      ui.closing = true;
+      R.commit(listId, mode, Object.assign({ by: me }, o || {})).then(() => { lshToast(okMsg, 'ok'); closeOv(); exitToLists(); }).catch((e) => { ui.closing = false; lshToast((e && e.message) || 'บันทึกไม่สำเร็จ', 'error'); });
+    }
+    const thDate = () => { try { return new Date().toLocaleDateString('th-TH', { day: 'numeric', month: 'short' }); } catch (e) { return ''; } };
+
+    // ===== รับการกด =====
+    function onClick(ev) {
+      const seg = ev.target.closest && ev.target.closest('.lv-seg button'); if (seg && root.contains(seg)) { ev.stopPropagation(); toggleSeg(seg); return; }
+      let el = ev.target.closest ? ev.target.closest('[data-a]') : null;
+      while (el && root.contains(el)) {
+        const a = el.dataset.a, id = el.dataset.id;
+        if (a === 'stop-prop') return;
+        if (act(a, el, id, ev)) return;
+        el = el.parentElement ? el.parentElement.closest('[data-a]') : null;
+      }
+    }
+    function act(a, el, id, ev) {
+      switch (a) {
+        case 'strip': ui.stripOpen = !ui.stripOpen; lsSave('lsh_rh_strip', ui.stripOpen ? '1' : '0'); renderStrip(); return true;
+        case 'followsw': ui.follow = !ui.follow; lsSave('lsh_rh_follow', ui.follow ? '1' : '0'); renderStrip(); return true;
+        case 'end': endRehearsal(); return true;
+        case 'add': openAdd(); return true;
+        case 'addpick': { let s; try { s = JSON.parse(el.dataset.s); } catch (e) { return true; } addSong(s); return true; }
+        case 'ovclose': closeOv(); return true;
+        case 'ovbg': if (ev && ev.target === el && !(ui.ov && ui.ov.kind === 'closed')) closeOv(); return true;
+        case 'pb': { const b = popBtns[Number(el.dataset.i)]; if (b && b.fn) b.fn(); return true; }
+        case 'leave': exitToLists(); return true;
+        case 'tools': ui.toolId = ui.toolId === id ? null : id; render(); return true;
+        case 'card': {
+          const t = nowMs();
+          if (dt.id === id && t - dt.t < 320) { clearTimeout(dt.timer); dt = {}; ui.toolId = ui.toolId === id ? null : id; render(); return true; }
+          clearTimeout(dt.timer); dt = { id: id, t: t, timer: setTimeout(() => { dt = {}; ui.exId = ui.exId === id ? null : id; render(); }, 300) };
+          return true;
+        }
+        case 'del': removeItem(id); return true;
+        case 'undo': undoRemove(); return true;
+        case 'rehearse': rehearse(id); return true;
+        case 'keypop': openKeyPop(id, el); return true;
+        case 'keyset': { const k = el.dataset.k; closeOv(); if (k) { const v = V(id); say('กำลังแก้คีย์เพลง ' + (v ? v.title : '')); setField(id, 'key', k); } return true; }
+        case 'sv-over': pop('บันทึกทับลิสต์เดิม?', 'ลิสต์ “' + esc(N.venue || '') + '” จะเป็นฉบับที่ซ้อมกันมา ฉบับก่อนหน้าจะถูกเก็บไว้ย้อนกลับได้', [{ t: 'ยืนยัน บันทึกทับ', c: 'live', fn: () => doCommit('overwrite', {}, 'บันทึกทับลิสต์แล้ว') }, { t: 'ยกเลิก', fn: () => endRehearsal() }]); return true;
+        case 'sv-new': pop('บันทึกเป็นลิสต์ใหม่', 'ตั้งชื่อลิสต์ใหม่', [{ t: 'บันทึก', c: 'live', fn: () => { const n = (($('rhNewName') || {}).value || '').trim(); doCommit('new', { name: n || undefined }, 'บันทึกเป็นลิสต์ใหม่แล้ว'); } }, { t: 'ยกเลิก', fn: () => endRehearsal() }], '<input class="lv-in" id="rhNewName" value="' + esc((N.venue || 'ลิสต์') + ' (ซ้อม ' + thDate() + ')') + '" maxlength="60">'); return true;
+        case 'sv-drop': pop('ทิ้งการแก้ไขทั้งหมด?', 'ลิสต์เดิมจะไม่เปลี่ยน และทุกเครื่องจะออกจากห้องซ้อม', [{ t: 'ทิ้งการแก้ไข', c: 'warn', fn: () => doCommit('discard', {}, 'ทิ้งการแก้ไขแล้ว') }, { t: 'ยกเลิก', fn: () => endRehearsal() }]); return true;
+      }
+      return false;
+    }
+    function onChange(ev) {
+      const t = ev.target; if (!t || !t.dataset || !t.dataset.f) return;
+      const id = t.dataset.id, f = t.dataset.f, v = V(id); if (!v) return;
+      say('กำลังแก้' + ({ set: 'เซ็ต', bpm: 'BPM', note: 'โน้ต' }[f] || '') + 'เพลง ' + v.title);
+      setField(id, f, f === 'bpm' ? t.value.replace(/[^\d.]/g, '') : t.value.trim());
+    }
+    function onFocusIn(ev) { const t = ev.target; if (t && t.dataset && t.dataset.f) { const v = V(t.dataset.id); if (v) say('กำลังแก้' + ({ set: 'เซ็ต', bpm: 'BPM', note: 'โน้ต' }[t.dataset.f] || '') + 'เพลง ' + v.title); } }
+    function onFocusOut() { if (ui.deferred) setTimeout(() => { const ae = document.activeElement; if (ui.deferred && !(ae && ae.classList && ae.classList.contains('rh-in'))) { ui.deferred = false; render(); } }, 50); }
+    function onInput(ev) { const t = ev.target; if (t && t.id === 'lvInsQ' && ui.ov && ui.ov.kind === 'insert') { ui.ov.q = t.value; renderInsert(); } }
+    root.addEventListener('click', onClick); root.addEventListener('change', onChange); root.addEventListener('input', onInput); root.addEventListener('focusin', onFocusIn); root.addEventListener('focusout', onFocusOut);
+
+    // ===== เริ่ม / ปิดหน้า =====
+    window.__rh = {
+      dispose: () => {
+        disposed = true; clearInterval(actTimer); clearTimeout(undoTimer); clearInterval(window.__rhTick);
+        try { if (nodeOff) nodeOff(); } catch (e) {}
+        try { ref('activity/' + myKey).remove(); } catch (e) {}
+        window.__rh = null;
+      }
+    };
+    (async function boot() {
+      try {
+        let n = await R.get(listId);
+        if (!R.live(n)) {
+          const pl = (await db.ref('rooms/' + room + '/setlists/' + listId).once('value')).val();
+          if (!pl) { lshToast('ไม่พบลิสต์นี้แล้ว', 'error'); exitToLists(); return; }
+          const songs = (await db.ref('songs').once('value')).val() || {};
+          n = await R.start(listId, pl, songs);
+        }
+        if (disposed) return;
+        const r = ref(), h = r.on('value', onNode); nodeOff = () => r.off('value', h);
+        try { ref('activity/' + myKey).onDisconnect().remove(); } catch (e) {}
+        window.__rhTick = setInterval(renderAct, 2000);
+      } catch (e) { $('lvList').innerHTML = '<div class="lv-empty">เปิดห้องซ้อมไม่ได้ (ตรวจสอบอินเทอร์เน็ต)</div>'; }
+      if (window.lshReady) window.lshReady();
+    })();
+  };
+  window.initRehearsalPageModule();
+</script>
+</body>
+</html>
