@@ -794,12 +794,12 @@
       function addrOf(el, body) {
         const sec = el.closest('.ch-sec'); if (!sec || !body.contains(sec)) return null;
         const si = Array.from(body.querySelectorAll('.ch-sec')).indexOf(sec), row = el.closest('.ch-line, .ch-raw'); if (!row) return null;
-        const li = Array.from(sec.children).indexOf(row), seg = el.closest('.ch-seg');
+        const li = Array.from(sec.children).filter((c) => !c.classList.contains('sn-box')).indexOf(row), seg = el.closest('.ch-seg');
         return si + '.' + li + '.' + (seg ? Array.from(row.querySelectorAll('.ch-seg')).indexOf(seg) : -1);
       }
       function elOf(body, addr, k) {
         const a = String(addr).split('.').map(Number), sec = body.querySelectorAll('.ch-sec')[a[0]]; if (!sec) return null;
-        const row = sec.children[a[1]]; if (!row) return null;
+        const row = Array.from(sec.children).filter((c) => !c.classList.contains('sn-box'))[a[1]]; if (!row) return null;
         if (a[2] < 0) return row;
         const seg = row.querySelectorAll('.ch-seg')[a[2]]; return seg ? seg.querySelector(k === 'c' ? '.ch-c' : '.ch-t') : null;
       }
@@ -814,12 +814,16 @@
         return { a: a, k: k, s: Math.max(0, Math.min(len - 1, r2.toString().length)) };
       }
       // notes: [{id,a,k,s,c,t}] → วาดตัวหมุดบนเนื้อคอร์ด (ไม่แก้ข้อความ จึงไม่ทำให้ตำแหน่งอื่นเลื่อน)
-      function paint(body, notes) {
+      function paint(body, notes, opt) {
         if (!body) return;
+        const edit = !(opt && opt.edit === false);
+        body.querySelectorAll('.sn-box').forEach((e) => e.remove());
         body.querySelectorAll('.sn-mk').forEach((e) => { if (e.tagName === 'SPAN') { const p = e.parentNode; while (e.firstChild) p.insertBefore(e.firstChild, e); p.removeChild(e); p.normalize(); } else { e.classList.remove('sn-mk', 'sn-c0', 'sn-c1', 'sn-c2', 'sn-c3'); e.removeAttribute('data-n'); e.removeAttribute('data-a'); } });
         const byEl = new Map();
         (notes || []).forEach((n) => { const el = elOf(body, n.a, n.k); if (!el) return; (byEl.get(el) || byEl.set(el, []).get(el)).push(n); });
         byEl.forEach((arr, el) => {
+          const row = el.closest('.ch-line, .ch-raw');   // กล่องข้อความวางใต้บรรทัดที่ติดโน้ต (เรียงตามเวลา)
+          if (row) { let ref = row; arr.slice().sort((x, y) => (x.at || 0) - (y.at || 0)).forEach((n) => { const bx = document.createElement('div'); bx.className = 'sn-box sn-c' + (n.c || 0); bx.dataset.n = n.id; if (edit) bx.dataset.a = 'notev'; bx.textContent = n.t || ''; ref.after(bx); ref = bx; }); }
           if (arr[0].k === 'c') { const n = arr[arr.length - 1]; el.classList.add('sn-mk', 'sn-c' + (n.c || 0)); el.dataset.n = n.id; el.dataset.a = 'notev'; return; }
           arr.sort((x, y) => y.s - x.s).forEach((n) => {   // ท้าย→หน้า: ตำแหน่งตัวอักษรของตัวที่เหลือไม่เปลี่ยน
             const tw = document.createTreeWalker(el, NodeFilter.SHOW_TEXT); let off = 0, node;

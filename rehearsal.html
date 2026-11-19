@@ -499,12 +499,12 @@
     function addrOf(el, body) {
       const sec = el.closest('.ch-sec'); if (!sec || !body.contains(sec)) return null;
       const si = Array.from(body.querySelectorAll('.ch-sec')).indexOf(sec), row = el.closest('.ch-line, .ch-raw'); if (!row) return null;
-      const li = Array.from(sec.children).indexOf(row), seg = el.closest('.ch-seg');
+      const li = Array.from(sec.children).filter((c) => !c.classList.contains('sn-box')).indexOf(row), seg = el.closest('.ch-seg');
       return si + '.' + li + '.' + (seg ? Array.from(row.querySelectorAll('.ch-seg')).indexOf(seg) : -1);
     }
     function elOf(body, addr, k) {
       const a = addr.split('.').map(Number), sec = body.querySelectorAll('.ch-sec')[a[0]]; if (!sec) return null;
-      const row = sec.children[a[1]]; if (!row) return null;
+      const row = Array.from(sec.children).filter((c) => !c.classList.contains('sn-box'))[a[1]]; if (!row) return null;
       if (a[2] < 0) return row;
       const seg = row.querySelectorAll('.ch-seg')[a[2]]; return seg ? seg.querySelector(k === 'c' ? '.ch-c' : '.ch-t') : null;
     }
@@ -578,8 +578,12 @@
         return;
       }
       if (ui.pen === 'x') {   // ยางลบ: แตะที่ไฮไลต์ ลบทั้งก้อนที่ลงไว้ครั้งนั้น
-        const hit = ev.target.closest && ev.target.closest('[data-g]');
-        if (hit && body.contains(hit)) { ev.preventDefault(); const id = body.closest('.lv-exp').dataset.xid; ref('hl/' + id + '/' + hit.dataset.g).remove().then(() => upd({})).catch(() => lshToast('ลบไฮไลต์ไม่สำเร็จ', 'error')); }
+        const hit = ev.target.closest && ev.target.closest('[data-g], [data-n]');   // ไฮไลต์ หรือ โน้ตแปะ (หมุด/กล่องข้อความ) — ลบอันที่แตะ
+        if (hit && body.contains(hit)) {
+          ev.preventDefault(); const id = body.closest('.lv-exp').dataset.xid;
+          if (hit.dataset.n) ref('sn/' + myKey + '/' + id + '/' + hit.dataset.n).remove().then(() => upd({})).catch(() => lshToast('ลบโน้ตไม่สำเร็จ', 'error'));
+          else ref('hl/' + id + '/' + hit.dataset.g).remove().then(() => upd({})).catch(() => lshToast('ลบไฮไลต์ไม่สำเร็จ', 'error'));
+        }
         return;
       }
       const c = caretAt(ev.clientX, ev.clientY); if (!c) return;
@@ -836,7 +840,8 @@
         case 'strip': ui.stripOpen = !ui.stripOpen; lsSave('lsh_rh_strip', ui.stripOpen ? '1' : '0'); renderStrip(); return true;
         case 'followsw': ui.follow = !ui.follow; lsSave('lsh_rh_follow', ui.follow ? '1' : '0'); renderStrip(); return true;
         case 'end': endRehearsal(); return true;
-        case 'notev': { const xid = el.closest('.lv-exp') ? el.closest('.lv-exp').dataset.xid : null, n = xid ? myNotes(xid).find((q) => q.id === el.dataset.n) : null; if (n) openNote(xid, { a: n.a, k: n.k, s: n.s }, n.id); return true; }
+        case 'notev': if (ui.pen === 'x') return true;   // โหมดยางลบ: แตะเพื่อลบ ไม่ใช่เปิดแก้
+          { const xid = el.closest('.lv-exp') ? el.closest('.lv-exp').dataset.xid : null, n = xid ? myNotes(xid).find((q) => q.id === el.dataset.n) : null; if (n) openNote(xid, { a: n.a, k: n.k, s: n.s }, n.id); return true; }
         case 'sncol': if (ui.ov && ui.ov.kind === 'note') { ui.ov.c = Number(el.dataset.v); document.querySelectorAll('#rhSnCols button').forEach((b) => b.classList.toggle('on', b === el)); } return true;
         case 'snsave': saveNote(); return true;
         case 'sndel': { const o = ui.ov; if (o && o.noteId) { ref('sn/' + myKey + '/' + o.itemId + '/' + o.noteId).remove(); upd({}); } closeOv(); return true; }

@@ -708,7 +708,7 @@
       const pr = docFor(item).then((d) => {
         if (!box.isConnected) return;
         const a = d.at(item.key); body.innerHTML = X.sectionsHtml(d.rec.s, a.n, a.flat); st.textContent = '';
-        try { if (window.lshSticky) lshSticky.paint(body, notesOf(item)); } catch (e) {}
+        try { if (window.lshSticky) lshSticky.paint(body, notesOf(item), { edit: false }); } catch (e) {}
       }).catch((e) => { if (!box.isConnected) return; if (e && e.message === 'notfound') none(); else st.textContent = 'โหลดคอร์ดไม่ได้ (ตรวจสอบอินเทอร์เน็ต แล้วลองใหม่)'; });
       fills.push(pr);
     }
