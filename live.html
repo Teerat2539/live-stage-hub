@@ -354,6 +354,9 @@
     const me = session.nickname || session.username || '';
     const esc = (t) => String(t == null ? '' : t).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
     const jattr = (o) => esc(JSON.stringify(o));
+    const myKey = String(me || 'x').replace(/[.#$\[\]\/]/g, '_');
+    // โน้ตแปะส่วนตัวที่เก็บมากับลิสต์ (จากห้องซ้อม): แสดงเฉพาะของตัวเอง ดูอย่างเดียว
+    const notesOf = (it) => { const o = (it && it.sn && it.sn[myKey]) || {}; return Object.keys(o).map((k) => Object.assign({ id: k }, o[k])); };
     const NO_CHORD_TXT = 'ยังไม่มีข้อมูลคอร์ดในฐานข้อมูล';
     /*CORE-START*/
     // ===== ตรรกะคิว (ไม่แตะหน้าจอ — ทดสอบแยกได้) =====
@@ -705,6 +708,7 @@
       const pr = docFor(item).then((d) => {
         if (!box.isConnected) return;
         const a = d.at(item.key); body.innerHTML = X.sectionsHtml(d.rec.s, a.n, a.flat); st.textContent = '';
+        try { if (window.lshSticky) lshSticky.paint(body, notesOf(item)); } catch (e) {}
       }).catch((e) => { if (!box.isConnected) return; if (e && e.message === 'notfound') none(); else st.textContent = 'โหลดคอร์ดไม่ได้ (ตรวจสอบอินเทอร์เน็ต แล้วลองใหม่)'; });
       fills.push(pr);
     }
@@ -1503,6 +1507,7 @@
           if (String(keptId(L)) === String(id)) { ui.keep = null; renderList(); renderLand(); return true; }
           ui.exId = String(open) === String(id) ? 'none' : id; renderList(); return true;
         }
+        case 'notev': { const xb = el.closest('.lv-exp'), it = xb ? itemById(xb.dataset.xid) : null, n = it ? notesOf(it).find((q) => q.id === el.dataset.n) : null; if (n) pop('โน้ตแปะของคุณ', '<span style="white-space:pre-wrap">' + esc(n.t) + '</span>', [{ t: 'ปิด', fn: closeOv }]); return true; }
         case 'copy': { const it = itemById(id); if (it) copyOf(it); return true; }
         case 'google': { const it = itemById(id); if (it) googleOf(it); return true; }
         case 'ecard': ui.editOpen = ui.editOpen === id ? null : id; renderList(); return true;

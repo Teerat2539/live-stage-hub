@@ -713,32 +713,36 @@
       const newId = () => 'r' + Date.now().toString(36) + (idn++).toString(36) + Math.floor(Math.random() * 1296).toString(36);
       // ลิสต์ในแฟ้ม → ฉบับร่าง {items, order}
       function fromList(pl, songs) {
-        const items = {}, order = [];
+        const items = {}, order = [], sn = {};
         ordered(pl && pl.songs).forEach((k) => {
           const it = pl.songs[k], id = newId(); order.push(id);
+          if (it && it.sn) Object.keys(it.sn).forEach((uk) => { (sn[uk] = sn[uk] || {})[id] = it.sn[uk]; });   // โน้ตแปะส่วนตัวที่เคยเก็บไว้กับลิสต์
           if (isMed(it)) { items[id] = { kind: 'medley', title: it.name || 'เมดเลย์', set: it.set || 'Set 1', note: it.note || '', parts: it.parts.map((pt) => ({ songId: pt.songId, key: pt.key || '', secs: (pt.secs || []).map((x) => ({ i: x.i, n: x.n || '' })) })) }; return; }
           const m = (songs && songs[it.songId]) || {};
           items[id] = { songId: it.songId || '', title: m.title || it.title || 'เพลงถูกลบแล้ว', artist: m.artist || '', key: str(it.key) || str(m.key), bpm: str(it.bpm) || str(m.bpm), set: it.set || 'Set 1', note: it.note || '' };
         });
-        return { items: items, order: order };
+        return { items: items, order: order, sn: sn };
       }
+      const snOf = (node, id) => { const o = {}; Object.keys((node && node.sn) || {}).forEach((uk) => { const v = node.sn[uk] && node.sn[uk][id]; if (v && Object.keys(v).length) o[uk] = v; }); return Object.keys(o).length ? o : null; };
       // ฉบับร่าง → ข้อมูล songs ของลิสต์ (s_0, s_1, …)
       function toSongs(node, songs) {
         const out = {}; let n = 0;
         const items = node.items || {};
         toOrder(node).forEach((id) => {
           const it = items[id]; if (!it) return;
-          if (it.kind === 'medley') out['s_' + n++] = { name: it.title || '', set: it.set || 'Set 1', parts: (it.parts || []).map((pt) => ({ songId: pt.songId, key: pt.key || '', secs: (pt.secs || []).map((x) => ({ i: x.i, n: x.n || '' })) })) };
+          const sn = snOf(node, id);
+          if (it.kind === 'medley') { const mo = { name: it.title || '', set: it.set || 'Set 1', parts: (it.parts || []).map((pt) => ({ songId: pt.songId, key: pt.key || '', secs: (pt.secs || []).map((x) => ({ i: x.i, n: x.n || '' })) })) }; if (sn) mo.sn = sn; out['s_' + n++] = mo; }
           else {
             const m = (songs && songs[it.songId]) || {}, o = { songId: it.songId, set: it.set || 'Set 1', key: it.key || str(m.key), note: it.note || '' };
             if (str(it.bpm) && str(it.bpm) !== str(m.bpm)) o.bpm = str(it.bpm);   // BPM เก็บเฉพาะในลิสต์นี้ ไม่แก้ที่เพลงต้นฉบับ
+            if (sn) o.sn = sn;
             out['s_' + n++] = o;
           }
         });
         return out;
       }
       const toOrder = (node) => (Array.isArray(node && node.order) ? node.order : Object.values((node && node.order) || {})).filter((id) => node.items && node.items[id] && !node.items[id].removed);
-      const sigOf = (node) => JSON.stringify(toOrder(node).map((id) => { const it = node.items[id]; return [it.songId || '', it.title, it.key || '', it.bpm || '', it.set || '', it.note || '', it.kind === 'medley' ? JSON.stringify(it.parts) : '']; }));
+      const sigOf = (node) => JSON.stringify(toOrder(node).map((id) => { const it = node.items[id]; return [it.songId || '', it.title, it.key || '', it.bpm || '', it.set || '', it.note || '', it.kind === 'medley' ? JSON.stringify(it.parts) : '', JSON.stringify(snOf(node, id))]; }));
       const changedOf = (node) => !!node && !!node.base && sigOf(node) !== sigOf(node.base);
       const live = (n) => !!n && n.status === 'open' && (Date.now() - (n.updatedAt || n.startedAt || 0)) < DAY;
       // เริ่ม/เข้าร่วมการซ้อมของลิสต์ (ถ้ามีร่างที่ยังไม่หมดอายุอยู่แล้วใช้ร่างเดิม)
@@ -746,7 +750,7 @@
         const d = fromList(pl, songs), r = ref(listId);
         const res = await r.transaction((cur) => {
           if (live(cur)) return;   // มีอยู่แล้ว: ไม่แตะ
-          return { status: 'open', startedBy: me(), startedAt: Date.now(), updatedAt: Date.now(), venue: pl.venue || '', date: pl.date || '', items: d.items, order: d.order, base: { items: d.items, order: d.order } };
+          return { status: 'open', startedBy: me(), startedAt: Date.now(), updatedAt: Date.now(), venue: pl.venue || '', date: pl.date || '', items: d.items, order: d.order, sn: d.sn, base: { items: d.items, order: d.order, sn: d.sn } };
         });
         return res.snapshot.val();
       }
@@ -783,6 +787,47 @@
         return true;
       }
       return { fromList: fromList, toSongs: toSongs, toOrder: toOrder, sigOf: sigOf, changedOf: changedOf, live: live, start: start, get: get, openDraft: openDraft, enter: enter, leave: leave, back: back, syncMenu: syncMenu, commit: commit, ref: ref, newId: newId, me: me, str: str, isMed: isMed, DAY: DAY };
+    })();
+
+    // ===== โน้ตแปะ (2.3.2): ตำแหน่ง = ท่อน.บรรทัด.ช่อง + ตัวอักษร · ใช้ร่วมกันระหว่างห้องซ้อมกับหน้า Live =====
+    window.lshSticky = (function() {
+      function addrOf(el, body) {
+        const sec = el.closest('.ch-sec'); if (!sec || !body.contains(sec)) return null;
+        const si = Array.from(body.querySelectorAll('.ch-sec')).indexOf(sec), row = el.closest('.ch-line, .ch-raw'); if (!row) return null;
+        const li = Array.from(sec.children).indexOf(row), seg = el.closest('.ch-seg');
+        return si + '.' + li + '.' + (seg ? Array.from(row.querySelectorAll('.ch-seg')).indexOf(seg) : -1);
+      }
+      function elOf(body, addr, k) {
+        const a = String(addr).split('.').map(Number), sec = body.querySelectorAll('.ch-sec')[a[0]]; if (!sec) return null;
+        const row = sec.children[a[1]]; if (!row) return null;
+        if (a[2] < 0) return row;
+        const seg = row.querySelectorAll('.ch-seg')[a[2]]; return seg ? seg.querySelector(k === 'c' ? '.ch-c' : '.ch-t') : null;
+      }
+      // จุดที่แตะ (Range ยุบ) → {a,k,s} หรือ null
+      function pointAddr(range, body) {
+        let n = range.startContainer; if (n.nodeType === 3) n = n.parentElement;
+        const el = n && n.closest && n.closest('.ch-c, .ch-t, .ch-raw'); if (!el || !body.contains(el)) return null;
+        const k = el.classList.contains('ch-c') ? 'c' : (el.classList.contains('ch-t') ? 't' : 'r'), a = addrOf(el, body); if (!a) return null;
+        if (k === 'c') return { a: a, k: 'c', s: 0 };
+        const r2 = document.createRange(); r2.setStart(el, 0); r2.setEnd(range.startContainer, range.startOffset);
+        const len = el.textContent.length; if (!len) return null;
+        return { a: a, k: k, s: Math.max(0, Math.min(len - 1, r2.toString().length)) };
+      }
+      // notes: [{id,a,k,s,c,t}] → วาดตัวหมุดบนเนื้อคอร์ด (ไม่แก้ข้อความ จึงไม่ทำให้ตำแหน่งอื่นเลื่อน)
+      function paint(body, notes) {
+        if (!body) return;
+        body.querySelectorAll('.sn-mk').forEach((e) => { if (e.tagName === 'SPAN') { const p = e.parentNode; while (e.firstChild) p.insertBefore(e.firstChild, e); p.removeChild(e); p.normalize(); } else { e.classList.remove('sn-mk', 'sn-c0', 'sn-c1', 'sn-c2', 'sn-c3'); e.removeAttribute('data-n'); e.removeAttribute('data-a'); } });
+        const byEl = new Map();
+        (notes || []).forEach((n) => { const el = elOf(body, n.a, n.k); if (!el) return; (byEl.get(el) || byEl.set(el, []).get(el)).push(n); });
+        byEl.forEach((arr, el) => {
+          if (arr[0].k === 'c') { const n = arr[arr.length - 1]; el.classList.add('sn-mk', 'sn-c' + (n.c || 0)); el.dataset.n = n.id; el.dataset.a = 'notev'; return; }
+          arr.sort((x, y) => y.s - x.s).forEach((n) => {   // ท้าย→หน้า: ตำแหน่งตัวอักษรของตัวที่เหลือไม่เปลี่ยน
+            const tw = document.createTreeWalker(el, NodeFilter.SHOW_TEXT); let off = 0, node;
+            while ((node = tw.nextNode())) { const l = node.nodeValue.length; if (n.s < off + l) { const r = document.createRange(), o = n.s - off; r.setStart(node, o); r.setEnd(node, Math.min(l, o + 1)); const sp = document.createElement('span'); sp.className = 'sn-mk sn-c' + (n.c || 0); sp.dataset.n = n.id; sp.dataset.a = 'notev'; try { r.surroundContents(sp); } catch (e) {} break; } off += l; }
+          });
+        });
+      }
+      return { addrOf: addrOf, elOf: elOf, pointAddr: pointAddr, paint: paint };
     })();
 
     window.lshKeyPick = (function() {
@@ -2454,7 +2499,7 @@
     };
 
     // ===== ตรวจเวอร์ชันแอป (2.0): เทียบเลขใน version.json บนเซิร์ฟเวอร์ กับเลขของโค้ดที่เปิดอยู่ =====
-    const LSH_APP_VER = '2.3.1';
+    const LSH_APP_VER = '2.3.2';
     window.LSH_VER_TXT = LSH_APP_VER;
     try { const dv = document.getElementById('drawerVersion'); if (dv) dv.textContent = 'เวอร์ชัน ' + LSH_APP_VER; } catch (e) {}   // แสดงเลขเวอร์ชันท้ายเมนูแฮมเบอร์เกอร์
     let lshVerAt = 0;

@@ -582,7 +582,8 @@
           queuePayload.push({
             id: 'q_' + idx, songId: '', title: item.name || 'เมดเลย์', artist: '', key: '-', bpm: '-', note: '-',
             set: item.set || 'Set 1', status: songStatus, type: 'normal',
-            parts: medleyQueueParts(item)
+            parts: medleyQueueParts(item),
+            ...(item.sn ? { sn: item.sn } : {})
           });
           return;
         }
@@ -601,7 +602,8 @@
           note: item.note || '-',
           set: item.set || 'Set 1',
           status: idx === 0 ? 'next' : (idx === 1 ? 'standby' : 'normal'), // เพลงแรกรอที่ "ถัดไป" — การ์ดเริ่มการแสดงเป็นตัวกำลังเล่นก่อน
-          type: 'normal'
+          type: 'normal',
+          ...(item.sn ? { sn: item.sn } : {})   // โน้ตแปะส่วนตัว: หน้า Live แสดงของใครของมัน
         });
       });
 
@@ -918,6 +920,7 @@
           key: item.key || (allSongsData[item.songId] ? allSongsData[item.songId].key : ''),
           note: item.note || ''
         };
+        if (item.sn) songsPayload['s_' + i].sn = item.sn;   // โน้ตแปะส่วนตัวจากห้องซ้อม — ไม่ทำหาย
         if (item.bpm) songsPayload['s_' + i].bpm = item.bpm;   // BPM ของลิสต์นี้ (ตั้งจากห้องซ้อม) — ไม่ทำหาย
       });
 
@@ -1106,10 +1109,12 @@
     function isMedley(it) { return !!(it && Array.isArray(it.parts) && it.parts.length); }
     function medleyParts(it) { return (it && Array.isArray(it.parts)) ? it.parts : []; }
     function medleyPayload(it) {
-      return {
+      const o = {
         name: it.name || '', set: it.set || 'Set 1',
         parts: medleyParts(it).map(pt => ({ songId: pt.songId, key: pt.key || '', secs: (pt.secs || []).map(x => ({ i: x.i, n: x.n || '' })) }))
       };
+      if (it.sn) o.sn = it.sn;   // โน้ตแปะส่วนตัวจากห้องซ้อม
+      return o;
     }
     function medleyQueueParts(it) {
       return medleyParts(it).map(pt => {

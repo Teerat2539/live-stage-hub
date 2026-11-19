@@ -2850,3 +2850,8 @@ nav button { transition: flex-grow 420ms var(--ease-out), background-color var(-
 
 /* ===== 2.3.0 โหมดซ้อม: ไม่มีแถบเมนูล่าง ===== */
 body.lsh-page-rehearsal > nav { display: none !important; }
+
+/* ===== 2.3.2 โน้ตแปะบนเนื้อคอร์ด (ห้องซ้อม + หน้า Live) ===== */
+.sn-mk { --sn: #ffe14d; border-bottom: 3px solid var(--sn); cursor: pointer; }
+.sn-mk::after { content: '\270E'; font-size: .6em; line-height: 1; color: #111; background: var(--sn); border-radius: 4px; padding: 0 3px; margin-left: 2px; vertical-align: super; font-weight: 800; }
+.sn-c0 { --sn: #ffe14d; } .sn-c1 { --sn: #6ee7a0; } .sn-c2 { --sn: #ff9ad5; } .sn-c3 { --sn: #7cc8ff; }
