@@ -346,6 +346,16 @@
     .rh-sum .li i { font-style: normal; color: var(--text-3); }
     .rh-undo { position: absolute; left: 14px; right: 14px; bottom: 80px; z-index: 30; display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 10px 14px; border-radius: 14px; background: var(--c-171b23); border: 1px solid var(--line-strong); box-shadow: 0 8px 22px rgba(0,0,0,.55); font-size: 14px; }
     .rh-undo button { height: 34px; border-radius: 10px; border: 1px solid var(--live); background: var(--live-soft); color: var(--live); padding: 0 14px; font-weight: 700; }
+    /* ปากกาไฮไลต์ (2.3.x): สีทึบ ตัวอักษรเข้ม อ่านชัดทั้งโหมดมืดและสว่าง */
+    .rh-hl, .ch-c.rh-hl { color: #111 !important; border-radius: 3px; box-decoration-break: clone; -webkit-box-decoration-break: clone; }
+    .rh-hl.c0 { background: #ffe14d !important; } .rh-hl.c1 { background: #6ee7a0 !important; } .rh-hl.c2 { background: #ff9ad5 !important; } .rh-hl.c3 { background: #7cc8ff !important; }
+    .rh-pens { display: flex; align-items: center; gap: 8px; padding: 0 4px; }
+    .rh-pens button { width: 30px; height: 30px; border-radius: 50%; border: 2px solid var(--line-strong); padding: 0; font-size: 11px; font-weight: 800; color: var(--text-2); background: var(--surface-2); }
+    .rh-pens button.c0 { background: #ffe14d; } .rh-pens button.c1 { background: #6ee7a0; } .rh-pens button.c2 { background: #ff9ad5; } .rh-pens button.c3 { background: #7cc8ff; }
+    .rh-pens button.on { border-color: var(--text); box-shadow: 0 0 0 2px var(--live); }
+    .lv-seg.rh-penbtn button.on { background: var(--live); color: var(--live-ink); }
+    .lv-exp .ch-body.rh-pen { touch-action: none; -webkit-user-select: text; user-select: text; cursor: crosshair; }
+    .lv-exp .ch-body.rh-pen ::selection { background: rgba(53,230,192,.45); }
     .rh-empty-hint { padding: 28px 20px; text-align: center; color: var(--text-3); }
   </style>
 </head>
@@ -376,7 +386,7 @@
     if (!room || !listId || !R) { try { if (R) R.leave(); } catch (e) {} if (window.lshReady) window.lshReady(); if (typeof setActiveNav === 'function') setActiveNav('setlists'); return; }
     const nowMs = () => Date.now();
     const lsSave = (k, v) => { try { localStorage.setItem(k, v); } catch (e) {} };
-    const ui = { exId: null, toolId: null, follow: true, stripOpen: true, fs: 20, cols2: false, lyr: false, ov: null, lastPlayAt: null, closing: false, undo: null, addAfter: null, deferred: false };
+    const ui = { exId: null, toolId: null, follow: true, stripOpen: true, fs: 20, cols2: false, lyr: false, ov: null, lastPlayAt: null, closing: false, undo: null, addAfter: null, deferred: false, pen: null, penOpen: false, drawing: false, hlSeen: null };
     try { ui.fs = parseInt(localStorage.getItem('lsh_chord_fs'), 10) || 20; ui.lyr = localStorage.getItem('lsh_chord_lyr') === '1'; ui.cols2 = localStorage.getItem('lsh_chord_cols') === '2'; ui.follow = localStorage.getItem('lsh_rh_follow') !== '0'; ui.stripOpen = localStorage.getItem('lsh_rh_strip') !== '0'; } catch (e) {}
     let N = null, disposed = false, nodeOff = null, actTimer = 0, undoTimer = 0, dt = {}, fills = [];
     const IC = {
@@ -390,6 +400,7 @@
       lyrics: '<svg viewBox="0 0 24 24"><path d="M4 9h16M4 14h12M4 19h14"/></svg>',
       grip: '<svg viewBox="0 0 18 24"><circle cx="5" cy="6" r="1.8"/><circle cx="13" cy="6" r="1.8"/><circle cx="5" cy="12" r="1.8"/><circle cx="13" cy="12" r="1.8"/><circle cx="5" cy="18" r="1.8"/><circle cx="13" cy="18" r="1.8"/></svg>',
       trash: '<svg viewBox="0 0 24 24"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/></svg>',
+      pen: '<svg viewBox="0 0 24 24"><path d="M4 20l4-1 11-11-3-3L5 16z"/><path d="M14 7l3 3"/></svg>',
       play: '<svg viewBox="0 0 24 24"><path d="M7 4.5v15l13-7.5z"/></svg>'
     };
     const okKey = (k) => (k && String(k).trim() && String(k).trim() !== '-') ? String(k).trim() : '';
@@ -450,7 +461,7 @@
       if (!X || (!v.songId && v.kind !== 'medley' && !v.chordId && !v.title)) { none(); return; }
       const pr = docFor(v).then((d) => {
         if (!box.isConnected) return;
-        const a = d.at(v.key || '-'); body.innerHTML = X.sectionsHtml(d.rec.s, a.n, a.flat); st.textContent = '';
+        const a = d.at(v.key || '-'); body.innerHTML = X.sectionsHtml(d.rec.s, a.n, a.flat); st.textContent = ''; paintHl(box, v.id);
       }).catch((e) => { if (!box.isConnected) return; if (e && e.message === 'notfound') none(); else st.textContent = 'โหลดคอร์ดไม่ได้ (ตรวจสอบอินเทอร์เน็ต แล้วลองใหม่)'; });
       fills.push(pr);
     }
@@ -460,8 +471,10 @@
       return '<div data-xid="' + esc(xid) + '" class="lv-exp' + (ui.lyr ? ' lyr' : '') + (ui.cols2 ? ' cols2' : '') + '" data-a="stop-prop"><div class="lv-tools">' +
         '<div class="lv-seg lv-one" data-k="cols"><button type="button" data-v="t" class="on" aria-label="' + colsLbl() + '">' + (ui.cols2 ? IC.cols2 : IC.cols1) + '</button></div>' +
         '<div class="lv-seg lv-one" data-k="mode"><button type="button" data-v="t" class="on" aria-label="' + modeLbl() + '">' + (ui.lyr ? IC.lyrics : IC.chords) + '</button></div>' +
-        '<div class="lv-seg" data-k="fs"><button type="button" data-v="-">A−</button><button type="button" data-v="+">A+</button></div></div>' +
-        '<div class="lv-status">กำลังโหลดคอร์ด…</div><div class="ch-body" style="font-size:' + ui.fs + 'px"></div></div>';
+        '<div class="lv-seg" data-k="fs"><button type="button" data-v="-">A−</button><button type="button" data-v="+">A+</button></div>' +
+        '<div class="lv-seg lv-one rh-penbtn"><button type="button" class="' + (ui.penOpen ? 'on' : '') + '" data-a="pen" aria-label="ปากกาไฮไลต์">' + IC.pen + '</button></div></div>' +
+        (ui.penOpen ? '<div class="rh-pens" data-a="stop-prop">' + [0, 1, 2, 3].map((i) => '<button type="button" class="c' + i + (ui.pen === i ? ' on' : '') + '" data-a="pencol" data-v="' + i + '" aria-label="สีที่ ' + (i + 1) + '"></button>').join('') + '<button type="button" class="' + (ui.pen === 'x' ? 'on' : '') + '" data-a="pencol" data-v="x" aria-label="ยางลบ">ลบ</button></div>' : '') +
+        '<div class="lv-status">กำลังโหลดคอร์ด…</div><div class="ch-body' + (ui.pen != null ? ' rh-pen' : '') + '" style="font-size:' + ui.fs + 'px"></div></div>';
     }
     function toggleSeg(btn) {
       const k = btn.parentNode.dataset.k, v = btn.dataset.v;
@@ -474,6 +487,96 @@
         const cb = exp.querySelector('[data-k="cols"] button'); if (cb) { cb.innerHTML = ui.cols2 ? IC.cols2 : IC.cols1; cb.setAttribute('aria-label', colsLbl()); }
         const mb = exp.querySelector('[data-k="mode"] button'); if (mb) { mb.innerHTML = ui.lyr ? IC.lyrics : IC.chords; mb.setAttribute('aria-label', modeLbl()); }
       });
+    }
+
+    // ===== ปากกาไฮไลต์: ที่อยู่ของข้อความ = ท่อน.บรรทัด.ช่อง + ช่วงตัวอักษร (เนื้อร้องไม่เปลี่ยนตามคีย์ จึงตรงกันทุกเครื่อง) =====
+    const COLORS = 4;
+    function addrOf(el, body) {
+      const sec = el.closest('.ch-sec'); if (!sec || !body.contains(sec)) return null;
+      const si = Array.from(body.querySelectorAll('.ch-sec')).indexOf(sec), row = el.closest('.ch-line, .ch-raw'); if (!row) return null;
+      const li = Array.from(sec.children).indexOf(row), seg = el.closest('.ch-seg');
+      return si + '.' + li + '.' + (seg ? Array.from(row.querySelectorAll('.ch-seg')).indexOf(seg) : -1);
+    }
+    function elOf(body, addr, k) {
+      const a = addr.split('.').map(Number), sec = body.querySelectorAll('.ch-sec')[a[0]]; if (!sec) return null;
+      const row = sec.children[a[1]]; if (!row) return null;
+      if (a[2] < 0) return row;
+      const seg = row.querySelectorAll('.ch-seg')[a[2]]; return seg ? seg.querySelector(k === 'c' ? '.ch-c' : '.ch-t') : null;
+    }
+    function piecesOf(range, body) {
+      const out = [];
+      body.querySelectorAll('.ch-c, .ch-t, .ch-raw').forEach((el) => {
+        if (!range.intersectsNode(el)) return;
+        const k = el.classList.contains('ch-c') ? 'c' : (el.classList.contains('ch-t') ? 't' : 'r'), ad = addrOf(el, body); if (!ad) return;
+        const full = el.textContent;
+        if (k === 'c') { if (full.replace(/\u00a0/g, '').trim()) out.push({ a: ad, k: 'c', s: 0, e: 0 }); return; }
+        const er = document.createRange(); er.selectNodeContents(el);
+        let s = 0, e = full.length;
+        if (range.compareBoundaryPoints(Range.START_TO_START, er) > 0) { const r2 = document.createRange(); r2.setStart(el, 0); r2.setEnd(range.startContainer, range.startOffset); s = r2.toString().length; }
+        if (range.compareBoundaryPoints(Range.END_TO_END, er) < 0) { const r3 = document.createRange(); r3.setStart(el, 0); r3.setEnd(range.endContainer, range.endOffset); e = r3.toString().length; }
+        if (e > s && full.slice(s, e).replace(/\u00a0/g, '').trim()) out.push({ a: ad, k: k, s: s, e: e });
+      });
+      return out;
+    }
+    function paintHl(box, id) {
+      const g = N && N.hl && N.hl[id]; if (!g) return;
+      const body = box.querySelector('.ch-body'); if (!body) return;
+      const gs = Object.keys(g).map((k) => Object.assign({ id: k }, g[k])).sort((x, y) => (x.at || 0) - (y.at || 0));
+      const map = {};   // ที่อยู่+ชนิด → ตัวอักษรละ {c,g} (อันหลังทับอันก่อน)
+      gs.forEach((h) => (h.p || []).forEach((pc) => { const key = pc.a + '|' + pc.k, m = map[key] || (map[key] = { a: pc.a, k: pc.k, ch: [], whole: null }); if (pc.k === 'c') m.whole = { c: h.c, g: h.id }; else for (let i = pc.s; i < pc.e; i++) m.ch[i] = { c: h.c, g: h.id }; }));
+      Object.keys(map).forEach((key) => {
+        const m = map[key], el = elOf(body, m.a, m.k); if (!el) return;
+        if (m.k === 'c') { if (m.whole) { el.classList.add('rh-hl', 'c' + m.whole.c); el.dataset.g = m.whole.g; } return; }
+        const t = el.textContent; let h = '', i = 0;
+        while (i < t.length) {
+          const cur = m.ch[i]; let j = i + 1;
+          while (j < t.length && ((m.ch[j] && cur && m.ch[j].g === cur.g && m.ch[j].c === cur.c) || (!m.ch[j] && !cur))) j++;
+          const seg = esc(t.slice(i, j)); h += cur ? '<mark class="rh-hl c' + cur.c + '" data-g="' + esc(cur.g) + '">' + seg + '</mark>' : seg; i = j;
+        }
+        el.innerHTML = h;
+      });
+    }
+    function caretAt(x, y) {
+      if (document.caretRangeFromPoint) return document.caretRangeFromPoint(x, y);
+      if (document.caretPositionFromPoint) { const p = document.caretPositionFromPoint(x, y); if (!p) return null; const r = document.createRange(); r.setStart(p.offsetNode, p.offset); r.collapse(true); return r; }
+      return null;
+    }
+    let pd = null;
+    function penDown(ev) {
+      if (ui.pen == null || (ev.pointerType === 'mouse' && ev.button !== 0)) return;
+      const body = ev.target.closest && ev.target.closest('.ch-body.rh-pen'); if (!body || !root.contains(body)) return;
+      const c = caretAt(ev.clientX, ev.clientY); if (!c) return;
+      pd = { body: body, c0: c, id: body.closest('.lv-exp').dataset.xid, r: null }; ui.drawing = true;
+      try { body.setPointerCapture(ev.pointerId); } catch (e) {}
+      ev.preventDefault();
+    }
+    function penMove(ev) {
+      if (!pd) return; const c = caretAt(ev.clientX, ev.clientY); if (!c) return;
+      const r = document.createRange(), a = pd.c0, cmp = a.compareBoundaryPoints(Range.START_TO_START, c);
+      if (cmp <= 0) { r.setStart(a.startContainer, a.startOffset); r.setEnd(c.startContainer, c.startOffset); } else { r.setStart(c.startContainer, c.startOffset); r.setEnd(a.startContainer, a.startOffset); }
+      pd.r = r; const sel = window.getSelection(); sel.removeAllRanges(); sel.addRange(r); ev.preventDefault();
+    }
+    function penUp() {
+      if (!pd) return; const d = pd; pd = null; ui.drawing = false;
+      const sel = window.getSelection(); if (sel) sel.removeAllRanges();
+      if (d.r && !d.r.collapsed && d.body.isConnected) {
+        const pcs = piecesOf(d.r, d.body);
+        if (pcs.length) {
+          if (ui.pen === 'x') eraseHit(d.id, pcs);
+          else { const v = V(d.id); say('ไฮไลต์เพลง ' + (v ? v.title : '')); ref('hl/' + d.id).push({ c: ui.pen, by: me, at: nowMs(), p: pcs }).catch(() => lshToast('ไฮไลต์ไม่สำเร็จ', 'error')); upd({}); }
+        }
+      }
+      if (ui.deferred) { ui.deferred = false; render(); }
+    }
+    function eraseHit(id, pcs) {   // ลบทุกไฮไลต์ที่ทับช่วงที่ลากผ่าน
+      const g = (N.hl && N.hl[id]) || {};
+      Object.keys(g).forEach((gid) => { if ((g[gid].p || []).some((q) => pcs.some((x) => x.a === q.a && x.k === q.k && (q.k === 'c' || (x.s < q.e && q.s < x.e))))) ref('hl/' + id + '/' + gid).remove(); });
+    }
+    root.addEventListener('pointerdown', penDown); root.addEventListener('pointermove', penMove); root.addEventListener('pointerup', penUp); root.addEventListener('pointercancel', penUp);
+    function hlNews(first) {   // ไฮไลต์ใหม่จากคนอื่น: ตามเพลงที่ซ้อมอยู่ → เด้งไปตรงนั้น
+      const seen = ui.hlSeen || (ui.hlSeen = new Set()); let latest = null;
+      Object.keys((N && N.hl) || {}).forEach((id) => Object.keys(N.hl[id]).forEach((gid) => { if (seen.has(gid)) return; seen.add(gid); const h = N.hl[id][gid]; if (!first && h.by !== me && (!latest || (h.at || 0) > (latest.h.at || 0))) latest = { id: id, gid: gid, h: h }; }));
+      return latest;
     }
 
     // ===== วาดหน้า =====
@@ -595,6 +698,8 @@
       const v = snap.val();
       if (!v || v.status !== 'open') { closedByOther(v); return; }
       const first = !N; N = v;
+      const hn = hlNews(first);
+      if (hn && ui.follow && orderIds().includes(hn.id)) { ui.exId = hn.id; ui.toolId = null; ui.jump = true; ui.hlJump = hn.gid; }
       const p = N.playing;
       if (first) { ui.lastPlayAt = p ? p.at : null; if (ui.follow && p && orderIds().includes(p.id)) { ui.exId = p.id; ui.jump = true; scrollToCard(p.id); } }
       else if (p && p.at !== ui.lastPlayAt) {
@@ -604,8 +709,9 @@
       if (ui.exId && !orderIds().includes(ui.exId)) ui.exId = null;
       if (ui.toolId && !orderIds().includes(ui.toolId)) ui.toolId = null;
       const ae = document.activeElement;
-      if (!first && ae && ae.classList && ae.classList.contains('rh-in') && root.contains(ae)) { ui.deferred = true; renderAct(); return; }   // กำลังพิมพ์อยู่: ยังไม่วาดใหม่ทับ
+      if (ui.drawing || (!first && ae && ae.classList && ae.classList.contains('rh-in') && root.contains(ae))) { ui.deferred = true; renderAct(); return; }   // กำลังพิมพ์/ลากปากกาอยู่: ยังไม่วาดใหม่ทับ
       render();
+      if (ui.hlJump) { const gid = ui.hlJump; ui.hlJump = null; Promise.all(fills.slice()).then(() => { const m = document.querySelector('#lvList [data-g="' + gid + '"]'); if (m && m.scrollIntoView) m.scrollIntoView({ block: 'center', behavior: 'smooth' }); setTimeout(() => { ui.jump = false; }, 800); }); }
     }
     function closedByOther(v) {
       if (ui.closing || disposed) return;
@@ -676,7 +782,7 @@
 
     // ===== รับการกด =====
     function onClick(ev) {
-      const seg = ev.target.closest && ev.target.closest('.lv-seg button'); if (seg && root.contains(seg)) { ev.stopPropagation(); toggleSeg(seg); return; }
+      const seg = ev.target.closest && ev.target.closest('.lv-seg button'); if (seg && !seg.dataset.a && root.contains(seg)) { ev.stopPropagation(); toggleSeg(seg); return; }
       let el = ev.target.closest ? ev.target.closest('[data-a]') : null;
       while (el && root.contains(el)) {
         const a = el.dataset.a, id = el.dataset.id;
@@ -690,6 +796,8 @@
         case 'strip': ui.stripOpen = !ui.stripOpen; lsSave('lsh_rh_strip', ui.stripOpen ? '1' : '0'); renderStrip(); return true;
         case 'followsw': ui.follow = !ui.follow; lsSave('lsh_rh_follow', ui.follow ? '1' : '0'); renderStrip(); return true;
         case 'end': endRehearsal(); return true;
+        case 'pen': ui.penOpen = !ui.penOpen; if (!ui.penOpen) ui.pen = null; render(); return true;
+        case 'pencol': { const v = el.dataset.v === 'x' ? 'x' : Number(el.dataset.v); ui.pen = ui.pen === v ? null : v; render(); return true; }
         case 'add': openAdd(); return true;
         case 'addpick': { let s; try { s = JSON.parse(el.dataset.s); } catch (e) { return true; } addSong(s); return true; }
         case 'ovclose': closeOv(); return true;
