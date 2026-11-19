@@ -814,17 +814,21 @@
       }
       function karAttn(kind) {
         const bar = $k('karBot'); if (!bar) return;
-        clearTimeout(bar._attnTimer); delete bar.dataset.attn; delete bar.dataset.hold; void bar.offsetWidth; bar.dataset.attn = kind;
+        clearTimeout(bar._attnTimer);
         if (kind === 'talk') {
           // ท็อคแบคใหม่ในโหมดคาราโอเกะ: ขยาย+กระพริบค้าง 1 นาที หรือจนกว่าจะแตะที่ช่องท็อคแบค (หน้ามอนิเตอร์ปกติคงแบบเดิม)
-          bar.dataset.hold = '1';
-          const clear = () => { clearTimeout(bar._attnTimer); delete bar.dataset.attn; delete bar.dataset.hold; };
           const tbEl = bar.querySelector('.kar-tb');
+          const parts = () => bar.querySelectorAll(':scope > .kar-tb, :scope > .kar-nx');
+          const flip = (fn) => { if (window.lshFlip) window.lshFlip(parts(), fn); else fn(); };
+          const clear = () => { clearTimeout(bar._attnTimer); if (!bar.dataset.hold) return; flip(() => { delete bar.dataset.attn; delete bar.dataset.hold; }); };
           if (tbEl && !tbEl._attnTap) { tbEl._attnTap = true; tbEl.addEventListener('click', () => { if (bar.dataset.hold) clear(); }); }
+          if (bar.dataset.hold) { if (tbEl && tbEl.animate) tbEl.animate([{ transform: 'scale(1)' }, { transform: 'scale(1.02)' }, { transform: 'scale(1)' }], { duration: 360, easing: 'ease-out' }); }
+          else flip(() => { bar.dataset.attn = 'talk'; bar.dataset.hold = '1'; });
           bar._attnTimer = setTimeout(clear, 60000);
-        } else {
-          bar._attnTimer = setTimeout(() => { delete bar.dataset.attn; }, 3000);
+          return;
         }
+        delete bar.dataset.attn; void bar.offsetWidth; bar.dataset.attn = kind;
+        bar._attnTimer = setTimeout(() => { delete bar.dataset.attn; }, 3000);
       }
       // ท็อคแบคที่ตัวเองส่ง ไม่ต้องเตือนตัวเอง (ป้ายผู้ส่งขึ้นต้นด้วยชื่อเล่นของเรา)
       function karMine(sd) {

@@ -149,22 +149,49 @@
     window.lshIcon = function(n) { return '<svg class="ic" aria-hidden="true"><use href="#i-' + n + '"/></svg>'; };
     // ตัดอีโมจิ/สัญลักษณ์นำหน้าชื่อการ์ดพิเศษ (เตรียมพร้อม/จบการแสดง) ตอนแสดงผลเท่านั้น ไม่แก้ข้อมูล
     // แจ้งเตือนคำสั่งใหม่: กล่องกระพริบ + ขยายด้านข้าง 3 วินาที แล้วกลับ (kind = 'talk' | 'next')
+    // ย่อ/ขยายแบบสมูท (FLIP): วัดตำแหน่ง-ขนาดกล่องก่อน/หลังเปลี่ยนเลย์เอาต์ แล้วเล่นแอนิเมชันจากของเดิมไปของใหม่
+    window.lshFlip = function(els, mutate) {
+      const list = Array.from(els || []).filter(Boolean);
+      const reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+      if (reduce || !list.length || !list[0].animate) { mutate(); return; }
+      const par = list[0].parentElement, hold = [par].concat(list);
+      hold.forEach((e) => e && e.style.setProperty('transition', 'none', 'important'));   // ปิด transition เดิมชั่วคราว กันวัดขนาดกลางทาง
+      void par.offsetWidth;
+      const first = list.map((e) => e.getBoundingClientRect());
+      mutate(); void par.offsetWidth;
+      requestAnimationFrame(() => hold.forEach((e) => e && e.style.removeProperty('transition')));
+      list.forEach((e, i) => {
+        const f = first[i], l = e.getBoundingClientRect();
+        if (!l.width || !l.height) return;
+        const dx = f.left - l.left, dy = f.top - l.top, sx = f.width / l.width, sy = f.height / l.height;
+        if (Math.abs(dx) < 1 && Math.abs(dy) < 1 && Math.abs(sx - 1) < .01 && Math.abs(sy - 1) < .01) return;
+        e.animate([{ transformOrigin: '0 0', transform: 'translate(' + dx + 'px,' + dy + 'px) scale(' + sx + ',' + sy + ')' }, { transformOrigin: '0 0', transform: 'none' }],
+          { duration: 420, easing: 'cubic-bezier(.22,.9,.28,1)' });
+        const t = e.querySelector('.top-content, .kar-tbc');
+        if (t && t.animate) t.animate([{ opacity: .25 }, { opacity: 1 }], { duration: 360, easing: 'ease-out' });
+      });
+    };
     window.lshAttention = function(textEl, kind) {
       const box = textEl && textEl.closest ? textEl.closest('.top-box') : null;
       const bar = box ? box.parentElement : null;
       if (!bar) return;
       clearTimeout(bar._attnTimer);
-      delete bar.dataset.attn; delete bar.dataset.hold; void bar.offsetWidth;
-      bar.dataset.attn = kind;
       if (kind === 'talk') {
-        // ท็อคแบคใหม่: ขยายช่อง + กระพริบค้าง 1 นาที หรือจนกว่าจะแตะที่ช่อง
-        bar.dataset.hold = '1';
-        const clear = () => { clearTimeout(bar._attnTimer); delete bar.dataset.attn; delete bar.dataset.hold; };
+        // ท็อคแบคใหม่: ขยายช่อง + กระพริบค้าง 1 นาที หรือจนกว่าจะแตะที่ช่อง (ขยาย/ย่อแบบสมูท)
+        const boxes = () => bar.querySelectorAll(':scope > .top-box');
+        const clear = () => { clearTimeout(bar._attnTimer); if (!bar.dataset.hold) return; window.lshFlip(boxes(), () => { delete bar.dataset.attn; delete bar.dataset.hold; }); };
         if (!box._attnTap) { box._attnTap = true; box.addEventListener('click', () => { if (bar.dataset.hold) clear(); }); }
+        if (bar.dataset.hold) {   // ขยายอยู่แล้ว: ข้อความใหม่แทนที่ นับ 60 วินาทีใหม่ และเด้งเบาๆ ให้รู้ว่าเปลี่ยน
+          if (box.animate) box.animate([{ transform: 'scale(1)' }, { transform: 'scale(1.025)' }, { transform: 'scale(1)' }], { duration: 360, easing: 'ease-out' });
+        } else {
+          window.lshFlip(boxes(), () => { bar.dataset.attn = 'talk'; bar.dataset.hold = '1'; });
+        }
         bar._attnTimer = setTimeout(clear, 60000);
-      } else {
-        bar._attnTimer = setTimeout(() => { delete bar.dataset.attn; }, 3000);
+        return;
       }
+      delete bar.dataset.attn; void bar.offsetWidth;
+      bar.dataset.attn = kind;
+      bar._attnTimer = setTimeout(() => { delete bar.dataset.attn; }, 3000);
     };
     // เรียกหลังตั้งข้อความ: เล่นเอฟเฟกต์เฉพาะตอนข้อความเปลี่ยนจากค่าจริงเดิม (ไม่เล่นตอนโหลดครั้งแรก)
     window.lshWatch = function(textEl, kind, quiet) {
@@ -2160,7 +2187,7 @@
     };
 
     // ===== ตรวจเวอร์ชันแอป (2.0): เทียบเลขใน version.json บนเซิร์ฟเวอร์ กับเลขของโค้ดที่เปิดอยู่ =====
-    const LSH_APP_VER = '2.0.30';
+    const LSH_APP_VER = '2.1.0';
     window.LSH_VER_TXT = LSH_APP_VER;
     try { const dv = document.getElementById('drawerVersion'); if (dv) dv.textContent = 'เวอร์ชัน ' + LSH_APP_VER; } catch (e) {}   // แสดงเลขเวอร์ชันท้ายเมนูแฮมเบอร์เกอร์
     let lshVerAt = 0;
