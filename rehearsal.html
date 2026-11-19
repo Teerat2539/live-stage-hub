@@ -545,6 +545,11 @@
     function penDown(ev) {
       if (ui.pen == null || (ev.pointerType === 'mouse' && ev.button !== 0)) return;
       const body = ev.target.closest && ev.target.closest('.ch-body.rh-pen'); if (!body || !root.contains(body)) return;
+      if (ui.pen === 'x') {   // ยางลบ: แตะที่ไฮไลต์ ลบทั้งก้อนที่ลงไว้ครั้งนั้น
+        const hit = ev.target.closest && ev.target.closest('[data-g]');
+        if (hit && body.contains(hit)) { ev.preventDefault(); const id = body.closest('.lv-exp').dataset.xid; ref('hl/' + id + '/' + hit.dataset.g).remove().then(() => upd({})).catch(() => lshToast('ลบไฮไลต์ไม่สำเร็จ', 'error')); }
+        return;
+      }
       const c = caretAt(ev.clientX, ev.clientY); if (!c) return;
       pd = { body: body, c0: c, id: body.closest('.lv-exp').dataset.xid, r: null }; ui.drawing = true;
       try { body.setPointerCapture(ev.pointerId); } catch (e) {}
@@ -562,15 +567,10 @@
       if (d.r && !d.r.collapsed && d.body.isConnected) {
         const pcs = piecesOf(d.r, d.body);
         if (pcs.length) {
-          if (ui.pen === 'x') eraseHit(d.id, pcs);
-          else { const v = V(d.id); say('ไฮไลต์เพลง ' + (v ? v.title : '')); ref('hl/' + d.id).push({ c: ui.pen, by: me, at: nowMs(), p: pcs }).catch(() => lshToast('ไฮไลต์ไม่สำเร็จ', 'error')); upd({}); }
+          { const v = V(d.id); say('ไฮไลต์เพลง ' + (v ? v.title : '')); ref('hl/' + d.id).push({ c: ui.pen, by: me, at: nowMs(), p: pcs }).catch(() => lshToast('ไฮไลต์ไม่สำเร็จ', 'error')); upd({}); }
         }
       }
       if (ui.deferred) { ui.deferred = false; render(); }
-    }
-    function eraseHit(id, pcs) {   // ลบทุกไฮไลต์ที่ทับช่วงที่ลากผ่าน
-      const g = (N.hl && N.hl[id]) || {};
-      Object.keys(g).forEach((gid) => { if ((g[gid].p || []).some((q) => pcs.some((x) => x.a === q.a && x.k === q.k && (q.k === 'c' || (x.s < q.e && q.s < x.e))))) ref('hl/' + id + '/' + gid).remove(); });
     }
     root.addEventListener('pointerdown', penDown); root.addEventListener('pointermove', penMove); root.addEventListener('pointerup', penUp); root.addEventListener('pointercancel', penUp);
     function hlNews(first) {   // ไฮไลต์ใหม่จากคนอื่น: ตามเพลงที่ซ้อมอยู่ → เด้งไปตรงนั้น
