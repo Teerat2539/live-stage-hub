@@ -821,9 +821,15 @@
         body.querySelectorAll('.sn-mk').forEach((e) => { if (e.tagName === 'SPAN') { const p = e.parentNode; while (e.firstChild) p.insertBefore(e.firstChild, e); p.removeChild(e); p.normalize(); } else { e.classList.remove('sn-mk', 'sn-c0', 'sn-c1', 'sn-c2', 'sn-c3'); e.removeAttribute('data-n'); e.removeAttribute('data-a'); } });
         const byEl = new Map();
         (notes || []).forEach((n) => { const el = elOf(body, n.a, n.k); if (!el) return; (byEl.get(el) || byEl.set(el, []).get(el)).push(n); });
+        const rows = new Map();   // บรรทัด → โพสอิทหลายใบวางเรียงใต้บรรทัด (ซ้าย→ขวาตามตำแหน่งที่ติด)
+        byEl.forEach((arr, el) => { const row = el.closest('.ch-line, .ch-raw'); if (row) (rows.get(row) || rows.set(row, []).get(row)).push.apply(rows.get(row), arr.map((n) => ({ n: n, el: el }))); });
+        rows.forEach((list, row) => {
+          list.sort((x, y) => (x.el === y.el ? x.n.s - y.n.s : (x.el.compareDocumentPosition(y.el) & 4 ? -1 : 1)));
+          const wrap = document.createElement('div'); wrap.className = 'sn-box';
+          list.forEach((q) => { const bx = document.createElement('div'); bx.className = 'sn-note sn-c' + (q.n.c || 0); bx.dataset.n = q.n.id; if (edit) bx.dataset.a = 'notev'; bx.textContent = q.n.t || ''; wrap.appendChild(bx); });
+          row.after(wrap);
+        });
         byEl.forEach((arr, el) => {
-          const row = el.closest('.ch-line, .ch-raw');   // กล่องข้อความวางใต้บรรทัดที่ติดโน้ต (เรียงตามเวลา)
-          if (row) { let ref = row; arr.slice().sort((x, y) => (x.at || 0) - (y.at || 0)).forEach((n) => { const bx = document.createElement('div'); bx.className = 'sn-box sn-c' + (n.c || 0); bx.dataset.n = n.id; if (edit) bx.dataset.a = 'notev'; bx.textContent = n.t || ''; ref.after(bx); ref = bx; }); }
           if (arr[0].k === 'c') { const n = arr[arr.length - 1]; el.classList.add('sn-mk', 'sn-c' + (n.c || 0)); el.dataset.n = n.id; el.dataset.a = 'notev'; return; }
           arr.sort((x, y) => y.s - x.s).forEach((n) => {   // ท้าย→หน้า: ตำแหน่งตัวอักษรของตัวที่เหลือไม่เปลี่ยน
             const tw = document.createTreeWalker(el, NodeFilter.SHOW_TEXT); let off = 0, node;
