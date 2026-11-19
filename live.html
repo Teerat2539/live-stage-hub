@@ -906,7 +906,7 @@
     // ===== ปุ่มลอยมุมขวาล่าง + เลื่อนด้วยมือรอ 3 วินาที =====
     function renderCtrl() {
       const el = $('lvCtrl'); if (!el) return;
-      if (guest || D || !Q.loaded || !Q.songs.length || ended()) { setHtml(el, 'ctrl', ''); return; }
+      if (guest || !Q.loaded || !Q.songs.length || ended()) { setHtml(el, 'ctrl', ''); return; }
       const L = preview(), pl = playingOf(L); if (!pl) { setHtml(el, 'ctrl', ''); return; }
       const hold = pending && !pending.sending ? Math.max(1, Math.ceil((pending.at + 3000 - nowMs()) / 1000)) : 0, ring = pending ? ' ring' : '';
       const lbl = pending ? '<div class="lv-hold">ส่งใน ' + hold + '… · แตะก่อนหน้าเพื่อแก้</div>' : '', ai = autoInfo();
@@ -916,7 +916,7 @@
       else if (isBrk(pl)) h += '<div class="row"><button type="button" class="lv-cap' + ring + '" data-a="next" aria-label="ไปเซ็ตถัดไป">' + IC.pause + 'ไปเซ็ต ' + sn((nextOf(L, pl.id) || pl).set) + '</button></div>';
       else {
         const lr = lastReal(L), isLast = !!(lr && lr.id === pl.id);
-        const collapsed = !pending && (ui.ctrlOpen == null ? ai.enabled : !ui.ctrlOpen);
+        const collapsed = !pending && (D ? ui.ctrlOpenD === false : (ui.ctrlOpen == null ? ai.enabled : !ui.ctrlOpen));   // หน้าจัดคิว: เปิดค้างไว้ ไม่ย่ออัตโนมัติ (ย่อเองได้)
         if (collapsed) h += '<div class="row"><button type="button" class="lv-ptab" data-a="ctrltog" aria-label="ขยายปุ่มก่อนหน้า/ถัดไป"><svg viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6"/></svg></button></div>';
         else h += '<div class="row"><div class="lv-pill"><button type="button" class="lv-pc" data-a="ctrltog" aria-label="ย่อปุ่ม"><svg viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg></button>' +
           '<button type="button" class="lv-fab" data-a="prev" aria-label="เพลงก่อนหน้า">' + IC.prev + '</button>' +
@@ -932,7 +932,7 @@
       return n.id;
     }
     function press(dir) {
-      if (guest || D || ended() || (pending && pending.sending)) return;
+      if (guest || ended() || (pending && pending.sending)) return;   // หน้าจัดคิวก็กดได้ (เลื่อนคิวจริง ไม่ใช่ร่างที่กำลังแก้)
       const t = targetOf(dir); if (!t) return;
       const from = pending ? pending.from : (playingOf(Q.songs) || {}).id; if (!from) return;
       if (pending) clearTimeout(pending.timer);
@@ -1454,7 +1454,7 @@
           const was = expandedId(cur()); ui.follow = !ui.follow; ui.keep = null; lsSave('lsh_lv_follow', ui.follow ? '1' : '0');
           ui.exId = ui.follow ? null : (was == null ? 'none' : was);   // เปิด: เพลงที่เล่นขยายทันที · ปิด: คงที่ที่เปิดอยู่ไว้
           ui.landKey = null; renderStrip(); renderList(); renderLand(); return true; }
-        case 'ctrltog': { const ai = autoInfo(), col = ui.ctrlOpen == null ? ai.enabled : !ui.ctrlOpen; clearTimeout(timers.ctrl); if (col) { ui.ctrlOpen = true; if (ai.enabled) timers.ctrl = setTimeout(() => { ui.ctrlOpen = null; renderCtrl(); }, 15000); } else ui.ctrlOpen = ai.enabled ? null : false; renderCtrl(); return true; }
+        case 'ctrltog': { if (D) { ui.ctrlOpenD = ui.ctrlOpenD === false; renderCtrl(); return true; } const ai = autoInfo(), col = ui.ctrlOpen == null ? ai.enabled : !ui.ctrlOpen; clearTimeout(timers.ctrl); if (col) { ui.ctrlOpen = true; if (ai.enabled) timers.ctrl = setTimeout(() => { ui.ctrlOpen = null; renderCtrl(); }, 15000); } else ui.ctrlOpen = ai.enabled ? null : false; renderCtrl(); return true; }
         case 'autopp': if (canCtl) autoPP(); return true;
         case 'autosw': { const ai = window.lshAutoAdv; if (!ai || !canCtl) return true; const i = autoInfo(); ai.setEnabled(!i.enabled); setTimeout(render, 150); return true; }
         case 'timer': if (canCtl) ovTimer(); return true;
