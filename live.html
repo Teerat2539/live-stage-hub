@@ -127,6 +127,8 @@
     .lv-card.next .lv-tag { color: var(--c-8fa4ff); }
     .lv-card.playing { border: 1.5px solid var(--live); border-left: 4px solid var(--c); }
     .lv-card.played { opacity: .5; }
+    .lv-card.played.open { opacity: 1; }
+    .lv-card.played.open .lv-main { opacity: .6; }
     .lv-card.req { --c: var(--request); } .lv-card.custom { --c: var(--custom); }
     .lv-card.removed { opacity: .6; }
     .lv-no { width: 18px; flex: none; color: var(--text-3); font-size: 15px; padding-top: 2px; }
@@ -542,7 +544,7 @@
     function pingBadge() { document.querySelectorAll('#lvActs .lv-badge').forEach((b) => { b.classList.remove('ping'); void b.offsetWidth; b.classList.add('ping'); setTimeout(() => b.classList.remove('ping'), 1400); }); }
     let requests = [];                         // เพลงรีเควสที่ยังไม่ได้ใส่คิว (requestStats)
     let showSt = {};                           // rooms/{วง}/showTimer
-    const ui = { exId: null, stripTmp: false, stripOpen: true, landOpen: false, landKey: null, wasPrep: undefined, follow: true, ctrlOpen: null, playedOpen: false, editOpen: null, banner: null, dirty: false, dirtyAt: 0, failed: false, saving: false, lastPlay: null, sumOpen: true, sumDetail: false, fs: 20, cols2: false, lyr: false, hold: 0, ov: null, asOn: false, asSpd: 1 };
+    const ui = { exId: null, stripTmp: false, stripOpen: true, landOpen: false, landKey: null, wasPrep: undefined, follow: true, ctrlOpen: null, playedOpen: false, editOpen: null, banner: null, dirty: false, dirtyAt: 0, failed: false, saving: false, lastPlay: null, sumOpen: true, sumDetail: false, fs: 20, cols2: false, lyr: false, hold: 0, ov: null, asOn: false, asSpd: 1, keep: null };
     try { ui.fs = parseInt(localStorage.getItem('lsh_chord_fs'), 10) || 20; ui.lyr = localStorage.getItem('lsh_chord_lyr') === '1'; ui.cols2 = localStorage.getItem('lsh_chord_cols') === '2'; } catch (e) {}
     try { ui.follow = localStorage.getItem('lsh_lv_follow') !== '0'; ui.stripOpen = localStorage.getItem('lsh_lv_strip') !== '0'; } catch (e) {}
     const lsSave = (k, v) => { try { localStorage.setItem(k, v); } catch (e) {} };
@@ -647,7 +649,12 @@
     const keyOf = (x) => okKey(x.key) || (x.type === 'inserted-request' ? libKey(x) : '');
     function onPlayChange() {
       const p = playingOf(Q.songs), id = p ? p.id : null;
-      if (id !== ui.lastPlay) { ui.lastPlay = id; if (ui.follow) ui.exId = null; if (!D) setTimeout(() => { const el = document.querySelector('#lvList .lv-card.playing, #lvList .lv-bar.cur'); if (el && el.scrollIntoView) el.scrollIntoView({ block: 'start', behavior: 'smooth' }); }, 80); prefetch(); }
+      if (id !== ui.lastPlay) {
+        const oldId = ui.lastPlay, oi = oldId != null ? Q.songs.find((x) => String(x.id) === String(oldId)) : null;
+        // ตามเพลงที่เล่น + กำลังดูคอร์ดเพลงที่เพิ่งจบอยู่: ค้างคอร์ดเพลงนั้นไว้ (เฉพาะเพลงล่าสุดเพลงเดียว) จนเพลงใหม่ถูกเลื่อนเกิน 30%
+        ui.keep = (!D && ui.follow && p && isSong(p) && oi && isSong(oi) && oi.status === 'played' && (ui.exId == null || String(ui.exId) === String(oldId))) ? oi.id : null;
+        if (ui.keep != null && ui.asOn) asId = String(id);   // เลื่อนอัตโนมัติอยู่: ไม่หยุด เลื่อนต่อผ่านท้ายเพลงเก่าเข้าเพลงใหม่
+        ui.lastPlay = id; if (ui.follow) ui.exId = null; if (!D && ui.keep == null) setTimeout(() => { const el = document.querySelector('#lvList .lv-card.playing, #lvList .lv-bar.cur'); if (el && el.scrollIntoView) el.scrollIntoView({ block: 'start', behavior: 'smooth' }); }, 80); prefetch(); }
     }
 
     // ===== คอร์ด: โหลดล่วงหน้า (เพลงที่เล่น + ถัดไป ~3) / คลังหลักและคลังรอง =====
@@ -682,11 +689,13 @@
       const st = box.querySelector('.lv-status'), body = box.querySelector('.ch-body'), X = window.lshChords && window.lshChords._x;
       const none = () => { st.textContent = NO_CHORD_TXT; body.innerHTML = ''; };
       if (!X || (!item.songId && !isMed(item) && !item.chordId && !item.title)) { none(); return; }
-      docFor(item).then((d) => {
+      const pr = docFor(item).then((d) => {
         if (!box.isConnected) return;
         const a = d.at(item.key); body.innerHTML = X.sectionsHtml(d.rec.s, a.n, a.flat); st.textContent = '';
       }).catch((e) => { if (!box.isConnected) return; if (e && e.message === 'notfound') none(); else st.textContent = 'โหลดคอร์ดไม่ได้ (ตรวจสอบอินเทอร์เน็ต แล้วลองใหม่)'; });
+      fills.push(pr);
     }
+    let fills = [];   // งานเติมคอร์ดที่ยังค้าง: ใช้รอให้คอร์ดลงหน้าจอเสร็จก่อนค่อยตั้งตำแหน่งเลื่อน
 
     // ===== ค้นหาเพลงบนเว็บ / คัดลอกชื่อ (ใช้ค่าตั้งค่าการค้นหารายบุคคลเดิม) =====
     let searchPrefs = { suffix: 'คอร์ด', includeArtist: true, copy: true, copyMode: 'title', copySuffix: false };
@@ -775,14 +784,17 @@
       }).join('');
       const panel = '<div class="lv-lpanel"><div class="lv-lph"><div class="lv-venue">' + esc(Q.venue || 'ลิสต์เพลง') + '</div><span class="lv-autolbl">ตามเพลง<br>ที่เล่น</span><button type="button" class="lv-sw white" role="switch" aria-checked="' + (ui.follow ? 'true' : 'false') + '" data-a="followsw" aria-label="ตามเพลงที่เล่น"><i></i></button></div>' +
         '<div class="lv-lhint">แตะเพลงเพื่อดูคอร์ด · แตะนอกแผงเพื่อย่อ</div><div class="lv-lrows">' + rows + '</div></div>';
-      const key = (v ? v.id + '|' + keyOf(v) : '');
+      const kId = keptId(L), kx = (kId != null && v && v.status === 'playing') ? items.find((x) => String(x.id) === String(kId)) : null;
+      const leadOf = (z) => '<div class="lv-lt"><b>' + esc(z.title) + '</b><span>' + esc(isMed(z) ? z.parts.map((pt) => pt.title).join(' · ') : (z.artist && z.artist !== '-' ? z.artist : '')) + (keyOf(z) && !isMed(z) ? ' · Key ' + esc(keyOf(z)) : '') + '</span></div>';
+      const key = (v ? v.id + '|' + keyOf(v) + (kx ? '|k' + kx.id + keyOf(kx) : '') : '');
       let main = el.querySelector('.lv-lmain');
       let need = !main || ui.landKey !== key;
       let html = '<button type="button" class="lv-lseg" data-a="landopen" aria-label="เปิดรายการคิว">' + segs + '</button>';
       if (need && v) {
-        const lead = '<div class="lv-lt"><b>' + esc(v.title) + '</b><span>' + esc(isMed(v) ? v.parts.map((pt) => pt.title).join(' · ') : (v.artist && v.artist !== '-' ? v.artist : '')) + (keyOf(v) && !isMed(v) ? ' · Key ' + esc(keyOf(v)) : '') + '</span></div>';
-        html += '<div class="lv-lmain">' + expHtml(lead) + '</div>';
+        html += '<div class="lv-lmain">' + (kx ? expHtml(leadOf(kx), kx.id, true) : '') + expHtml(leadOf(v), v.id) + '</div>';
       }
+      fills = [];
+      const oldMain = el.querySelector('.lv-lmain'), oldMainTop = oldMain ? oldMain.scrollTop : 0;
       const oldRows = el.querySelector('.lv-lrows'), keepTop = oldRows ? oldRows.scrollTop : null;
       const fixRows = function () {
         const r = el.querySelector('.lv-lrows'); if (!r) return;
@@ -791,7 +803,8 @@
       };
       if (need) {
         el.innerHTML = html + (ui.landOpen ? '<div class="lv-lscrim" data-a="landclose"></div>' + panel : '');
-        const box = el.querySelector('.lv-lmain .lv-exp'); if (box && v) fillChords(box, v);
+        el.querySelectorAll('.lv-lmain .lv-exp[data-xid]').forEach((box) => { const it = itemById(box.dataset.xid); if (it) fillChords(box, it); });
+        const nm = el.querySelector('.lv-lmain'); if (nm && kx) { const fp = fills.slice(); Promise.all(fp).then(() => { nm.scrollTop = oldMainTop; }); }   // เพลงเพิ่งเปลี่ยน: อยู่ตรงที่อ่านค้างไว้ ไม่เด้ง
         ui.landKey = key; fixRows();
       } else {
         // เพลงที่ดูไม่เปลี่ยน: อัปเดตเฉพาะแถบเซกเมนต์/แผง ไม่แตะหน้าคอร์ด (ไม่ให้เลื่อนอ่านหลุด)
@@ -828,13 +841,14 @@
       if (!L.length) { el.innerHTML = '<div class="lv-empty">ยังไม่มีคิวเพลง<br>เลือกลิสต์ที่หน้า “แฟ้มลิสต์เพลง” แล้วกด Play</div>'; return; }
       if (D) { renderEditList(el, L); return; }
       const act = actOf(L), pl = playingOf(L), prep = !!(pl && pl.type === 'dummy_start');
-      const played = act.filter((x) => x.status === 'played' && isSong(x));
+      const exId = expandedId(L), keepId = keptId(L);
+      const played = act.filter((x) => x.status === 'played' && isSong(x) && String(x.id) !== String(keepId));
       let h = '';
       if (played.length) {
         h += '<button type="button" class="lv-played' + (ui.playedOpen ? ' open' : '') + '" data-a="played">' + IC.right + 'เล่นไปแล้ว ' + played.length + ' เพลง</button>';
-        if (ui.playedOpen) played.forEach((x) => { h += '<div class="lv-card played" style="--c:' + setCls(x) + '">' + cardInner(x, { no: numberOf(L, x.id) }) + '</div>'; });
+        if (ui.playedOpen) played.forEach((x) => { h += songCard(L, x, { played: true, open: String(x.id) === String(exId) }); });
       }
-      const exId = expandedId(L);
+      if (keepId != null) { const kx = act.find((x) => String(x.id) === String(keepId)); if (kx) h += songCard(L, kx, { played: true, keep: true, open: true }); }
       act.forEach((x) => {
         if (x.status === 'played' || x.type === 'dummy_start' || x.type === 'dummy_end') return;
         if (isBrk(x)) { h += '<div class="lv-bar' + (x.status === 'playing' ? ' cur' : '') + '" style="--c:' + setCls(x) + '" aria-label="พักคุย"></div>'; return; }
@@ -842,9 +856,16 @@
         h += songCard(L, x, { playing: playing, next: next, open: open });
       });
       el.innerHTML = h;
-      const box = el.querySelector('.lv-card.open .lv-exp'); if (box) { const it = itemById(exId); if (it) fillChords(box, it); }
+      el.querySelectorAll('.lv-exp[data-xid]').forEach((box) => { const it = itemById(box.dataset.xid); if (it) fillChords(box, it); });
       if (prep) { /* เตรียมพร้อม: การ์ดแรกเป็น "ถัดไป" */ }
       updateProg();
+    }
+    // เพลงที่เพิ่งจบแต่ยังค้างคอร์ดไว้: ใช้ได้เมื่อเปิด "ตามเพลงที่เล่น", เพลงที่เล่นอยู่กำลังเปิดคอร์ดอยู่, และเพลงนั้นยังเป็น "เล่นแล้ว"
+    function keptId(L) {
+      if (ui.keep == null || !ui.follow || D) return null;
+      const k = L.find((x) => String(x.id) === String(ui.keep)), p = playingOf(L);
+      if (!k || k.status !== 'played' || !p || !isSong(p) || String(expandedId(L)) !== String(p.id)) return null;
+      return k.id;
     }
     function expandedId(L) {
       if (ui.exId === 'none') return null;
@@ -854,8 +875,8 @@
     }
     const colsLbl = () => ui.cols2 ? '2 คอลัมน์ (แตะเพื่อสลับเป็น 1 คอลัมน์)' : '1 คอลัมน์ (แตะเพื่อสลับเป็น 2 คอลัมน์)';
     const modeLbl = () => ui.lyr ? 'เนื้ออย่างเดียว (แตะเพื่อสลับเป็นคอร์ด+เนื้อ)' : 'คอร์ด+เนื้อ (แตะเพื่อสลับเป็นเนื้ออย่างเดียว)';
-    function expHtml(lead) {
-      return '<div class="lv-exp' + (ui.lyr ? ' lyr' : '') + (ui.cols2 ? ' cols2' : '') + '" data-a="stop-prop"><div class="lv-tools">' + (lead || '') +
+    function expHtml(lead, xid, kept) {
+      return '<div' + (xid != null ? ' data-xid="' + esc(xid) + '"' : '') + ' class="lv-exp' + (kept ? ' kept' : '') + (ui.lyr ? ' lyr' : '') + (ui.cols2 ? ' cols2' : '') + '" data-a="stop-prop"><div class="lv-tools">' + (lead || '') +
         '<div class="lv-seg lv-one" data-k="cols"><button type="button" data-v="t" class="on" aria-label="' + colsLbl() + '">' + (ui.cols2 ? IC.cols2 : IC.cols1) + '</button></div>' +
         '<div class="lv-seg lv-one" data-k="mode"><button type="button" data-v="t" class="on" aria-label="' + modeLbl() + '">' + (ui.lyr ? IC.lyrics : IC.chords) + '</button></div>' +
         '<div class="lv-seg" data-k="fs"><button type="button" data-v="-">A−</button><button type="button" data-v="+">A+</button></div>' +
@@ -863,12 +884,12 @@
         '<div class="lv-status">กำลังโหลดคอร์ด…</div><div class="ch-body" style="font-size:' + ui.fs + 'px"></div></div>';
     }
     function songCard(L, x, o) {
-      const no = numberOf(L, x.id), cls = 'lv-card' + (o.playing ? ' playing' : '') + (o.next ? ' next' : '') + (isIns(x) ? (x.type === 'inserted-request' ? ' req' : ' custom') : '') + (o.open ? ' open' : '');
+      const no = numberOf(L, x.id), cls = 'lv-card' + (o.played ? ' played' : '') + (o.keep ? ' keep' : '') + (o.playing ? ' playing' : '') + (o.next ? ' next' : '') + (isIns(x) ? (x.type === 'inserted-request' ? ' req' : ' custom') : '') + (o.open ? ' open' : '');
       const tag = o.playing ? 'กำลังเล่น' : (o.next ? 'ถัดไป' : (x.type === 'inserted-request' ? 'รีเควส' : x.type === 'inserted-custom' ? 'แทรก' : ''));
       const icon = o.open ? '<button type="button" class="lv-ic go" data-a="google" data-id="' + esc(x.id) + '" aria-label="ค้นหาบนเว็บ">' + IC.search + '</button>' : '<button type="button" class="lv-ic" data-a="copy" data-id="' + esc(x.id) + '" aria-label="คัดลอกชื่อเพลง">' + IC.copy + '</button>';
       let h = '<div class="' + cls + '" style="--c:' + setCls(x) + '" data-a="card" data-id="' + esc(x.id) + '"><div class="lv-main">' + cardInner(x, { no: no, tag: tag, live: o.playing }) + icon + '</div>';
       if (o.playing) h += '<div class="lv-prog" id="lvProg" style="display:none"><div class="tr"><i></i></div><div class="tm"><span class="qe">0:00</span><span class="qd">0:00</span></div></div>';
-      if (o.open) h += expHtml();
+      if (o.open) h += expHtml(null, x.id, o.keep);
       return h + '</div>';
     }
     function updateProg() {
@@ -1315,16 +1336,18 @@
         if (v === 'p') { if (ui.asOn) asStop(); else asStart(); }
         else { ui.asSpd = Math.max(0.5, Math.min(3, Math.round((ui.asSpd + (v === '+' ? 0.1 : -0.1)) * 10) / 10)); }
       }
-      const exp = btn.closest('.lv-exp'); if (!exp) return;
-      exp.classList.toggle('lyr', ui.lyr); exp.classList.toggle('cols2', ui.cols2);
-      const bd = exp.querySelector('.ch-body'); if (bd) bd.style.fontSize = ui.fs + 'px';
-      const cb = exp.querySelector('[data-k="cols"] button'); if (cb) { cb.innerHTML = ui.cols2 ? IC.cols2 : IC.cols1; cb.setAttribute('aria-label', colsLbl()); }
-      const mb = exp.querySelector('[data-k="mode"] button'); if (mb) { mb.innerHTML = ui.lyr ? IC.lyrics : IC.chords; mb.setAttribute('aria-label', modeLbl()); }
+      document.querySelectorAll('.lv-exp').forEach((exp) => {   // ทุกคอร์ดที่เปิดอยู่ (รวมเพลงที่ค้างไว้) เปลี่ยนตามกัน
+        exp.classList.toggle('lyr', ui.lyr); exp.classList.toggle('cols2', ui.cols2);
+        const bd = exp.querySelector('.ch-body'); if (bd) bd.style.fontSize = ui.fs + 'px';
+        const cb = exp.querySelector('[data-k="cols"] button'); if (cb) { cb.innerHTML = ui.cols2 ? IC.cols2 : IC.cols1; cb.setAttribute('aria-label', colsLbl()); }
+        const mb = exp.querySelector('[data-k="mode"] button'); if (mb) { mb.innerHTML = ui.lyr ? IC.lyrics : IC.chords; mb.setAttribute('aria-label', modeLbl()); }
+      });
       asPaint();
     }
     // ===== เลื่อนคอร์ดอัตโนมัติ (เฉพาะโหมด 1 คอลัมน์): เลื่อนตามความยาวเพลง × ความเร็ว เหมือนหน้าคอร์ดเต็มจอ =====
     let asRaf = 0, asLast = 0, asPos = 0, asEl = null, asId = null;
-    function asExp() { return document.querySelector('.lv-lmain .lv-exp') || document.querySelector('.lv-card.open .lv-exp'); }
+    const visExps = () => [...document.querySelectorAll('.lv-exp[data-xid]')].filter((e) => e.offsetWidth > 0 && e.offsetHeight > 0);
+    function asExp() { const id = expandedId(cur()); return id == null ? null : (visExps().find((e) => String(e.dataset.xid) === String(id)) || null); }
     function asScroller(exp) {
       let n = exp.parentElement;
       while (n && n !== document.body && n !== document.documentElement) { const o = getComputedStyle(n).overflowY; if ((o === 'auto' || o === 'scroll') && n.scrollHeight > n.clientHeight + 1) return n; n = n.parentElement; }
@@ -1353,7 +1376,7 @@
     function asSettle() {
       if (!ui.asOn || !asHold || asTouch) return;
       asHold = false;
-      const sc = asEl;
+      const ex = asExp(), sc = asEl || (ex ? asScroller(ex) : null);
       if (!sc || sc.scrollTop <= 2) { asStop(); return; }   // กลับขึ้นบนสุด = ปิด
       asPos = sc.scrollTop; asLast = 0; asRaf = requestAnimationFrame(asTick);
     }
@@ -1373,13 +1396,41 @@
         if (sc) AS_EV.forEach((e) => sc.addEventListener(e, asUser, { passive: true }));
       }
       if (sc && asLast) {
-        const it = itemById(expandedId(cur())), dur = (it && window.lshAutoAdv && window.lshAutoAdv.durationOf ? Number(window.lshAutoAdv.durationOf(it)) : 0) || 240;
-        const body = exp.querySelector('.ch-body'), H = body ? body.scrollHeight : sc.clientHeight;
+        let pe = exp;   // มีเพลงเก่าค้างอยู่ด้านบน: ขอบบนของจออยู่ในเพลงไหน ใช้ความเร็วของเพลงนั้น
+        const kp = visExps().find((e) => e.classList.contains('kept'));
+        if (kp) { const top = sc.getBoundingClientRect().top; if (top < exp.getBoundingClientRect().top) pe = kp; }
+        const it = itemById(pe.dataset.xid), dur = (it && window.lshAutoAdv && window.lshAutoAdv.durationOf ? Number(window.lshAutoAdv.durationOf(it)) : 0) || 240;
+        const body = pe.querySelector('.ch-body'), H = body ? body.scrollHeight : sc.clientHeight;
         asPos += (t - asLast) / 1000 * (H / dur) * ui.asSpd; sc.scrollTop = asPos;
         if (sc.scrollTop + sc.clientHeight >= sc.scrollHeight - 1 && asPos > sc.scrollTop + 2) { asStop(); return; }   // ถึงท้ายแล้ว
       }
       asLast = t; asRaf = requestAnimationFrame(asTick);
     }
+
+    // ===== เพลงที่เพิ่งจบค้างไว้: ปล่อยเมื่อเพลงที่กำลังเล่นถูกเลื่อนผ่านเกิน 30% (ขอบบนของจอเลื่อนผ่านไปกี่ % ของความยาวคอร์ดเพลงนั้น) =====
+    const KEEP_PCT = 0.3;
+    let keepRaf = 0;
+    function keepCheck() {
+      keepRaf = 0;
+      if (ui.keep == null) return;
+      const L = cur(), p = playingOf(L);
+      if (keptId(L) == null || !p) { keepRelease(); return; }
+      const pe = visExps().find((e) => String(e.dataset.xid) === String(p.id)); if (!pe) return;
+      const bd = pe.querySelector('.ch-body'), sc = pe.closest('.lv-scroll, .lv-lmain'); if (!bd || !sc || bd.offsetHeight < 20) return;
+      if ((sc.getBoundingClientRect().top - bd.getBoundingClientRect().top) / bd.offsetHeight >= KEEP_PCT) keepRelease();
+    }
+    function keepRelease() {
+      const p = playingOf(cur()), pe = p ? visExps().find((e) => String(e.dataset.xid) === String(p.id)) : null;
+      const before = pe ? pe.getBoundingClientRect().top : null;
+      fills = []; ui.keep = null; ui.landKey = null; renderList(); renderLand();
+      if (ui.asOn) { asUnbind(); asEl = null; asLast = 0; }
+      Promise.all(fills.slice()).then(() => {
+        const pe2 = p ? visExps().find((e) => String(e.dataset.xid) === String(p.id)) : null, sc = pe2 ? pe2.closest('.lv-scroll, .lv-lmain') : null;
+        if (sc && before != null) sc.scrollTop += pe2.getBoundingClientRect().top - before;   // เพลงเก่าหายไปจากด้านบน: ชดเชยไม่ให้เพลงที่อ่านอยู่กระโดด
+        if (ui.asOn) { asUnbind(); asEl = null; asLast = 0; }
+      });
+    }
+    document.addEventListener('scroll', () => { if (ui.keep != null && !keepRaf) keepRaf = requestAnimationFrame(keepCheck); }, true);
 
     // ===== รับการกด/เปลี่ยนค่าทั้งหมดผ่านตัวกลางตัวเดียว =====
     const root = $('lvRoot');
@@ -1400,7 +1451,7 @@
         case 'landclose': ui.landOpen = false; renderLand(); return true;
         case 'landpick': ui.exId = id; ui.landOpen = false; renderLand(); return true;   // เลือกเพลงดูคอร์ด แล้วแผงย่อกลับเอง
         case 'followsw': {   // ตามเพลงที่เล่น: ตั้งค่าส่วนตัว เก็บในเครื่อง ไม่เขียน Firebase
-          const was = expandedId(cur()); ui.follow = !ui.follow; lsSave('lsh_lv_follow', ui.follow ? '1' : '0');
+          const was = expandedId(cur()); ui.follow = !ui.follow; ui.keep = null; lsSave('lsh_lv_follow', ui.follow ? '1' : '0');
           ui.exId = ui.follow ? null : (was == null ? 'none' : was);   // เปิด: เพลงที่เล่นขยายทันที · ปิด: คงที่ที่เปิดอยู่ไว้
           ui.landKey = null; renderStrip(); renderList(); renderLand(); return true; }
         case 'ctrltog': { const ai = autoInfo(), col = ui.ctrlOpen == null ? ai.enabled : !ui.ctrlOpen; clearTimeout(timers.ctrl); if (col) { ui.ctrlOpen = true; if (ai.enabled) timers.ctrl = setTimeout(() => { ui.ctrlOpen = null; renderCtrl(); }, 15000); } else ui.ctrlOpen = ai.enabled ? null : false; renderCtrl(); return true; }
@@ -1428,6 +1479,7 @@
         case 'sum': ui.sumOpen = true; renderSummary(); return true;
         case 'card': {   // เปิดการ์ดเดียวต่อครั้ง; แตะตัวเปิดซ้ำ = ย่อ
           const L = cur(), open = expandedId(L), it = itemById(id); if (!it) return true;
+          if (String(keptId(L)) === String(id)) { ui.keep = null; renderList(); renderLand(); return true; }
           ui.exId = String(open) === String(id) ? 'none' : id; renderList(); return true;
         }
         case 'copy': { const it = itemById(id); if (it) copyOf(it); return true; }
