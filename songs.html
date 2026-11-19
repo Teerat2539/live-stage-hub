@@ -47,14 +47,17 @@
 
   <!-- แถบโหมดเลือกหลายเพลง (กดค้างที่การ์ดเพื่อเริ่ม) -->
   <div id="selBar" class="sel-bar hidden" role="toolbar" aria-label="เลือกหลายเพลง">
-    <div class="sel-n" id="selCount">เลือก 0 เพลง</div>
-    <div class="sel-grid">
-      <button type="button" id="selAll">เลือกทั้งหมด</button>
-      <button type="button" id="selInvert">สลับการเลือก</button>
-      <button type="button" id="selCancel">ยกเลิก</button>
-      <button type="button" id="selTags">แก้ไขแท็ก</button>
-      <button type="button" id="selDelete" class="danger">ลบ</button>
-      <button type="button" id="selShare">แชร์</button>
+    <div class="sel-row">
+      <div class="sel-n" id="selCount">เลือก 0 เพลง</div>
+      <button type="button" id="selDelete" class="sel-ic danger" aria-label="ลบเพลงที่เลือก"><svg class="ic ic-solo" aria-hidden="true"><use href="#i-trash"/></svg></button>
+      <button type="button" id="selShare" class="sel-ic" aria-label="แชร์เป็น ChordPro"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12"/><path d="M7.5 7.5L12 3l4.5 4.5"/><path d="M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-7"/></svg></button>
+      <button type="button" id="selMore" class="sel-ic" aria-label="เมนูอื่นๆ" aria-haspopup="menu" aria-expanded="false"><svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor" aria-hidden="true"><circle cx="12" cy="5" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="12" cy="19" r="2"/></svg></button>
+    </div>
+    <div id="selMenu" class="sel-menu hidden" role="menu">
+      <button type="button" id="selTags" role="menuitem">แก้ไขแท็ก</button>
+      <button type="button" id="selAll" role="menuitem">เลือกทั้งหมด</button>
+      <button type="button" id="selInvert" role="menuitem">สลับการเลือก</button>
+      <button type="button" id="selCancel" role="menuitem">ยกเลิก</button>
     </div>
   </div>
 
@@ -269,6 +272,7 @@
       document.getElementById('selBar').classList.toggle('hidden', !selMode);
       document.getElementById('selCount').textContent = 'เลือก ' + n + ' เพลง';
       ['selTags', 'selDelete', 'selShare'].forEach(id => { document.getElementById(id).disabled = n === 0; });
+      if (!selMode) closeSelMenu();
       document.getElementById('selTags').style.display = lshTags.canEdit() ? '' : 'none';
     }
     function paintSel() {
@@ -293,6 +297,10 @@
       if (selMode) { if (selected.has(id)) selected.delete(id); else selected.add(id); paintSel(); }
       else openSongDetailDrawer(id);
     });
+    function closeSelMenu() { const m = document.getElementById('selMenu'); if (m) m.classList.add('hidden'); const b = document.getElementById('selMore'); if (b) b.setAttribute('aria-expanded', 'false'); }
+    document.getElementById('selMore').onclick = (e) => { e.stopPropagation(); const m = document.getElementById('selMenu'), open = m.classList.contains('hidden'); m.classList.toggle('hidden', !open); e.currentTarget.setAttribute('aria-expanded', open ? 'true' : 'false'); };
+    document.getElementById('selMenu').onclick = (e) => { if (e.target.closest('button')) closeSelMenu(); };   // เลือกเมนูแล้วปิดเมนู (ปุ่มแต่ละอันทำงานตามเดิม)
+    document.addEventListener('pointerdown', (e) => { const m = document.getElementById('selMenu'); if (m && !m.classList.contains('hidden') && !m.contains(e.target) && !e.target.closest('#selMore')) closeSelMenu(); }, true);
     document.getElementById('selAll').onclick = () => { shownIds.forEach(id => selected.add(String(id))); paintSel(); };   // เฉพาะเพลงที่กรองแสดงอยู่
     document.getElementById('selInvert').onclick = () => { shownIds.forEach(id => { id = String(id); if (selected.has(id)) selected.delete(id); else selected.add(id); }); paintSel(); };
     document.getElementById('selCancel').onclick = exitSel;

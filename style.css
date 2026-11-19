@@ -2831,8 +2831,15 @@ nav button { transition: flex-grow 420ms var(--ease-out), background-color var(-
 .song-card.sel-on .sel-ck::after { content: ''; position: absolute; left: 6px; top: 2px; width: 5px; height: 10px; border: solid var(--live-ink); border-width: 0 2px 2px 0; transform: rotate(45deg); }
 .sel-bar { position: sticky; bottom: 0; z-index: 30; margin: 0 -2px; padding: 10px 12px calc(10px + 2px); background: var(--surface-2); border-top: 1px solid var(--line-strong); box-shadow: 0 -8px 20px rgba(0,0,0,.25); }
 .sel-bar.hidden { display: none; }
-.sel-bar .sel-n { font-size: 14px; font-weight: 700; margin-bottom: 8px; }
-.sel-bar .sel-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.sel-bar { position: sticky; }
+.sel-bar .sel-row { display: flex; align-items: center; gap: 8px; }
+.sel-bar .sel-n { flex: 1; min-width: 0; font-size: 14px; font-weight: 700; }
+.sel-bar .sel-ic { flex: none; width: 44px; padding: 0; display: inline-flex; align-items: center; justify-content: center; }
+.sel-bar .sel-ic .ic { width: 22px; height: 22px; }
+.sel-menu { position: absolute; right: 12px; bottom: calc(100% - 4px); min-width: 190px; padding: 6px; display: flex; flex-direction: column; gap: 2px; background: var(--surface-2); border: 1px solid var(--line-strong); border-radius: 14px; box-shadow: var(--shadow-pop); }
+.sel-menu.hidden { display: none; }
+.sel-bar .sel-menu button { min-height: 44px; text-align: left; padding: 0 14px; border: 0; background: none; border-radius: 10px; font-size: 14px; }
+.sel-bar .sel-menu button:active { background: var(--surface); }
 .sel-bar button { min-height: 44px; padding: 0 6px; border-radius: 12px; border: 1px solid var(--line); background: var(--surface); color: var(--text); font-size: 13px; font-weight: 700; cursor: pointer; }
 .sel-bar button:active { scale: .97; }
 .sel-bar button.danger { color: var(--c-ef4444, #ef4444); }
