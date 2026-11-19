@@ -1334,22 +1334,43 @@
       document.querySelectorAll('.lv-as [data-v="p"]').forEach((b) => { b.classList.toggle('on', ui.asOn); b.innerHTML = ui.asOn ? IC.pause : IC.play; b.setAttribute('aria-label', ui.asOn ? 'หยุดเลื่อนอัตโนมัติ' : 'เลื่อนคอร์ดอัตโนมัติ'); });
       document.querySelectorAll('.lv-spd').forEach((e) => { e.textContent = 'x' + ui.asSpd.toFixed(1); });
     }
-    function asHalt() { cancelAnimationFrame(asRaf); asRaf = 0; if (asEl) { asEl.removeEventListener('touchstart', asUser); asEl.removeEventListener('wheel', asUser); } asEl = null; }
-    function asUser() { asStop(); }
+    const AS_EV = ['touchstart', 'touchend', 'touchcancel', 'wheel', 'scroll'];
+    let asHold = false, asTouch = false, asTimer = 0;
+    function asUnbind() { if (asEl) AS_EV.forEach((e) => asEl.removeEventListener(e, asUser)); }
+    function asHalt() { cancelAnimationFrame(asRaf); asRaf = 0; clearTimeout(asTimer); asHold = false; asTouch = false; asUnbind(); asEl = null; }
+    // ผู้ใช้เลื่อนเอง: พักไว้ก่อน พอหยุดเลื่อนแล้วค่อยเลื่อนอัตโนมัติต่อจากตำแหน่งนั้น (ถ้าเลื่อนมาถึงบนสุดตรงชื่อเพลง = ปิดเลื่อนอัตโนมัติ)
+    function asUser(ev) {
+      if (!ui.asOn) return;
+      if (ev.type === 'scroll' && !asHold) return;   // scroll ที่เกิดจากการเลื่อนของเราเอง
+      if (ev.type === 'touchstart') asTouch = true;
+      if (ev.type === 'touchend' || ev.type === 'touchcancel') asTouch = false;
+      if (ev.type === 'touchstart' || ev.type === 'wheel') { asHold = true; cancelAnimationFrame(asRaf); asRaf = 0; }
+      if (!asHold) return;
+      clearTimeout(asTimer);
+      if (asTouch) return;
+      asTimer = setTimeout(asSettle, 140);
+    }
+    function asSettle() {
+      if (!ui.asOn || !asHold || asTouch) return;
+      asHold = false;
+      const sc = asEl;
+      if (!sc || sc.scrollTop <= 2) { asStop(); return; }   // กลับขึ้นบนสุด = ปิด
+      asPos = sc.scrollTop; asLast = 0; asRaf = requestAnimationFrame(asTick);
+    }
     function asStop() { ui.asOn = false; asHalt(); asPaint(); }
     function asStart() {
       const exp = asExp(); if (!exp || ui.cols2) return;
       ui.asOn = true; asHalt(); asLast = 0; asEl = null; asId = String(expandedId(cur())); asPaint(); asRaf = requestAnimationFrame(asTick);
     }
     function asTick(t) {
-      if (!ui.asOn) return;
+      if (!ui.asOn || asHold) return;
       const exp = asExp();
       if (!exp || ui.cols2 || String(expandedId(cur())) !== asId) { asStop(); return; }   // ปิดการ์ด/เปลี่ยนเพลง/เปลี่ยนเพลงจนไม่มีคอร์ดที่เปิดอยู่ หรือเปลี่ยนเป็น 2 คอลัมน์
       const sc = asScroller(exp);
       if (sc !== asEl) {   // ตัวเลื่อนเปลี่ยน (เปลี่ยนเพลง/วาดใหม่): ตั้งต้นจากตำแหน่งปัจจุบัน
-        if (asEl) { asEl.removeEventListener('touchstart', asUser); asEl.removeEventListener('wheel', asUser); }
+        asUnbind();
         asEl = sc; asPos = sc ? sc.scrollTop : 0; asLast = 0;
-        if (sc) { sc.addEventListener('touchstart', asUser, { passive: true }); sc.addEventListener('wheel', asUser, { passive: true }); }
+        if (sc) AS_EV.forEach((e) => sc.addEventListener(e, asUser, { passive: true }));
       }
       if (sc && asLast) {
         const it = itemById(expandedId(cur())), dur = (it && window.lshAutoAdv && window.lshAutoAdv.durationOf ? Number(window.lshAutoAdv.durationOf(it)) : 0) || 240;
