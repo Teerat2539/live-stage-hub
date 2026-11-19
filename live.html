@@ -646,7 +646,16 @@
         return k || (window.lshKeyPick && x.songId ? okKey(lshKeyPick.origCached(x)) : '');
       } catch (e) { return ''; }
     }
-    const keyOf = (x) => okKey(x.key) || (x.type === 'inserted-request' ? libKey(x) : '');
+    // คีย์ที่แสดง/ให้เลือก: คีย์ในรายการ → คีย์ในคลังเพลงหลัก (ทุกประเภทเพลง) → คีย์ต้นฉบับจากฐานข้อมูลคอร์ดที่โหลดมาแสดง (กรณีรายการไม่ได้เก็บคีย์ไว้)
+    const docKeys = {};
+    function docKeyOf(x) {
+      if (!x || isMed(x) || !isSong(x) || !x.title) return '';
+      if (x.id in docKeys) return docKeys[x.id];
+      docKeys[x.id] = '';   // กันขอซ้ำ
+      docFor(x).then((d) => { const k = okKey(d && d.rec && d.rec.k); if (k) { docKeys[x.id] = k; setTimeout(render, 0); } }).catch(() => {});
+      return '';
+    }
+    const keyOf = (x) => okKey(x.key) || libKey(x) || docKeyOf(x);
     function onPlayChange() {
       const p = playingOf(Q.songs), id = p ? p.id : null;
       if (id !== ui.lastPlay) {
