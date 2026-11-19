@@ -1185,6 +1185,10 @@
         '<div id="lvKeyHost" style="display:flex"></div></div>' +
         '<div class="lv-res" id="lvInsBody"></div></div>', 'top', 'insert', { tab: reqVis().length ? 'req' : 'songs', q: '', k: '' });
       if (window.lshKeyFilter && $('lvKeyHost')) lshKeyFilter.mount($('lvKeyHost'), { allText: 'เดิมของเพลง', getOptions: () => KEYS12.map((x) => ({ v: x[0], t: x[1] })), getValue: () => (ui.ov && ui.ov.kind === 'insert' ? ui.ov.k : ''), onPick: (v) => { if (ui.ov && ui.ov.kind === 'insert') { ui.ov.k = v; renderInsert(); } } });
+      if (window.lshTags && ui.ov && ui.ov.kind === 'insert') {   // ปุ่ม # กรองตามแท็ก (เหมือนหน้าเพลงทั้งหมด)
+        const row = document.querySelector('#lvInsTop .lv-srow');
+        if (row) { const tf = lshTags.mountFilter(row, { getSongs: () => lib(), onChange: () => renderInsert() }); tf.btn.style.height = '44px'; ui.ov.tagF = tf; }
+      }
       renderInsert();
     }
     function renderInsert() {
@@ -1202,7 +1206,8 @@
       const q = (o.q || '').toLowerCase().trim(), used = inQueue(D || Q.songs), cp = curSong();
       const pool = lib().filter((s) => !used.has(String(s.id || s.title)));
       const by = (x, y) => (x.title || '').localeCompare(y.title || '', 'th');
-      if (!q && !o.k) {
+      const tagSel = o.tagF ? o.tagF.sel : null;
+      if (!q && !o.k && !(tagSel && tagSel.size)) {
         const g = suggest(), hint = cp ? 'แนะนำจากเพลงที่กำลังเล่น' + (keyOf(cp) ? ' · คีย์ ' + esc(keyOf(cp)) : '') + (cp.bpm && cp.bpm !== '-' ? ' · BPM ' + esc(cp.bpm) : '') : 'สุ่มจากคลัง';
         body.innerHTML = '<div class="lv-hint">' + hint + '</div>' + g.map((x) => '<div class="lv-grp">' + x.h + '</div>' + rows(x.a, 'inspick', true)).join('') + '<button type="button" class="lv-pb lv-sh" data-a="reshuffle">' + IC.shuf + 'สุ่มใหม่</button>';
         return;
@@ -1211,6 +1216,7 @@
       if (o.k) { const kp = kPc(o.k); list = list.filter((s) => kPc(s.key) === kp && !kMin(s.key)); }
       if (q) { const p1 = [], p2 = [], p3 = []; list.forEach((s) => { const t = (s.title || '').toLowerCase(), a = (s.artist || '').toLowerCase(); if (t.startsWith(q)) p1.push(s); else if (t.includes(q)) p2.push(s); else if (a.includes(q)) p3.push(s); }); list = [].concat(p1.sort(by), p2.sort(by), p3.sort(by)); }
       else list = list.slice().sort(by);
+      if (tagSel && tagSel.size) list = lshTags.filter(list, tagSel);   // ตรงครบทุกแท็กก่อน → ตรงบางแท็กตามจำนวนที่ตรง
       list = list.slice(0, 40);
       body.innerHTML = list.length ? rows(list, 'inspick', true) : '<div class="lv-empty">ไม่พบเพลงในคลัง</div>';
     }

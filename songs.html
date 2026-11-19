@@ -45,6 +45,30 @@
     <p class="u-empty">กำลังโหลดคลังเพลง...</p>
   </div>
 
+  <!-- แถบโหมดเลือกหลายเพลง (กดค้างที่การ์ดเพื่อเริ่ม) -->
+  <div id="selBar" class="sel-bar hidden" role="toolbar" aria-label="เลือกหลายเพลง">
+    <div class="sel-n" id="selCount">เลือก 0 เพลง</div>
+    <div class="sel-grid">
+      <button type="button" id="selAll">เลือกทั้งหมด</button>
+      <button type="button" id="selInvert">สลับการเลือก</button>
+      <button type="button" id="selCancel">ยกเลิก</button>
+      <button type="button" id="selTags">แก้ไขแท็ก</button>
+      <button type="button" id="selDelete" class="danger">ลบ</button>
+      <button type="button" id="selShare">แชร์</button>
+    </div>
+  </div>
+
+  <div id="selDelOv" class="sub-overlay hidden" style="z-index:14700">
+    <div class="form-box u-center" onclick="event.stopPropagation()">
+      <h3 class="modal-title is-danger">ยืนยันการลบเพลง</h3>
+      <p class="modal-desc" id="selDelMsg">-</p>
+      <div class="u-row-center">
+        <button id="selDelOk" class="btn-danger">ยืนยันลบ</button>
+        <button id="selDelNo" class="btn-ghost">ยกเลิก</button>
+      </div>
+    </div>
+  </div>
+
 </div>
 
 <script>
@@ -53,6 +77,9 @@
     let allSetlistsData = {};
     let selectedKey = 'ALL';
     let isManualPinned = false;
+    let tagF = null;                 // ปุ่ม # กรองตามแท็ก
+    let selMode = false, shownIds = [];
+    const selected = new Set();
 
     // 📌 ดึงชื่อห้องปัจจุบันจาก session มาใช้ดึงข้อมูล setlists ให้ตรงวง
     const sessionStr = localStorage.getItem('lsh_session');
@@ -87,6 +114,8 @@
       db.ref('songs').on('value', (snapshot) => {
         window.lshReady && window.lshReady();
         allSongsData = snapshot.val() || {};
+        if (tagF) tagF.prune();
+        pruneSel();
         onSearchOrFilterChange();
       });
 
@@ -172,7 +201,10 @@
         sortSongArray(songList, sortOption);
       }
 
+      if (tagF && tagF.sel.size) songList = lshTags.filter(songList, tagF.sel);   // ตรงครบทุกแท็กก่อน → ตรงบางแท็กตามจำนวนที่ตรง
+      shownIds = songList.map(x => x.id);
       renderSongList(songList);
+      updateSelBar();
     }
 
     function sortSongArray(arr, option) {
@@ -210,10 +242,13 @@
       let html = '';
       list.forEach(song => {
         html += `
-          <div class="song-card" data-songid="${song.id}">
-            <div>
-              <div class="song-title">${song.title || 'ไม่ระบุชื่อ'}</div>
-              <div class="song-artist">${song.artist || 'ไม่ระบุศิลปิน'}</div>
+          <div class="song-card${selMode ? ' sel-mode' : ''}${selected.has(String(song.id)) ? ' sel-on' : ''}" data-songid="${song.id}">
+            <div style="display:flex;align-items:center;min-width:0">
+              ${selMode ? '<span class="sel-ck"></span>' : ''}
+              <div>
+                <div class="song-title">${song.title || 'ไม่ระบุชื่อ'}</div>
+                <div class="song-artist">${song.artist || 'ไม่ระบุศิลปิน'}</div>
+              </div>
             </div>
             <div style="display:flex;align-items:center;gap:12px">
               <span style="font-size:12px;color:var(--c-f59e0b)">(${song.playCount || 0} ครั้ง)</span>
@@ -223,13 +258,65 @@
         `;
       });
       container.innerHTML = html;
-
-      container.querySelectorAll('.song-card').forEach(card => {
-        card.onclick = function() {
-          openSongDetailDrawer(this.getAttribute('data-songid'));
-        };
-      });
     }
+
+    // ===== โหมดเลือกหลายเพลง: กดค้างที่การ์ดเพื่อเริ่ม · แตะการ์ดอื่นเพื่อเลือก/เลิกเลือก =====
+    const listEl = document.getElementById('masterSongList');
+    function pruneSel() { Array.from(selected).forEach(id => { if (!allSongsData[id]) selected.delete(id); }); }
+    function updateSelBar() {
+      const n = selected.size;
+      document.querySelector('.songs-container').classList.toggle('sel-active', selMode);
+      document.getElementById('selBar').classList.toggle('hidden', !selMode);
+      document.getElementById('selCount').textContent = 'เลือก ' + n + ' เพลง';
+      ['selTags', 'selDelete', 'selShare'].forEach(id => { document.getElementById(id).disabled = n === 0; });
+      document.getElementById('selTags').style.display = lshTags.canEdit() ? '' : 'none';
+    }
+    function paintSel() {
+      listEl.querySelectorAll('.song-card').forEach(c => c.classList.toggle('sel-on', selected.has(c.getAttribute('data-songid'))));
+      updateSelBar();
+    }
+    function enterSel(id) { selMode = true; selected.clear(); if (id != null) selected.add(String(id)); onSearchOrFilterChange(); }
+    function exitSel() { selMode = false; selected.clear(); onSearchOrFilterChange(); }
+    let lpTimer = 0, lpX = 0, lpY = 0, lpSuppress = false;
+    listEl.addEventListener('pointerdown', (e) => {
+      const c = e.target.closest('.song-card'); if (!c || selMode || (e.button != null && e.button > 0) || !lshTags.canEdit()) return;
+      lpX = e.clientX; lpY = e.clientY; clearTimeout(lpTimer);
+      lpTimer = setTimeout(() => { lpTimer = 0; lpSuppress = true; enterSel(c.getAttribute('data-songid')); }, 480);
+    });
+    listEl.addEventListener('pointermove', (e) => { if (lpTimer && Math.hypot(e.clientX - lpX, e.clientY - lpY) > 10) { clearTimeout(lpTimer); lpTimer = 0; } });
+    ['pointerup', 'pointercancel', 'pointerleave'].forEach(ev => listEl.addEventListener(ev, () => { clearTimeout(lpTimer); lpTimer = 0; if (lpSuppress) setTimeout(() => { lpSuppress = false; }, 350); }));
+    listEl.addEventListener('contextmenu', (e) => { if (e.target.closest('.song-card')) e.preventDefault(); });
+    listEl.addEventListener('click', (e) => {
+      const c = e.target.closest('.song-card'); if (!c) return;
+      if (lpSuppress) { lpSuppress = false; return; }   // คลิกที่ตามหลังการกดค้าง ไม่นับ
+      const id = c.getAttribute('data-songid');
+      if (selMode) { if (selected.has(id)) selected.delete(id); else selected.add(id); paintSel(); }
+      else openSongDetailDrawer(id);
+    });
+    document.getElementById('selAll').onclick = () => { shownIds.forEach(id => selected.add(String(id))); paintSel(); };   // เฉพาะเพลงที่กรองแสดงอยู่
+    document.getElementById('selInvert').onclick = () => { shownIds.forEach(id => { id = String(id); if (selected.has(id)) selected.delete(id); else selected.add(id); }); paintSel(); };
+    document.getElementById('selCancel').onclick = exitSel;
+    document.getElementById('selTags').onclick = () => { lshTags.edit({ ids: Array.from(selected), getSongs: () => allSongsData }); };
+    document.getElementById('selShare').onclick = async () => {
+      const b = document.getElementById('selShare'); b.disabled = true;
+      try { await lshTags.exportCho(Array.from(selected), allSongsData); } catch (e) { lshToast('ส่งออกไม่สำเร็จ: ' + e.message, 'error'); }
+      updateSelBar();
+    };
+    const delOv = document.getElementById('selDelOv');
+    document.getElementById('selDelete').onclick = () => {
+      const n = selected.size; if (!n) return;
+      document.getElementById('selDelMsg').innerHTML = 'ลบ <b style="color:var(--c-ffffff)">' + n + ' เพลง</b> ออกจากคลังใช่หรือไม่?<br><span class="u-meta">ลบได้แม้เพลงอยู่ในลิสต์หรือคิว · ย้อนกลับไม่ได้</span>';
+      delOv.classList.remove('hidden');
+    };
+    document.getElementById('selDelNo').onclick = () => delOv.classList.add('hidden');
+    delOv.onclick = () => delOv.classList.add('hidden');
+    document.getElementById('selDelOk').onclick = async () => {
+      const upd = {}; selected.forEach(id => { upd[id] = null; });
+      const ok = document.getElementById('selDelOk'); ok.disabled = true;
+      try { await db.ref('songs').update(upd); delOv.classList.add('hidden'); lshToast('ลบ ' + selected.size + ' เพลงแล้ว', 'ok'); exitSel(); }
+      catch (e) { lshToast('เกิดข้อผิดพลาดในการลบ: ' + e.message, 'error'); }
+      ok.disabled = false;
+    };
 
     const line2 = document.getElementById('headerLine2');
     const toggleBtn = document.getElementById('btnToggleLine2');
@@ -286,6 +373,11 @@
       getPlayCount: (id) => calculateSongPlayCounts()[id] || 0,
       allowDelete: true
     });
+
+    // ปุ่ม # กรองตามแท็ก (แยกจากช่องค้นหา)
+    const hdr1 = document.querySelector('.header-line-1');
+    tagF = lshTags.mountFilter(hdr1, { id: 'btnTagFilter', getSongs: () => allSongsData, onChange: () => onSearchOrFilterChange() });
+    hdr1.insertBefore(tagF.btn, document.getElementById('btnToggleLine2'));
 
     // Bind Controls
     populateKeyFilterSelect();

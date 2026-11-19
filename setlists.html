@@ -263,6 +263,7 @@
       db.ref('songs').on('value', (snapshot) => {
         allSongsData = snapshot.val() || {};
         renderPlaylistsList();
+        try { selTagF.prune(); } catch (e) {}   // selTagF ประกาศทีหลัง ถ้ายังไม่พร้อมข้ามไป
       });
 
       db.ref(`rooms/${selectedRoom}/setlists`).on('value', (snapshot) => {
@@ -927,8 +928,18 @@
 
     document.getElementById('selectorSortSelect').onchange = renderSelectorList;
 
+    // ปุ่ม # กรองตามแท็ก (หลายแท็กพร้อมกัน) · ใช้ร่วมกันทั้งเลือกเพลงใส่ลิสต์และใส่เมดเลย์
+    const selTagF = lshTags.mountFilter(document.getElementById('selectorSearchInput').parentNode, {
+      id: 'selectorTagBtn',
+      getSongs: () => { if (selMode !== 'medley') return allSongsData; const o = {}; Object.keys(allSongsData).forEach(id => { if (window.lshChordCls && lshChordCls(id)) o[id] = allSongsData[id]; }); return o; },
+      onChange: () => renderSelectorList()
+    });
+    selTagF.btn.style.cssText = 'height:34px;min-width:36px;padding:0 8px;font-size:16px';
+    document.getElementById('selectorSearchInput').parentNode.insertBefore(selTagF.btn, document.getElementById('btnToggleSelectorLine2'));
+
     document.getElementById('btnOpenSongSelector').onclick = function() {
       selMode = 'list'; document.getElementById('selectorTitle').innerText = 'เลือกเพลงใส่แฟ้มลิสต์';
+      selTagF.clear();
       populateSelectorKeyFilter();
       renderSelectorList();
       document.getElementById('songSelectorOverlay').classList.remove('hidden');
@@ -958,6 +969,7 @@
       if (selectedKey !== 'ALL') {
         list = list.filter(s => lshKeys.match(s.key, selectedKey));
       }
+      const tagSel = selTagF.sel;
 
       const cmp = (a, b) => {
         if (sortOption === 'title') return (a.title || '').localeCompare(b.title || '', 'th');
@@ -981,6 +993,7 @@
       } else {
         list.sort(cmp);
       }
+      if (tagSel.size) list = lshTags.filter(list, tagSel);   // ตรงครบทุกแท็กก่อน → ตรงบางแท็กตามจำนวนที่ตรง
 
       if (list.length === 0) {
         container.innerHTML = '<p style="text-align:center;color:var(--c-666666);font-size:12px;margin-top:20px">ไม่พบเพลงตามเงื่อนไขที่เลือก</p>';
@@ -1171,7 +1184,7 @@
     document.getElementById('mdlSet').onchange = function() { if (mdl) mdl.set = this.value; };
     document.getElementById('mdlAddPart').onclick = function() {
       selMode = 'medley'; document.getElementById('selectorTitle').innerText = 'เลือกเพลงใส่เมดเลย์ (เฉพาะเพลงที่มีคอร์ด)';
-      populateSelectorKeyFilter(); renderSelectorList();
+      selTagF.clear(); populateSelectorKeyFilter(); renderSelectorList();
       document.getElementById('songSelectorOverlay').classList.remove('hidden');
       setTimeout(() => { document.getElementById('songSelectorDrawer').style.left = '0'; }, 10);
     };

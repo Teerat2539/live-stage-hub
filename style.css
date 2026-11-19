@@ -2781,3 +2781,62 @@ nav button { transition: flex-grow 420ms var(--ease-out), background-color var(-
   [data-hold][data-attn="talk"] > .top-box:first-child, .kar-bot[data-attn="talk"][data-hold] .kar-tb { animation: none; outline-color: var(--attn-c, var(--c-ff5a5f)); }
   [data-hold][data-attn="talk"] > .top-box:first-child::before, .kar-bot[data-attn="talk"][data-hold] .kar-tb::before { animation: none; opacity: .96; }
 }
+
+/* ===== 2.2.0 แท็กเพลง ===== */
+.lshtg-btn { position: relative; flex: none; display: inline-flex; align-items: center; justify-content: center; gap: 4px; min-width: 40px; height: 40px; padding: 0 10px; border-radius: 12px; border: 1px solid var(--line); background: var(--surface); color: var(--text-2, var(--text)); font-size: 18px; font-weight: 800; cursor: pointer; transition: border-color .15s, color .15s, scale .12s; }
+.lshtg-btn.on { border-color: var(--live); color: var(--live); }
+.lshtg-btn i { font-style: normal; font-size: 11px; font-weight: 800; min-width: 16px; height: 16px; line-height: 16px; border-radius: 8px; padding: 0 4px; background: var(--live); color: var(--live-ink); text-align: center; }
+.lshtg-btn:active { scale: .95; }
+.lshtg-pop { position: fixed; z-index: 20000; background: var(--surface-2); border: 1px solid var(--line-strong); border-radius: 16px; padding: 12px; box-shadow: var(--shadow-pop); overflow-y: auto; overscroll-behavior: contain; opacity: 0; scale: .96; transition: opacity .18s var(--ease), scale .18s var(--ease); }
+.lshtg-pop.in { opacity: 1; scale: 1; }
+.lshtg-hint { font-size: 12px; color: var(--text-3); margin: 0 2px 8px; }
+.lshtg-empty { padding: 14px 6px; text-align: center; color: var(--text-2, var(--text)); font-size: 14px; line-height: 1.6; }
+.lshtg-empty span { font-size: 12px; color: var(--text-3); }
+.lshtg-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.lshtg-chip { display: inline-flex; align-items: center; gap: 6px; min-height: 38px; padding: 0 12px; border-radius: 999px; border: 1px solid var(--line); background: var(--surface); color: var(--text); font-size: 14px; font-weight: 600; cursor: pointer; transition: background .15s, border-color .15s, color .15s, scale .12s; }
+.lshtg-chip b { font-size: 11px; font-weight: 700; color: var(--text-3); }
+.lshtg-chip:active { scale: .96; }
+.lshtg-chip.st2 { background: var(--live); border-color: var(--live); color: var(--live-ink); }
+.lshtg-chip.st2 b { color: inherit; opacity: .75; }
+.lshtg-chip i { display: none; width: 16px; height: 16px; border-radius: 50%; border: 1.5px solid currentColor; position: relative; flex: none; }
+.lshtg-sheet .lshtg-chip i { display: inline-block; }
+.lshtg-chip.st1 { border-color: var(--live); color: var(--live); }
+.lshtg-chip.st2 i::after { content: ''; position: absolute; left: 4px; top: 1px; width: 4px; height: 8px; border: solid currentColor; border-width: 0 2px 2px 0; transform: rotate(45deg); }
+.lshtg-chip.st1 i::after { content: ''; position: absolute; left: 3px; top: 6px; width: 7px; height: 2px; background: currentColor; border-radius: 1px; }
+.lshtg-ov { position: fixed; inset: 0; z-index: 15300; background: rgba(0,0,0,.5); display: flex; align-items: flex-end; justify-content: center; opacity: 0; transition: opacity .2s var(--ease); }
+.lshtg-ov.in { opacity: 1; }
+.lshtg-sheet { width: min(560px, 100%); max-height: 86dvh; display: flex; flex-direction: column; gap: 12px; padding: 16px 16px calc(16px + env(safe-area-inset-bottom)); background: var(--surface-2); border: 1px solid var(--line-strong); border-bottom: 0; border-radius: 20px 20px 0 0; translate: 0 24px; transition: translate .22s var(--ease); }
+.lshtg-ov.in .lshtg-sheet { translate: 0 0; }
+.lshtg-h { display: flex; align-items: baseline; gap: 10px; min-width: 0; }
+.lshtg-h b { font-size: 17px; }
+.lshtg-h span { font-size: 13px; color: var(--text-3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.lshtg-add { display: flex; gap: 8px; }
+.lshtg-add input { flex: 1; min-width: 0; height: 44px; padding: 0 12px; border-radius: 12px; border: 1px solid var(--line); background: var(--surface); color: var(--text); font-size: 15px; }
+.lshtg-add input:focus { outline: none; border-color: var(--live); }
+.lshtg-addbtn, .lshtg-cancel, .lshtg-save { height: 44px; padding: 0 18px; border-radius: 12px; border: 1px solid var(--line); background: var(--surface); color: var(--text); font-size: 15px; font-weight: 700; cursor: pointer; }
+.lshtg-save { background: var(--live); border-color: var(--live); color: var(--live-ink); }
+.lshtg-save:disabled { opacity: .5; }
+.lshtg-body { overflow-y: auto; min-height: 60px; overscroll-behavior: contain; }
+.lshtg-foot { display: flex; gap: 8px; justify-content: flex-end; }
+.lshtg-row { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 4px; }
+.lshtg-tag { display: inline-block; padding: 2px 10px; border-radius: 999px; border: 1px solid var(--line-strong); font-size: 12px; font-weight: 600; color: var(--text); }
+.lshtg-editbtn { border: 1px dashed var(--line-strong); background: none; color: var(--live); border-radius: 999px; padding: 2px 12px; font-size: 12px; font-weight: 700; cursor: pointer; }
+@media (prefers-reduced-motion: reduce) { .lshtg-ov, .lshtg-sheet, .lshtg-pop, .lshtg-chip, .lshtg-btn { transition: none; } }
+
+/* หน้าเพลงทั้งหมด: โหมดเลือกหลายเพลง */
+.song-card.sel-mode { cursor: pointer; }
+.song-card .sel-ck { flex: none; width: 22px; height: 22px; margin-right: 12px; border-radius: 50%; border: 2px solid var(--line-strong); position: relative; transition: background .15s, border-color .15s; }
+.song-card.sel-on { border-color: var(--live); background: color-mix(in srgb, var(--live) 10%, var(--surface)); }
+.song-card.sel-on .sel-ck { background: var(--live); border-color: var(--live); }
+.song-card.sel-on .sel-ck::after { content: ''; position: absolute; left: 6px; top: 2px; width: 5px; height: 10px; border: solid var(--live-ink); border-width: 0 2px 2px 0; transform: rotate(45deg); }
+.sel-bar { position: sticky; bottom: 0; z-index: 30; margin: 0 -2px; padding: 10px 12px calc(10px + 2px); background: var(--surface-2); border-top: 1px solid var(--line-strong); box-shadow: 0 -8px 20px rgba(0,0,0,.25); }
+.sel-bar.hidden { display: none; }
+.sel-bar .sel-n { font-size: 14px; font-weight: 700; margin-bottom: 8px; }
+.sel-bar .sel-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.sel-bar button { min-height: 44px; padding: 0 6px; border-radius: 12px; border: 1px solid var(--line); background: var(--surface); color: var(--text); font-size: 13px; font-weight: 700; cursor: pointer; }
+.sel-bar button:active { scale: .97; }
+.sel-bar button.danger { color: var(--c-ef4444, #ef4444); }
+.sel-bar button:disabled { opacity: .4; }
+.songs-container.sel-active #masterSongList { padding-bottom: 16px; }
+
+.songs-container .song-card { -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; }

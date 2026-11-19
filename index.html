@@ -528,6 +528,177 @@
       return { mount: mount, fromSelect: fromSelect, close: close };
     })();
 
+    // ===== แท็กเพลง: songs/{id}/tags = { รหัสแท็ก(ตัวเล็ก): ชื่อที่แสดง } =====
+    // กฎ: ไม่สนตัวใหญ่เล็ก/ช่องว่างซ้ำ ("Rock" = "rock") · ยาวไม่เกิน 20 ตัวอักษร · เฉพาะสมาชิกแก้ · ผู้ชมดูได้อย่างเดียว
+    window.lshTags = (function() {
+      const MAX = 20;
+      const esc = (t) => String(t == null ? '' : t).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+      const clean = (s) => String(s == null ? '' : s).normalize('NFC').replace(/[.#$\[\]\/\u0000-\u001f\u007f]/g, '').replace(/\s+/g, ' ').trim().slice(0, MAX);
+      const norm = (s) => clean(s).toLowerCase();
+      const arr = (songs) => Array.isArray(songs) ? songs : Object.keys(songs || {}).map((id) => Object.assign({ id: id }, songs[id]));
+      const tagsOf = (song) => { const t = song && song.tags; return (t && typeof t === 'object') ? Object.keys(t).map((k) => ({ k: k, t: String(t[k] || k) })) : []; };
+      // แท็กทั้งหมดในคลัง เรียงตามจำนวนเพลงมาก→น้อย แล้วตามตัวอักษร
+      function all(songs) {
+        const m = new Map();
+        arr(songs).forEach((s) => tagsOf(s).forEach((x) => { const e = m.get(x.k); if (e) e.n++; else m.set(x.k, { k: x.k, t: x.t, n: 1 }); }));
+        return Array.from(m.values()).sort((a, b) => (b.n - a.n) || a.t.localeCompare(b.t, 'th'));
+      }
+      const rank = (song, sel) => { if (!sel || !sel.size) return 0; const t = song && song.tags; if (!t || typeof t !== 'object') return 0; let n = 0; sel.forEach((k) => { if (t[k] != null) n++; }); return n; };
+      // กรองด้วยแท็กที่เลือก: ตรงครบทุกแท็กก่อน → ตรงบางแท็กเรียงตามจำนวนที่ตรง (ลำดับเดิมในกลุ่มเดียวกันคงเดิม) · ไม่ตรงสักแท็ก = ไม่แสดง
+      function filter(list, sel) {
+        if (!sel || !sel.size) return list;
+        const out = [];
+        list.forEach((s, i) => { const r = rank(s, sel); if (r > 0) out.push({ s: s, r: r, i: i }); });
+        out.sort((a, b) => (b.r - a.r) || (a.i - b.i));
+        return out.map((x) => x.s);
+      }
+      function canEdit() { try { const s = JSON.parse(localStorage.getItem('lsh_session') || '{}'); return !!s && s.userType !== 'guest'; } catch (e) { return false; } }
+
+      // ----- ปุ่ม # + ป็อบโอเวอร์เลือกหลายแท็ก -----
+      let pop = null, closer = null, popBtn = null;
+      function closePop() {
+        if (!pop) return; const p = pop; pop = null; popBtn = null;
+        document.removeEventListener('pointerdown', closer, true); document.removeEventListener('keydown', onKey, true);
+        p.classList.remove('in'); setTimeout(() => p.remove(), 220);
+      }
+      function onKey(e) { if (e.key === 'Escape') closePop(); }
+      // cfg: { getSongs():songs, onChange(selSet), id? } คืน { btn, sel, clear(), prune(), paint() }
+      function mountFilter(host, cfg) {
+        const sel = new Set();
+        const btn = document.createElement('button'); btn.type = 'button'; btn.className = 'lshtg-btn'; if (cfg.id) btn.id = cfg.id;
+        btn.setAttribute('aria-haspopup', 'dialog'); btn.setAttribute('aria-label', 'กรองตามแท็ก');
+        const paint = () => { btn.classList.toggle('on', sel.size > 0); btn.innerHTML = '<span>#</span>' + (sel.size ? '<i>' + sel.size + '</i>' : ''); btn.setAttribute('aria-label', sel.size ? 'กรองตามแท็ก (เลือกอยู่ ' + sel.size + ' แท็ก แตะอีกครั้งเพื่อล้าง)' : 'กรองตามแท็ก'); };
+        const change = () => { paint(); try { cfg.onChange(sel); } catch (e) {} };
+        function openPop() {
+          closePop();
+          const tags = all(cfg.getSongs());
+          pop = document.createElement('div'); pop.className = 'lshtg-pop'; pop.setAttribute('role', 'dialog'); popBtn = btn;
+          pop.innerHTML = tags.length
+            ? '<div class="lshtg-hint">เลือกได้หลายแท็ก · แตะ # อีกครั้งเพื่อล้าง</div><div class="lshtg-chips">' + tags.map((t) => '<button type="button" class="lshtg-chip' + (sel.has(t.k) ? ' st2' : '') + '" data-k="' + esc(t.k) + '">' + esc(t.t) + '<b>' + t.n + '</b></button>').join('') + '</div>'
+            : '<div class="lshtg-empty">ยังไม่มีแท็ก<br><span>สมาชิกเพิ่มแท็กได้ที่หน้ารายละเอียดเพลง</span></div>';
+          document.body.appendChild(pop);
+          const r = btn.getBoundingClientRect(), w = Math.min(360, window.innerWidth - 24);
+          pop.style.width = w + 'px'; pop.style.left = Math.max(12, Math.min(r.left, window.innerWidth - w - 12)) + 'px';
+          const ph = pop.offsetHeight, below = window.innerHeight - r.bottom - 12;
+          if (below >= ph || below >= r.top - 12) { pop.style.top = (r.bottom + 8) + 'px'; pop.style.maxHeight = Math.max(160, below - 4) + 'px'; pop.style.transformOrigin = 'top left'; }
+          else { pop.style.bottom = (window.innerHeight - r.top + 8) + 'px'; pop.style.maxHeight = Math.max(160, r.top - 20) + 'px'; pop.style.transformOrigin = 'bottom left'; }
+          pop.addEventListener('click', (e) => { const b = e.target.closest('.lshtg-chip'); if (!b) return; const k = b.getAttribute('data-k'); if (sel.has(k)) sel.delete(k); else sel.add(k); b.classList.toggle('st2', sel.has(k)); change(); });
+          closer = (e) => { if (pop && !pop.contains(e.target) && !btn.contains(e.target)) closePop(); };
+          document.addEventListener('pointerdown', closer, true); document.addEventListener('keydown', onKey, true);
+          requestAnimationFrame(() => pop && pop.classList.add('in'));
+        }
+        btn.onclick = () => { if (pop && popBtn === btn) { sel.clear(); closePop(); change(); return; } openPop(); };   // เปิดอยู่แล้วแตะ # อีกครั้ง = ล้างแท็กที่เลือก
+        host.appendChild(btn); paint();
+        return {
+          btn: btn, sel: sel, paint: paint,
+          clear: function() { if (!sel.size) return; sel.clear(); paint(); },
+          prune: function() { const have = new Set(all(cfg.getSongs()).map((t) => t.k)); let ch = false; Array.from(sel).forEach((k) => { if (!have.has(k)) { sel.delete(k); ch = true; } }); if (ch) change(); }   // แท็กที่ไม่เหลือเพลงแล้วหายไปเอง
+        };
+      }
+
+      // ----- ชีตแก้ไขแท็ก (เพลงเดียวหรือหลายเพลงในชีตเดียว) -----
+      // cfg: { ids:[...], getSongs():songsMap, onDone() }  สถานะแท็ก: 0 = ไม่มี · 1 = มีบางเพลง (ติ๊กครึ่ง) · 2 = มีทุกเพลง (ติ๊กเต็ม)
+      function edit(cfg) {
+        if (!canEdit()) { lshToast('เฉพาะสมาชิกที่แก้แท็กได้', 'warn'); return; }
+        const songs = cfg.getSongs() || {}, ids = (cfg.ids || []).filter((id) => songs[id]), N = ids.length;
+        if (!N) return;
+        const cnt = new Map(); ids.forEach((id) => tagsOf(songs[id]).forEach((x) => cnt.set(x.k, (cnt.get(x.k) || 0) + 1)));
+        const names = new Map(), order = []; all(songs).forEach((e) => { names.set(e.k, e.t); order.push(e.k); });
+        const init = new Map(), state = new Map(); cnt.forEach((n, k) => { init.set(k, n === N ? 2 : 1); state.set(k, n === N ? 2 : 1); });
+        const ov = document.createElement('div'); ov.className = 'lshtg-ov';
+        ov.innerHTML = '<div class="lshtg-sheet" role="dialog" aria-label="แก้ไขแท็ก"><div class="lshtg-h"><b>แท็ก</b><span>' + (N > 1 ? N + ' เพลง' : esc(songs[ids[0]].title || '')) + '</span></div>' +
+          '<div class="lshtg-add"><input type="text" maxlength="' + MAX + '" placeholder="พิมพ์แท็กใหม่ (ไม่เกิน ' + MAX + ' ตัวอักษร)" autocomplete="off" enterkeyhint="done"><button type="button" class="lshtg-addbtn">เพิ่ม</button></div>' +
+          '<div class="lshtg-body"></div><div class="lshtg-foot"><button type="button" class="lshtg-cancel">ยกเลิก</button><button type="button" class="lshtg-save">บันทึก</button></div></div>';
+        document.body.appendChild(ov);
+        const body = ov.querySelector('.lshtg-body'), inp = ov.querySelector('input');
+        const close = () => { ov.classList.remove('in'); setTimeout(() => ov.remove(), 200); };
+        const paint = () => {
+          body.innerHTML = order.length ? '<div class="lshtg-chips">' + order.map((k) => { const st = state.get(k) || 0; return '<button type="button" class="lshtg-chip st' + st + '" data-k="' + esc(k) + '" aria-pressed="' + (st === 2 ? 'true' : st === 1 ? 'mixed' : 'false') + '"><i></i>' + esc(names.get(k) || k) + '</button>'; }).join('') + '</div>'
+            : '<div class="lshtg-empty">ยังไม่มีแท็ก<br><span>พิมพ์แท็กแรกด้านบนได้เลย</span></div>';
+        };
+        const addTyped = () => {
+          const t = clean(inp.value), k = norm(t); if (!k) { inp.value = ''; return; }
+          if (!names.has(k)) { names.set(k, t); order.unshift(k); }
+          state.set(k, 2); inp.value = ''; paint();
+        };
+        ov.querySelector('.lshtg-addbtn').onclick = addTyped;
+        inp.onkeydown = (e) => { if (e.key === 'Enter') { e.preventDefault(); addTyped(); } };
+        body.onclick = (e) => { const b = e.target.closest('.lshtg-chip'); if (!b) return; const k = b.getAttribute('data-k'), st = state.get(k) || 0; state.set(k, st === 2 ? 0 : 2); paint(); };   // ไม่มี/ติ๊กครึ่ง → ติ๊กเต็ม · ติ๊กเต็ม → เอาออก
+        ov.querySelector('.lshtg-cancel').onclick = close;
+        ov.addEventListener('pointerdown', (e) => { if (e.target === ov) close(); });
+        ov.querySelector('.lshtg-save').onclick = async () => {
+          const pending = clean(inp.value); if (pending) addTyped();   // ยังพิมพ์ค้างไว้ในช่อง = นับเป็นแท็กที่เพิ่ม
+          const upd = {}; let n = 0;
+          state.forEach((st, k) => {
+            const was = init.get(k) || 0; if (st === was) return;
+            ids.forEach((id) => {
+              const has = !!(songs[id].tags && songs[id].tags[k] != null);
+              if (st === 2 && !has) { upd[id + '/tags/' + k] = names.get(k) || k; n++; }
+              else if (st === 0 && has) { upd[id + '/tags/' + k] = null; n++; }
+            });
+          });
+          if (!n) { close(); return; }
+          const sv = ov.querySelector('.lshtg-save'); sv.disabled = true;
+          try { await db.ref('songs').update(upd); lshToast('บันทึกแท็กแล้ว', 'ok'); close(); try { cfg.onDone && cfg.onDone(); } catch (e) {} }
+          catch (e) { sv.disabled = false; lshToast('บันทึกแท็กไม่สำเร็จ: ' + e.message, 'error'); }
+        };
+        paint(); requestAnimationFrame(() => { ov.classList.add('in'); });
+      }
+
+      // ----- ส่งออก ChordPro (.cho) · เพลงที่มีคอร์ดในฐานข้อมูลหลัก (songContent/{id}) เท่านั้น · คีย์เดิม ไม่ทรานสโพส -----
+      const crcT = (() => { const t = new Uint32Array(256); for (let n = 0; n < 256; n++) { let c = n; for (let k = 0; k < 8; k++) c = (c & 1) ? (0xEDB88320 ^ (c >>> 1)) : (c >>> 1); t[n] = c >>> 0; } return t; })();
+      const crc32 = (u8) => { let c = 0xFFFFFFFF; for (let i = 0; i < u8.length; i++) c = crcT[(c ^ u8[i]) & 255] ^ (c >>> 8); return (c ^ 0xFFFFFFFF) >>> 0; };
+      function zipBlob(files) {   // ZIP แบบไม่บีบอัด (store) ชื่อไฟล์ UTF-8
+        const enc = new TextEncoder(), chunks = [], cd = []; let off = 0;
+        const u16 = (v) => [v & 255, (v >>> 8) & 255], u32 = (v) => [v & 255, (v >>> 8) & 255, (v >>> 16) & 255, (v >>> 24) & 255];
+        const d = new Date(), dt = (((d.getFullYear() - 1980) << 9) | ((d.getMonth() + 1) << 5) | d.getDate()) & 0xFFFF, tm = ((d.getHours() << 11) | (d.getMinutes() << 5) | (d.getSeconds() >> 1)) & 0xFFFF;
+        files.forEach((f) => {
+          const nm = enc.encode(f.name), crc = crc32(f.data);
+          const lh = new Uint8Array([0x50, 0x4b, 3, 4].concat(u16(20), u16(0x0800), u16(0), u16(tm), u16(dt), u32(crc), u32(f.data.length), u32(f.data.length), u16(nm.length), u16(0)));
+          chunks.push(lh, nm, f.data); cd.push({ nm: nm, crc: crc, len: f.data.length, off: off }); off += lh.length + nm.length + f.data.length;
+        });
+        let cdSize = 0; const cdc = [];
+        cd.forEach((e) => { const h = new Uint8Array([0x50, 0x4b, 1, 2].concat(u16(20), u16(20), u16(0x0800), u16(0), u16(tm), u16(dt), u32(e.crc), u32(e.len), u32(e.len), u16(e.nm.length), u16(0), u16(0), u16(0), u16(0), u32(0), u32(e.off))); cdc.push(h, e.nm); cdSize += h.length + e.nm.length; });
+        const end = new Uint8Array([0x50, 0x4b, 5, 6, 0, 0, 0, 0].concat(u16(cd.length), u16(cd.length), u32(cdSize), u32(off), u16(0)));
+        return new Blob(chunks.concat(cdc, [end]), { type: 'application/zip' });
+      }
+      const safeName = (s) => String(s || '').replace(/[\\\/:*?"<>|\u0000-\u001f]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 80);
+      function choText(song, rec) {
+        const X = window.lshChords && window.lshChords._x, L = [];
+        const dir = (k, v) => { v = String(v == null ? '' : v).replace(/[\r\n]+/g, ' ').trim(); if (v) L.push('{' + k + ': ' + v + '}'); };
+        dir('title', song.title); dir('artist', song.artist && song.artist !== '-' ? song.artist : '');
+        dir('key', (rec && rec.k) || song.key); if (Number(song.bpm) > 0) dir('tempo', song.bpm);
+        const tg = tagsOf(song).map((x) => x.t); if (tg.length) dir('meta', 'tags ' + tg.join(', '));
+        L.push('');
+        return L.join('\n') + '\n' + (X && X.toChordPro ? X.toChordPro((rec && rec.s) || []) : '');
+      }
+      // ids: รหัสเพลง · songs: แผนที่เพลงทั้งหมด · คืน { ok, skipped }
+      async function exportCho(ids, songs) {
+        const own = (id) => !!(window.lshChordOwn && window.lshChordOwn.has(String(id)));
+        const files = [], used = new Set(); let skipped = 0;
+        for (const id of ids) {
+          const s = songs[id]; if (!s) continue;
+          if (!own(id)) { skipped++; continue; }
+          let rec = null;
+          try { const sn = await Promise.race([db.ref('songContent/' + id).once('value'), new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), 8000))]); rec = sn.val(); } catch (e) {}
+          if (!rec || !rec.s) { skipped++; continue; }
+          let nm = safeName((s.title || id) + (s.artist && s.artist !== '-' ? ' - ' + s.artist : '')) || id, base = nm, n = 2;
+          while (used.has(nm.toLowerCase())) nm = base + ' (' + (n++) + ')';
+          used.add(nm.toLowerCase()); files.push({ name: nm + '.cho', data: new TextEncoder().encode(choText(s, rec)) });
+        }
+        if (!files.length) { lshToast('ส่งออกไม่ได้: ไม่มีเพลงที่คอร์ดอยู่ในฐานข้อมูลหลัก' + (skipped ? ' (ข้าม ' + skipped + ' เพลง)' : ''), 'warn'); return { ok: 0, skipped: skipped }; }
+        const stamp = new Date().toISOString().slice(0, 10);
+        const blob = files.length === 1 ? new Blob([files[0].data], { type: 'text/plain' }) : zipBlob(files), fname = files.length === 1 ? files[0].name : 'ChordPro-' + stamp + '.zip';
+        let shared = false;
+        try { const f = new File([blob], fname, { type: blob.type }); if (navigator.canShare && navigator.canShare({ files: [f] })) { await navigator.share({ files: [f] }); shared = true; } } catch (e) { if (e && e.name === 'AbortError') { return { ok: files.length, skipped: skipped, cancelled: true }; } }
+        if (!shared) { const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = fname; document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1500); }
+        lshToast('ส่งออก ' + files.length + ' เพลง' + (skipped ? ' · ข้าม ' + skipped + ' เพลง (ไม่มีคอร์ดในฐานข้อมูลหลัก หรือใช้คลังคอร์ดภายนอก)' : ''), skipped ? 'warn' : 'ok');
+        return { ok: files.length, skipped: skipped };
+      }
+
+      return { norm: norm, clean: clean, tagsOf: tagsOf, all: all, rank: rank, filter: filter, canEdit: canEdit, mountFilter: mountFilter, edit: edit, exportCho: exportCho, _zip: zipBlob, _cho: choText, MAX: MAX, esc: esc };
+    })();
+
     window.lshKeyPick = (function() {
       const MAJ = ['C', 'Db', 'D', 'Eb', 'E', 'F', 'Gb', 'G', 'Ab', 'A', 'Bb', 'B'], MIN = ['Cm', 'C#m', 'Dm', 'Ebm', 'Em', 'Fm', 'F#m', 'Gm', 'G#m', 'Am', 'Bbm', 'Bm'];
       const clean = (k) => { k = String(k == null ? '' : k).trim(); return k === '-' ? '' : k; };
@@ -601,6 +772,7 @@
     <div>BPM: <b id="detailBpm" style="color:var(--c-ffffff)">-</b></div>
     <div>ความยาวเพลง: <b id="detailDuration" style="color:var(--c-ffffff)">-</b></div>
     <div>ความถี่ที่เล่น: <b id="detailPlayCount" style="color:var(--c-f59e0b)">0 ครั้ง</b></div>
+    <div>แท็ก:<div id="detailTags" class="lshtg-row"></div></div>
   </div>
   <button id="btnSongChords" type="button" class="chord-open-btn hidden">ดูคอร์ด</button>
   <button id="btnSongChordFind" type="button" class="chord-open-btn chord-edit-btn hidden">ค้นหาคอร์ดในคลัง</button>
@@ -709,7 +881,7 @@
           } catch (e) {}
         }
         // เก็บฟิลด์ที่แอปนี้ไม่ได้แก้ในฟอร์ม (bk/year/genres) ไว้ตอนแก้ไขเพลง เพราะการบันทึกเป็นการเขียนทับทั้งเพลง
-        if (isEditing) { const old = ctx.getAll()[songId] || {}; ['bk', 'year', 'genres'].forEach(k => { if (old[k] != null && old[k] !== '') songPayload[k] = old[k]; }); }
+        if (isEditing) { const old = ctx.getAll()[songId] || {}; ['bk', 'year', 'genres', 'tags'].forEach(k => { if (old[k] != null && old[k] !== '') songPayload[k] = old[k]; }); }
         try {
           await db.ref('songs/' + songId).set(songPayload);
           if (window.lshAutoAdv) window.lshAutoAdv.refreshDurations();
@@ -728,6 +900,13 @@
         setTimeout(() => { overlay.classList.add('hidden'); }, 300);
       }
 
+      function paintTags(songId) {
+        const el = $('detailTags'); if (!el || !window.lshTags) return;
+        const song = ctx.getAll()[songId] || {}, tg = lshTags.tagsOf(song);
+        el.innerHTML = tg.map((x) => '<span class="lshtg-tag">' + lshTags.esc(x.t) + '</span>').join('') + (tg.length ? '' : '<span class="u-meta">ยังไม่มี</span>') +
+          (lshTags.canEdit() ? '<button type="button" class="lshtg-editbtn" id="btnSongTags">' + (tg.length ? 'แก้ไขแท็ก' : '+ เพิ่มแท็ก') + '</button>' : '');
+        const b = $('btnSongTags'); if (b) b.onclick = () => lshTags.edit({ ids: [songId], getSongs: () => ctx.getAll(), onDone: () => setTimeout(() => paintTags(songId), 350) });
+      }
       function openDrawer(songId) {
         mount();
         currentActiveSongId = songId;
@@ -740,6 +919,7 @@
         const dd = Number(song.duration) || 0;
         $('detailDuration').innerText = dd > 0 ? Math.floor(dd / 60) + ':' + String(dd % 60).padStart(2, '0') : '-';
         $('detailPlayCount').innerText = (ctx.getPlayCount(songId) || 0) + ' ครั้ง';
+        paintTags(songId);
         $('btnDeleteSong').style.display = ctx.allowDelete ? '' : 'none';
         const ownC = !!(window.lshChordOwn && window.lshChordOwn.has(String(songId)));
         $('btnSongChords').classList.toggle('hidden', !(song.bk || ownC));
@@ -1183,7 +1363,7 @@
         });
         return out;
       }
-      return { open: open, close: close, edit: openEditor, _x: { cacheGet: cacheGet, cacheSet: cacheSet, chordDb: chordDb, load: load, getDoc: getDoc, getDocBk: getDocBk, getMedleyDoc: getMedleyDoc, sectionsHtml: sectionsHtml, flatLines: flatLines, hasOwn: hasOwn } };
+      return { open: open, close: close, edit: openEditor, _x: { cacheGet: cacheGet, cacheSet: cacheSet, chordDb: chordDb, load: load, getDoc: getDoc, getDocBk: getDocBk, getMedleyDoc: getMedleyDoc, sectionsHtml: sectionsHtml, flatLines: flatLines, hasOwn: hasOwn, toChordPro: toChordPro } };
     })();
 
     // ===== ค้นหาคอร์ดในคลังตอนเพิ่มเพลง: ตรงเป๊ะ (ชื่อ+ศิลปิน) = เชื่อมให้อัตโนมัติ / ชื่อเพลงเหมือนแต่ศิลปินต่าง = ให้เลือกเอง =====
@@ -2167,7 +2347,7 @@
     window.lshChordCls = function(id) { const k = String(id || ''); return k && (window.lshChordMarks.has(k) || window.lshChordOwn.has(k)) ? 'has-chord' : ''; };
     // ไฮไลท์ตัวบอกคีย์ของเพลงที่มีคอร์ด: ทุกจุดที่มี data-chordid จะถูกอัปเดตเมื่อรายชื่อเพลงมีคอร์ดโหลดเสร็จ/เปลี่ยน
     window.lshChordPaint = function() { try { document.querySelectorAll('[data-chordid]').forEach(el => el.classList.toggle('has-chord', el.dataset.medley === '1' || !!el.dataset.chordid && lshChordCls(el.dataset.chordid) === 'has-chord')); } catch (e) {} };
-    try { db.ref('songs').on('value', snap => { const v = snap.val() || {}, s = new Set(); Object.keys(v).forEach(k => { if (v[k] && v[k].bk) s.add(k); }); window.lshChordMarks = s; lshSaveSet('lsh_chord_marks', s); window.lshChordPaint(); }); } catch (e) {}
+    try { db.ref('songs').on('value', snap => { const v = snap.val() || {}, s = new Set(); try { const lib = Object.keys(v).map(id => Object.assign({ id: id }, v[id])); window.songLibrary = lib; localStorage.setItem('lsh_songs', JSON.stringify(lib)); } catch (e) {} Object.keys(v).forEach(k => { if (v[k] && v[k].bk) s.add(k); }); window.lshChordMarks = s; lshSaveSet('lsh_chord_marks', s); window.lshChordPaint(); }); } catch (e) {}
 
     let selectedRoom = '';
     let targetRoomToDelete = null;
@@ -2187,7 +2367,7 @@
     };
 
     // ===== ตรวจเวอร์ชันแอป (2.0): เทียบเลขใน version.json บนเซิร์ฟเวอร์ กับเลขของโค้ดที่เปิดอยู่ =====
-    const LSH_APP_VER = '2.1.5';
+    const LSH_APP_VER = '2.2.0';
     window.LSH_VER_TXT = LSH_APP_VER;
     try { const dv = document.getElementById('drawerVersion'); if (dv) dv.textContent = 'เวอร์ชัน ' + LSH_APP_VER; } catch (e) {}   // แสดงเลขเวอร์ชันท้ายเมนูแฮมเบอร์เกอร์
     let lshVerAt = 0;
