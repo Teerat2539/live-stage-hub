@@ -154,15 +154,24 @@
       const bar = box ? box.parentElement : null;
       if (!bar) return;
       clearTimeout(bar._attnTimer);
-      delete bar.dataset.attn; void bar.offsetWidth;
+      delete bar.dataset.attn; delete bar.dataset.hold; void bar.offsetWidth;
       bar.dataset.attn = kind;
-      bar._attnTimer = setTimeout(() => { delete bar.dataset.attn; }, 3000);
+      if (kind === 'talk') {
+        // ท็อคแบคใหม่: ขยายช่อง + กระพริบค้าง 1 นาที หรือจนกว่าจะแตะที่ช่อง
+        bar.dataset.hold = '1';
+        const clear = () => { clearTimeout(bar._attnTimer); delete bar.dataset.attn; delete bar.dataset.hold; };
+        if (!box._attnTap) { box._attnTap = true; box.addEventListener('click', () => { if (bar.dataset.hold) clear(); }); }
+        bar._attnTimer = setTimeout(clear, 60000);
+      } else {
+        bar._attnTimer = setTimeout(() => { delete bar.dataset.attn; }, 3000);
+      }
     };
     // เรียกหลังตั้งข้อความ: เล่นเอฟเฟกต์เฉพาะตอนข้อความเปลี่ยนจากค่าจริงเดิม (ไม่เล่นตอนโหลดครั้งแรก)
-    window.lshWatch = function(textEl, kind) {
+    window.lshWatch = function(textEl, kind, quiet) {
       if (!textEl) return;
       const now = textEl.innerText, prev = textEl.dataset.last;
       textEl.dataset.last = now;
+      if (quiet) return;   // เช่น ท็อคแบคที่ตัวเองเป็นคนส่ง: ไม่ต้องเตือนตัวเอง
       if (!prev || prev === now || /^(-|สแตนบายรอคำสั่ง\.\.\.|รอคำสั่ง\.\.\.|จบการแสดง)$/.test(prev)) return;
       window.lshAttention(textEl, kind);
     };
@@ -1561,7 +1570,8 @@
         if (last && last.message) {
           textEl.innerText = last.message;
           if (senderEl) senderEl.innerText = `${last.emoji || ''} ${last.sender || 'ระบบ'}`.trim();
-          lshWatch(textEl, 'talk');
+          let me = ''; try { me = (JSON.parse(localStorage.getItem('lsh_session') || '{}').nickname || '').trim(); } catch (e) {}
+          lshWatch(textEl, 'talk', !!me && String(last.sender || '').trim() === me);
         } else {
           textEl.innerText = 'สแตนบายรอคำสั่ง...';
           if (senderEl) senderEl.innerText = '';
@@ -2150,7 +2160,7 @@
     };
 
     // ===== ตรวจเวอร์ชันแอป (2.0): เทียบเลขใน version.json บนเซิร์ฟเวอร์ กับเลขของโค้ดที่เปิดอยู่ =====
-    const LSH_APP_VER = '2.0.29';
+    const LSH_APP_VER = '2.0.30';
     window.LSH_VER_TXT = LSH_APP_VER;
     try { const dv = document.getElementById('drawerVersion'); if (dv) dv.textContent = 'เวอร์ชัน ' + LSH_APP_VER; } catch (e) {}   // แสดงเลขเวอร์ชันท้ายเมนูแฮมเบอร์เกอร์
     let lshVerAt = 0;
