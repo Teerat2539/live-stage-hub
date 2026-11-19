@@ -206,6 +206,10 @@
     .lv-grip { flex: none; width: 22px; height: 28px; display: flex; align-items: center; justify-content: center; color: var(--text-3); touch-action: none; }
     .lv-grip svg { width: 16px; height: 22px; fill: currentColor; }
     .lv-card.locked { border-color: var(--live); }
+    .lv-card.locked.playing { position: sticky; top: 6px; z-index: 6; box-shadow: 0 6px 16px rgba(0,0,0,.22); }   /* หน้าจัดคิว: แถบกำลังเล่นติดบนสุดตลอด เลื่อนรายการก็ยังเห็น */
+    .lv-card.locked.playing.flash { animation: lvNowFlash .9s var(--ease) 1; }
+    @keyframes lvNowFlash { 0% { transform: translateY(-8px); box-shadow: 0 0 0 0 var(--live), 0 6px 16px rgba(0,0,0,.22); } 35% { transform: none; box-shadow: 0 0 0 5px var(--live), 0 6px 16px rgba(0,0,0,.22); } 100% { box-shadow: 0 0 0 0 transparent, 0 6px 16px rgba(0,0,0,.22); } }
+    @media (prefers-reduced-motion: reduce) { .lv-card.locked.playing.flash { animation: none; } }
     .lv-card:has(> .lv-main) { flex-direction: column; align-items: stretch; gap: 0; }
     .lv-card.edit.next, .lv-card.edit.open { border: 1.5px solid var(--c-5b7cff); border-left: 4px solid var(--c); background: var(--c-0f1424); }
     .lv-kchip { flex: none; align-self: center; padding: 0 8px; height: 24px; line-height: 22px; border: 1px solid var(--c); border-radius: 6px; font-size: 14px; color: var(--text-2); }
@@ -1111,6 +1115,7 @@
       return h + '</div>';
     }
     function renderEditList(el, L) {
+      try { L = rebase(L, preview()); } catch (e) {}   // แสดงสถานะการเล่นล่าสุดเสมอ รวมช่วงรอส่ง 3 วินาที (จำลองทันที) เฉพาะการแสดง ไม่แก้ร่าง
       const act = actOf(L), pl = playingOf(L), prep = !!(pl && pl.type === 'dummy_start');
       let h = '';
       if (prep) {   // เส้นนำหน้าเซ็ตแรก: แตะแล้วมีเมนูเดียวคือ "ย้ายทั้งเซ็ต" (ไม่มีลบ/ข้าม/ขึ้นลง)
@@ -1120,7 +1125,8 @@
       }   // เส้นนำหน้าเซ็ตแรก: แสดงเฉพาะหน้าจัดคิว
       const played = act.filter((x) => x.status === 'played' && isSong(x));
       if (played.length) h += '<button type="button" class="lv-played' + (ui.playedOpen ? ' open' : '') + '" data-a="played">' + IC.right + 'เล่นไปแล้ว ' + played.length + ' เพลง</button>' + (ui.playedOpen ? played.map((x) => '<div class="lv-card played" style="--c:' + setCls(x) + '">' + cardInner(x, { no: numberOf(L, x.id) }) + '</div>').join('') : '');
-      if (pl && isSong(pl)) h += '<div class="lv-card locked playing" style="--c:' + setCls(pl) + '"><div class="lv-main"><span class="lv-lock">' + IC.lock + '</span>' + bodyOf(pl, '<div class="lv-tag live"><i></i>กำลังเล่น · ล็อค</div>') + kchip(pl) + '</div><div class="lv-prog" id="lvProg" style="display:none"><div class="tr"><i></i></div><div class="tm"><span class="qe">0:00</span><span class="qd">0:00</span></div></div></div>';
+      const nowChanged = !!(pl && ui.nowId != null && String(ui.nowId) !== String(pl.id)); ui.nowId = pl ? pl.id : null;
+      if (pl && isSong(pl)) h += '<div class="lv-card locked playing' + (nowChanged ? ' flash' : '') + '" style="--c:' + setCls(pl) + '"><div class="lv-main"><span class="lv-lock">' + IC.lock + '</span>' + bodyOf(pl, '<div class="lv-tag live"><i></i>กำลังเล่น · ล็อค</div>') + kchip(pl) + '</div><div class="lv-prog" id="lvProg" style="display:none"><div class="tr"><i></i></div><div class="tm"><span class="qe">0:00</span><span class="qd">0:00</span></div></div></div>';
       else if (pl && isBrk(pl)) h += '<div class="lv-bar cur" style="--c:' + setCls(pl) + '"></div>';
       h += '<div id="lvSort" style="display:flex;flex-direction:column;gap:8px">';
       L.forEach((x) => { if (x.status === 'removed' || x.status === 'played' || x.status === 'playing' || SP(x)) return; h += editCard(L, x, true); });
