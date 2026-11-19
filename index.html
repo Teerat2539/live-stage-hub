@@ -821,23 +821,37 @@
         body.querySelectorAll('.sn-mk').forEach((e) => { if (e.tagName === 'SPAN') { const p = e.parentNode; while (e.firstChild) p.insertBefore(e.firstChild, e); p.removeChild(e); p.normalize(); } else { e.classList.remove('sn-mk', 'sn-c0', 'sn-c1', 'sn-c2', 'sn-c3'); e.removeAttribute('data-n'); e.removeAttribute('data-a'); } });
         const byEl = new Map();
         (notes || []).forEach((n) => { const el = elOf(body, n.a, n.k); if (!el) return; (byEl.get(el) || byEl.set(el, []).get(el)).push(n); });
-        const rows = new Map();   // บรรทัด → โพสอิทหลายใบวางเรียงใต้บรรทัด (ซ้าย→ขวาตามตำแหน่งที่ติด)
-        byEl.forEach((arr, el) => { const row = el.closest('.ch-line, .ch-raw'); if (row) (rows.get(row) || rows.set(row, []).get(row)).push.apply(rows.get(row), arr.map((n) => ({ n: n, el: el }))); });
-        rows.forEach((list, row) => {
-          list.sort((x, y) => (x.el === y.el ? x.n.s - y.n.s : (x.el.compareDocumentPosition(y.el) & 4 ? -1 : 1)));
-          const wrap = document.createElement('div'); wrap.className = 'sn-box';
-          list.forEach((q) => { const bx = document.createElement('div'); bx.className = 'sn-note sn-c' + (q.n.c || 0); bx.dataset.n = q.n.id; if (edit) bx.dataset.a = 'notev'; bx.textContent = q.n.t || ''; wrap.appendChild(bx); });
-          row.after(wrap);
-        });
-        byEl.forEach((arr, el) => {
+        byEl.forEach((arr, el) => {   // 1) หมุด (ขีดเส้นใต้สี) ที่ตัวอักษร/คอร์ด
           if (arr[0].k === 'c') { const n = arr[arr.length - 1]; el.classList.add('sn-mk', 'sn-c' + (n.c || 0)); el.dataset.n = n.id; el.dataset.a = 'notev'; return; }
-          arr.sort((x, y) => y.s - x.s).forEach((n) => {   // ท้าย→หน้า: ตำแหน่งตัวอักษรของตัวที่เหลือไม่เปลี่ยน
+          arr.slice().sort((x, y) => y.s - x.s).forEach((n) => {   // ท้าย→หน้า: ตำแหน่งตัวอักษรของตัวที่เหลือไม่เปลี่ยน
             const tw = document.createTreeWalker(el, NodeFilter.SHOW_TEXT); let off = 0, node;
             while ((node = tw.nextNode())) { const l = node.nodeValue.length; if (n.s < off + l) { const r = document.createRange(), o = n.s - off; r.setStart(node, o); r.setEnd(node, Math.min(l, o + 1)); const sp = document.createElement('span'); sp.className = 'sn-mk sn-c' + (n.c || 0); sp.dataset.n = n.id; sp.dataset.a = 'notev'; try { r.surroundContents(sp); } catch (e) {} break; } off += l; }
           });
         });
+        const rows = new Map();   // 2) โพสอิทวางใต้บรรทัด ตรงตำแหน่งตัวอักษรที่ติด
+        byEl.forEach((arr, el) => { const row = el.closest('.ch-line, .ch-raw'); if (row) { const l = rows.get(row) || rows.set(row, []).get(row); arr.forEach((n) => l.push(n)); } });
+        rows.forEach((list, row) => {
+          const wrap = document.createElement('div'); wrap.className = 'sn-box';
+          list.forEach((n) => { const bx = document.createElement('div'); bx.className = 'sn-note sn-c' + (n.c || 0); bx.dataset.n = n.id; if (edit) bx.dataset.a = 'notev'; bx.textContent = n.t || ''; wrap.appendChild(bx); });
+          row.after(wrap); layout(wrap);
+        });
+        if (rows.size) { requestAnimationFrame(() => reflow(body)); try { if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => reflow(body)); } catch (e) {} }
       }
-      return { addrOf: addrOf, elOf: elOf, pointAddr: pointAddr, paint: paint };
+      // จัดตำแหน่งโพสอิทใต้ตัวหมุดของมัน (ชนกันก็ลงแถวใหม่) — เรียกซ้ำเมื่อขนาดตัวอักษร/จำนวนคอลัมน์/หน้าจอเปลี่ยน
+      function layout(wrap) {
+        const body = wrap.closest('.ch-body') || wrap.parentNode, W = wrap.clientWidth, wl = wrap.getBoundingClientRect().left;
+        const notes = Array.from(wrap.children).map((nb) => { const mk = body.querySelector('.sn-mk[data-n="' + nb.dataset.n + '"]'); return { nb: nb, x: mk ? mk.getBoundingClientRect().left - wl : 0 }; }).sort((a, b) => a.x - b.x);
+        const lines = []; let top = 0;
+        notes.forEach((q) => {
+          const w = q.nb.offsetWidth, h = q.nb.offsetHeight, left = Math.max(0, Math.min(q.x, W - w));
+          let ln = lines.find((L) => left >= L.end + 6);
+          if (!ln) { ln = { end: -1e9, top: lines.length ? lines[lines.length - 1].top + lines[lines.length - 1].h + 6 : 0, h: 0 }; lines.push(ln); }
+          q.nb.style.left = left + 'px'; q.nb.style.top = ln.top + 'px'; ln.end = left + w; ln.h = Math.max(ln.h, h);
+        });
+        const L = lines[lines.length - 1]; wrap.style.height = (L ? L.top + L.h + 2 : 0) + 'px';
+      }
+      function reflow(body) { if (body) body.querySelectorAll('.sn-box').forEach(layout); }
+      return { addrOf: addrOf, elOf: elOf, pointAddr: pointAddr, paint: paint, reflow: reflow };
     })();
 
     window.lshKeyPick = (function() {

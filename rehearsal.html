@@ -492,6 +492,7 @@
         const cb = exp.querySelector('[data-k="cols"] button'); if (cb) { cb.innerHTML = ui.cols2 ? IC.cols2 : IC.cols1; cb.setAttribute('aria-label', colsLbl()); }
         const mb = exp.querySelector('[data-k="mode"] button'); if (mb) { mb.innerHTML = ui.lyr ? IC.lyrics : IC.chords; mb.setAttribute('aria-label', modeLbl()); }
       });
+      requestAnimationFrame(() => { try { document.querySelectorAll('.ch-body').forEach((b) => lshSticky.reflow(b)); } catch (e) {} });
     }
 
     // ===== ปากกาไฮไลต์: ที่อยู่ของข้อความ = ท่อน.บรรทัด.ช่อง + ช่วงตัวอักษร (เนื้อร้องไม่เปลี่ยนตามคีย์ จึงตรงกันทุกเครื่อง) =====
@@ -881,6 +882,8 @@
     function onFocusIn(ev) { const t = ev.target; if (t && t.dataset && t.dataset.f) { const v = V(t.dataset.id); if (v) say('กำลังแก้' + ({ set: 'เซ็ต', bpm: 'BPM', note: 'โน้ต' }[t.dataset.f] || '') + 'เพลง ' + v.title); } }
     function onFocusOut() { if (ui.deferred) setTimeout(() => { const ae = document.activeElement; if (ui.deferred && !(ae && ae.classList && ae.classList.contains('rh-in'))) { ui.deferred = false; render(); } }, 50); }
     function onInput(ev) { const t = ev.target; if (t && t.id === 'lvInsQ' && ui.ov && ui.ov.kind === 'insert') { ui.ov.q = t.value; renderInsert(); } }
+    const reflowAll = () => { try { document.querySelectorAll('.ch-body').forEach((b) => lshSticky.reflow(b)); } catch (e) {} };
+    window.addEventListener('resize', reflowAll);
     root.addEventListener('click', onClick); root.addEventListener('change', onChange); root.addEventListener('input', onInput); root.addEventListener('focusin', onFocusIn); root.addEventListener('focusout', onFocusOut);
 
     // ===== เริ่ม / ปิดหน้า =====
@@ -889,7 +892,7 @@
         disposed = true; clearInterval(actTimer); clearTimeout(undoTimer); clearInterval(window.__rhTick);
         try { if (nodeOff) nodeOff(); } catch (e) {}
         try { ref('activity/' + myKey).remove(); } catch (e) {}
-        window.__rh = null;
+        window.removeEventListener('resize', reflowAll); window.__rh = null;
       }
     };
     (async function boot() {

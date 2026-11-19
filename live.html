@@ -1367,6 +1367,7 @@
         const cb = exp.querySelector('[data-k="cols"] button'); if (cb) { cb.innerHTML = ui.cols2 ? IC.cols2 : IC.cols1; cb.setAttribute('aria-label', colsLbl()); }
         const mb = exp.querySelector('[data-k="mode"] button'); if (mb) { mb.innerHTML = ui.lyr ? IC.lyrics : IC.chords; mb.setAttribute('aria-label', modeLbl()); }
       });
+      requestAnimationFrame(() => { try { document.querySelectorAll('.ch-body').forEach((b) => window.lshSticky && lshSticky.reflow(b)); } catch (e) {} });
       asPaint();
     }
     // ===== เลื่อนคอร์ดอัตโนมัติ (เฉพาะโหมด 1 คอลัมน์): เลื่อนตามความยาวเพลง × ความเร็ว เหมือนหน้าคอร์ดเต็มจอ =====

@@ -2854,7 +2854,7 @@ body.lsh-page-rehearsal > nav { display: none !important; }
 /* ===== 2.3.2 โน้ตแปะบนเนื้อคอร์ด (ห้องซ้อม + หน้า Live) ===== */
 .sn-mk { --sn: #ffe14d; border-bottom: 3px solid var(--sn); cursor: pointer; }
 .sn-c0 { --sn: #ffe14d; } .sn-c1 { --sn: #6ee7a0; } .sn-c2 { --sn: #ff9ad5; } .sn-c3 { --sn: #7cc8ff; }
-.sn-box { display: flex; flex-wrap: wrap; gap: 8px; margin: 4px 0 8px; align-items: flex-start; }
-.sn-note { --sn: #ffe14d; max-width: 46%; min-width: 64px; padding: 5px 8px 6px; background: var(--sn); color: #111; font-family: inherit; font-size: 12px; font-weight: 600; line-height: 1.35; white-space: pre-wrap; word-break: break-word; border-radius: 2px 2px 8px 2px; box-shadow: 0 2px 5px rgba(0,0,0,.4); transform: rotate(-1.2deg); }
+.sn-box { position: relative; margin: 2px 0 8px; }
+.sn-note { position: absolute; max-width: min(60%, 220px); min-width: 48px; padding: 5px 8px 6px; background: var(--sn, #ffe14d); color: #111; font-family: inherit; font-size: 12px; font-weight: 600; line-height: 1.35; white-space: pre-wrap; word-break: break-word; border-radius: 2px 2px 8px 2px; box-shadow: 0 2px 5px rgba(0,0,0,.4); transform: rotate(-1.2deg); }
 .sn-note:nth-child(even) { transform: rotate(1deg); }
 .sn-note[data-a] { cursor: pointer; }
