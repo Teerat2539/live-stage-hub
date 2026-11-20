@@ -2850,6 +2850,7 @@ nav button { transition: flex-grow 420ms var(--ease-out), background-color var(-
 
 /* ===== 2.3.0 โหมดซ้อม: ไม่มีแถบเมนูล่าง ===== */
 body.lsh-page-rehearsal > nav { display: none !important; }
+body.lsh-page-quick > nav { display: none !important; }   /* 2.7 Quick Live: ไม่มีแถบเมนูล่าง */
 
 /* ===== 2.3.2 โน้ตแปะบนเนื้อคอร์ด (ห้องซ้อม + หน้า Live) ===== */
 .sn-mk { --sn: #ffe14d; border-bottom: 3px solid var(--sn); cursor: pointer; }

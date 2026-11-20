@@ -273,17 +273,26 @@
         .map(x => x.k);
     }
 
+    // 2.7: หน้าเริ่มของ Live (คิวว่าง) กด "เลือกเล่นลิสต์นี้" → มาที่นี่แล้วเล่นลิสต์นั้นด้วยขั้นตอนเดิมทุกอย่าง (รวมถามร่างซ้อม)
+    let lshAutoPlayTo = 0;
+    function lshAutoPlayFromLive() {
+      const id = window.__lshPlayList; if (!id) return;
+      if (!lshAutoPlayTo) lshAutoPlayTo = setTimeout(() => { window.__lshPlayList = null; }, 10000);
+      if (!allPlaylistsData[id] || !Object.keys(allSongsData).length) return;
+      window.__lshPlayList = null; clearTimeout(lshAutoPlayTo);
+      setTimeout(() => { try { currentPlaylistId = id; document.getElementById('btnPlayLiveSet').onclick(); } catch (e) {} }, 60);
+    }
     if (typeof db !== 'undefined') {
       db.ref('songs').on('value', (snapshot) => {
         allSongsData = snapshot.val() || {};
-        renderPlaylistsList();
+        renderPlaylistsList(); lshAutoPlayFromLive();
         try { selTagF.prune(); } catch (e) {}   // selTagF ประกาศทีหลัง ถ้ายังไม่พร้อมข้ามไป
       });
 
       db.ref(`rooms/${selectedRoom}/setlists`).on('value', (snapshot) => {
         window.lshReady && window.lshReady();
         allPlaylistsData = snapshot.val() || {};
-        renderPlaylistsList();
+        renderPlaylistsList(); lshAutoPlayFromLive();
       });
     }
 
@@ -533,14 +542,14 @@
 
       document.getElementById('playlistDetailOverlay').classList.remove('hidden');
       setTimeout(() => {
-        document.getElementById('playlistDetailDrawer').classList.add('open');
+        const dw = document.getElementById('playlistDetailDrawer'); if (dw) dw.classList.add('open');   // หน้าอาจถูกเปลี่ยนไปแล้ว
       }, 10);
     };
 
     window.closePlaylistDetailDrawer = function() {
       document.getElementById('playlistDetailDrawer').classList.remove('open');
       setTimeout(() => {
-        document.getElementById('playlistDetailOverlay').classList.add('hidden');
+        const ov = document.getElementById('playlistDetailOverlay'); if (ov) ov.classList.add('hidden');   // เล่นลิสต์แล้วไปหน้า Live: หน้านี้ถูกถอดไปก่อน ไม่ต้องทำอะไร
       }, 300);
     };
 

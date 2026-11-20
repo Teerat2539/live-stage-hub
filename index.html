@@ -1918,18 +1918,19 @@
         });
       }
       // กด "+" ที่เพลงจากฐานข้อมูลรอง · getSongs() = คลังเพลงหลักปัจจุบัน · คืน true ถ้าเพิ่ม/ผูกสำเร็จ
-      async function addFlow(e, getSongs) {
-        if (!isMember()) return false;
+      async function addFlowId(e, getSongs) {   // เหมือน addFlow แต่คืนรหัสเพลงในคลังหลัก (เพลงใหม่หรือเพลงที่ผูก) · ยกเลิก/ไม่สำเร็จ = null (ใช้ใน Quick Live)
+        if (!isMember()) return null;
         try {
-          const cands = similar(getSongs(), e); let pick = 'new';
-          if (cands.length) { pick = await askSimilar(e, cands); if (!pick) return false; }
-          if (pick === 'new') { await addNew(e); lshToast('เพิ่ม “' + str(e[1]) + '” ลงฐานข้อมูลแล้ว', 'ok'); }
-          else { await attach(pick, e); lshToast('ผูกเพลงกับฐานข้อมูลรองแล้ว', 'ok'); }
+          const cands = similar(getSongs(), e); let pick = 'new', id = null;
+          if (cands.length) { pick = await askSimilar(e, cands); if (!pick) return null; }
+          if (pick === 'new') { id = await addNew(e); lshToast('เพิ่ม “' + str(e[1]) + '” ลงฐานข้อมูลแล้ว', 'ok'); }
+          else { await attach(pick, e); id = pick; lshToast('ผูกเพลงกับฐานข้อมูลรองแล้ว', 'ok'); }
           if (window.lshAutoAdv && window.lshAutoAdv.refreshDurations) window.lshAutoAdv.refreshDurations();
-          return true;
-        } catch (er) { lshToast('เพิ่มเพลงไม่สำเร็จ: ' + (er && er.message || er), 'error'); return false; }
+          return id;
+        } catch (er) { lshToast('เพิ่มเพลงไม่สำเร็จ: ' + (er && er.message || er), 'error'); return null; }
       }
-      return { migrate: migrate, search: search, addFlow: addFlow, isMember: isMember };
+      async function addFlow(e, getSongs) { return !!(await addFlowId(e, getSongs)); }
+      return { migrate: migrate, search: search, addFlow: addFlow, addFlowId: addFlowId, isMember: isMember };
     })();
 
     // ===== เพิ่มหลายเพลงพร้อมกัน (หน้าเพลงทั้งหมด): กรอกชื่อ(+ศิลปิน) → ถามทีละเพลงว่าตรงกับเพลงไหนในคลังคอร์ด → สรุป → บันทึกครั้งเดียว =====
@@ -2830,7 +2831,7 @@
     };
 
     // ===== ตรวจเวอร์ชันแอป (2.0): เทียบเลขใน version.json บนเซิร์ฟเวอร์ กับเลขของโค้ดที่เปิดอยู่ =====
-    const LSH_APP_VER = '2.6.0';
+    const LSH_APP_VER = '2.7.0';
     window.LSH_VER_TXT = LSH_APP_VER;
     try { const dv = document.getElementById('drawerVersion'); if (dv) dv.textContent = 'เวอร์ชัน ' + LSH_APP_VER; } catch (e) {}   // แสดงเลขเวอร์ชันท้ายเมนูแฮมเบอร์เกอร์
     let lshVerAt = 0;
@@ -2897,6 +2898,7 @@
           document.body.classList.toggle('lsh-page-monitor', page === 'monitor');
           document.body.classList.toggle('lsh-page-talkback', page === 'talkback');
           document.body.classList.toggle('lsh-page-live', page === 'live');
+          if (page !== 'live') document.body.classList.remove('lsh-page-quick');   // 2.7: Quick Live ซ่อนแถบเมนูล่างเฉพาะในหน้า Live
           document.body.classList.toggle('lsh-page-rehearsal', page === 'rehearsal');   // 2.3: โหมดซ้อม — ไม่มีแถบเมนูล่าง   // 2.0: Live หมุนแนวนอนได้ (ดูคอร์ดอย่างเดียว)
           try { if (screen.orientation && screen.orientation.unlock) screen.orientation.unlock(); } catch (e) {}   // ไม่ล็อกแนวตั้งแล้ว: ทุกหน้าหมุนได้
         }
@@ -3007,6 +3009,8 @@
         const updates = {};
         updates[`rooms/${room}/queue/songs`] = null;
         updates[`rooms/${room}/queue/activeSetlistId`] = null;
+        updates[`rooms/${room}/queue/quick`] = null;   // 2.7: ออกจาก Quick Live
+        updates[`rooms/${room}/queue/venue`] = null;
         updates[`rooms/${room}/queue/updatedAt`] = null;
         updates[`rooms/${room}/talkbacks`] = null;
         updates[`rooms/${room}/latestTalkback`] = "สแตนบายรอคำสั่ง...";

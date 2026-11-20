@@ -312,6 +312,49 @@
     .lv-tg.pl { color: var(--live); background: var(--live-soft); } .lv-tg.np { color: var(--text-3); background: var(--surface-3); } .lv-tg.sk { color: var(--next); background: var(--next-soft); } .lv-tg.dl { color: var(--c-ff8d8d); background: var(--danger-soft); }
     .lv-empty { padding: 40px 20px; text-align: center; color: var(--text-3); }
     .lv .hidden { display: none !important; }
+
+    /* ===== 2.7 Quick Live ===== */
+    .lv.quick .lv-top { display: none !important; }
+    .qs { padding: 18px 4px 28px; display: flex; flex-direction: column; gap: 14px; }
+    .qs-msg { text-align: center; font-size: 17px; font-weight: 600; color: var(--text-2); line-height: 1.6; padding: 10px 6px 4px; }
+    .qs-go { width: 100%; min-height: 112px; border-radius: 24px; border: 0; color: #14082E; display: flex; align-items: center; justify-content: center; gap: 14px; background: linear-gradient(105deg, #FFC233 0%, #5B34C9 100%); box-shadow: 0 6px 24px rgba(91,52,201,.35); }
+    .qs-go svg { width: 46px; height: 46px; fill: #14082E; stroke: #14082E; stroke-width: 1.5; stroke-linejoin: round; }
+    .qs-go b { font-size: 40px; font-weight: 800; letter-spacing: .3px; line-height: 1.1; }
+    .qs-go:active { transform: scale(.985); }
+    .qs-h { display: flex; align-items: center; gap: 8px; margin-top: 8px; font-size: 14px; font-weight: 700; color: var(--text-2); }
+    .qs-h svg { width: 16px; height: 16px; fill: var(--next); stroke: var(--next); stroke-width: 2; stroke-linejoin: round; }
+    .qs-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+    @media (min-width: 820px) { .qs-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+    .qs-card { text-align: left; min-height: 76px; padding: 12px 14px; border-radius: 16px; border: 1.5px solid var(--line); background: var(--surface); color: var(--text); display: flex; flex-direction: column; justify-content: center; gap: 4px; position: relative; }
+    .qs-card .t { font-size: 17px; font-weight: 700; padding-right: 22px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .qs-card .s { font-size: 13px; color: var(--text-3); }
+    .qs-card .st { position: absolute; top: 12px; right: 12px; width: 16px; height: 16px; fill: var(--next); stroke: var(--next); stroke-width: 2; stroke-linejoin: round; }
+    .qs-all { min-height: 48px; border-radius: 14px; border: 1.5px solid var(--line-strong); background: transparent; color: var(--text); font-size: 15px; font-weight: 700; }
+    .qs-none { text-align: center; color: var(--text-3); font-size: 14px; padding: 14px 0; }
+    .lv-ov.bot { justify-content: flex-end; }
+    .lv-sheet.bot { border-radius: 22px 22px 0 0; border-bottom: 0; border-top: 1.5px solid var(--line-strong); max-height: 78%; animation: qUp .24s var(--ease); }
+    @keyframes qUp { from { transform: translateY(100%); } to { transform: none; } }
+    .lv-sheet.bot .lv-res { max-height: none; flex: 1; overflow-y: auto; }
+    .lv-qdel { flex: none; width: 40px; height: 40px; border-radius: 12px; border: 1px solid var(--danger-soft); background: var(--danger-soft); color: var(--danger); display: flex; align-items: center; justify-content: center; padding: 0; }
+    .lv-qdel svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+    .lv-card.q .lv-kchip { flex: none; }
+    .lv-qnext { height: 34px; border-radius: 10px; border: 1px solid var(--next); background: var(--next-soft); color: var(--next); font-size: 13px; font-weight: 700; display: inline-flex; align-items: center; gap: 6px; padding: 0 12px; margin-left: auto; }
+    .lv-qnext svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+    .lv-qsaved { margin-left: auto; display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: var(--text-3); }
+    .lv-qsaved svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; }
+    .lv-acts .lv-btn.save { margin-left: auto; }
+    .lv-bartx { font-size: 12px; font-weight: 700; letter-spacing: 1px; color: var(--text-3); flex: none; }
+    .lv-barrow.q { display: flex; align-items: center; gap: 10px; }
+    .lv-barrow.q .lv-bar { flex: 1; }
+    .lv-row.qadded { background: var(--live-soft) !important; border-color: var(--live) !important; animation: qPop .32s var(--ease); }
+    .lv-row.qadded::after { content: '✓ เพิ่มแล้ว'; color: var(--live); font-weight: 700; font-size: 13px; margin-left: auto; }
+    .lv-row.qwait { opacity: .6; }
+    @keyframes qPop { 0% { transform: scale(.97); } 60% { transform: scale(1.015); } 100% { transform: none; } }
+    .lv-sech { font-size: 12px; font-weight: 700; color: var(--text-3); letter-spacing: .3px; padding: 8px 2px 2px; }
+    .lv-qsave { border: 1.5px solid #5B34C9; border-radius: 16px; padding: 14px; background: var(--surface-2); display: flex; flex-direction: column; gap: 8px; }
+    .lv-qsave .q { font-size: 16px; font-weight: 700; } .lv-qsave .s { font-size: 12px; color: var(--text-3); line-height: 1.5; }
+    .lv-qsave.done { color: var(--live); font-weight: 700; flex-direction: row; align-items: center; gap: 8px; border-color: var(--live); }
+    .lv-qsave.done svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; }
   </style>
 </head>
 <body>
@@ -543,7 +586,7 @@
     /*CORE-END*/
 
     // ===== สถานะของหน้า =====
-    const Q = { songs: [], rev: 0, by: '', venue: '', loaded: false };   // คิวจริงจาก Firebase
+    const Q = { songs: [], rev: 0, by: '', venue: '', loaded: false, quick: false };   // คิวจริงจาก Firebase
     let D = null, base = null;                 // ร่าง (โหมดจัดคิว) / ภาพคิวตอนเริ่มร่างหรือบันทึกล่าสุด
     let pending = null;                        // เลื่อนด้วยมือรอส่ง 3 วินาที {from,to,btn,timer,sending}
     let pendReq = {};                          // คำขอที่ใส่ในร่างแล้วแต่ยังไม่บันทึก: ลบออกจาก requestStats หลังบันทึกสำเร็จเท่านั้น
@@ -554,7 +597,7 @@
     let showSt = {};                           // rooms/{วง}/showTimer
     const ui = { exId: null, stripTmp: false, stripOpen: true, landOpen: false, landKey: null, wasPrep: undefined, follow: true, ctrlOpen: null, playedOpen: false, editOpen: null, banner: null, dirty: false, dirtyAt: 0, failed: false, saving: false, lastPlay: null, sumOpen: true, sumDetail: false, fs: 20, cols2: false, lyr: false, hold: 0, ov: null, asOn: false, asSpd: 1, keep: null };
     try { ui.fs = parseInt(localStorage.getItem('lsh_chord_fs'), 10) || 20; ui.lyr = localStorage.getItem('lsh_chord_lyr') === '1'; ui.cols2 = localStorage.getItem('lsh_chord_cols') === '2'; } catch (e) {}
-    try { ui.follow = localStorage.getItem('lsh_lv_follow') !== '0'; ui.stripOpen = localStorage.getItem('lsh_lv_strip') !== '0'; } catch (e) {}
+    try { ui.follow = localStorage.getItem('lsh_lv_follow') !== '0'; ui.stripOpen = localStorage.getItem('lsh_lv_strip') !== '0'; ui.qStrip = localStorage.getItem('lsh_qlv_strip') !== '0'; } catch (e) {}
     const lsSave = (k, v) => { try { localStorage.setItem(k, v); } catch (e) {} };
     const timers = { save: 0, hold: 0, tick: 0, banner: 0, mv: 0 };
     const qRef = (typeof db !== 'undefined' && db && db.ref) ? db.ref('rooms/' + room + '/queue') : null;
@@ -589,6 +632,8 @@
       cols2: '<svg viewBox="0 0 24 24"><rect x="3.5" y="4" width="7.5" height="16" rx="2"/><rect x="13" y="4" width="7.5" height="16" rx="2"/></svg>',
       chords: '<svg viewBox="0 0 24 24"><path d="M4 7h16M4 12h10M4 17h13"/></svg>',
       lyrics: '<svg viewBox="0 0 24 24"><path d="M4 9h16M4 14h12M4 19h14"/></svg>',
+      bolt: '<svg viewBox="0 0 24 24"><path d="M13 2L5 14h6l-1 8 8-12h-6z"/></svg>',
+      star: '<svg viewBox="0 0 24 24"><path d="M12 3l2.8 6 6.2.7-4.7 4.3 1.4 6.5-5.7-3.3-5.7 3.3 1.4-6.5L3 9.7 9.2 9z"/></svg>',
       grip: '<svg viewBox="0 0 18 24"><circle cx="5" cy="6" r="1.8"/><circle cx="13" cy="6" r="1.8"/><circle cx="5" cy="12" r="1.8"/><circle cx="13" cy="12" r="1.8"/><circle cx="5" cy="18" r="1.8"/><circle cx="13" cy="18" r="1.8"/></svg>'
     };
 
@@ -597,7 +642,7 @@
       if (disposed) return;
       const v = snap.val() || {};
       let songs = toArr(v.songs);
-      Q.rev = Number(v.rev) || 0; Q.by = v.updatedBy || ''; Q.venue = v.venue || '';
+      Q.rev = Number(v.rev) || 0; Q.by = v.updatedBy || ''; Q.venue = v.venue || ''; Q.quick = !!v.quick; qSyncShell();
       // คิวเก่าที่มีแต่ป้าย Set N: เติมเส้นพักคุยให้ (ครั้งเดียว) — ทำเมื่อไม่ได้อยู่ในโหมดจัดคิว
       const withBrk = songs.length ? ensureBreaks(songs) : songs;
       if (withBrk !== songs && !guest && !D && qRef) migrateBreaks();
@@ -737,6 +782,7 @@
     // ===== วาดหน้า =====
     function render() {
       if (disposed || !$('lvList')) return;
+      if (Q.quick) qSettle();
       const sc = $('lvScroll'), top = sc ? sc.scrollTop : 0;
       renderTop(); renderStrip(); renderBanner(); renderActs(); renderList(); renderLand(); renderCtrl(); renderUndo(); renderSummary();
       if (sc) sc.scrollTop = top;
@@ -762,24 +808,24 @@
     function renderStrip() {
       const el = $('lvStrip'); if (!el) return;
       const L = cur(), pl = playingOf(L), prep = !!(pl && pl.type === 'dummy_start');
-      if (!L.length) { el.innerHTML = ''; return; }
+      if (!L.length && !Q.quick) { el.innerHTML = ''; return; }
       if (ui.wasPrep === true && !prep) { ui.stripOpen = false; lsSave('lsh_lv_strip', '0'); }   // เริ่มโชว์แล้ว: ย่อแถบเอง
       ui.wasPrep = prep;
       const ai = autoInfo(), t = window.lshShowTimer, ti = t ? t.info() : { text: '', over: false }, st = t ? t.state() : { enabled: false };
-      const open = prep || ui.stripOpen;   // ก่อนเริ่มโชว์: ขยายค้างไว้ (ไม่มีปุ่มย่อ) เหมือนเดิม
+      const open = Q.quick ? ui.qStrip !== false : (prep || ui.stripOpen);   // Quick Live: เปิดไว้ตั้งแต่แรก ย่อได้เอง · ก่อนเริ่มโชว์: ขยายค้างไว้ (ไม่มีปุ่มย่อ) เหมือนเดิม
       const autoOn = canCtl && ai.enabled;
       const bs = (ui.follow && autoOn) ? 'both' : ui.follow ? 'follow' : autoOn ? 'auto' : 'off';
-      const venue = '<div class="lv-venue">' + esc(Q.venue || 'ลิสต์เพลง') + '</div>';
+      const venue = '<div class="lv-venue">' + esc(Q.venue || (Q.quick ? 'Quick Live' : 'ลิสต์เพลง')) + '</div>';
       const r1 = '<div class="lv-r1">' + venue + '<span class="lv-autolbl">ตามเพลง<br>ที่เล่น</span><button type="button" class="lv-sw white" role="switch" aria-checked="' + (ui.follow ? 'true' : 'false') + '" data-a="followsw" aria-label="ตามเพลงที่เล่น"><i></i></button></div>';
       let r2 = '';
       if (canCtl) {
-        const chipTxt = prep ? (st.enabled ? ti.text : 'ปิด') : '';
+        const chipTxt = (prep || (Q.quick && !pl)) ? (st.enabled ? ti.text : 'ปิด') : '';
         r2 = '<div class="lv-r2"><div class="lv-r2l">' + (ended() ? '<button type="button" class="lv-tchip" data-a="sum"><span>สรุปโชว์</span></button>' : '') +
           '<button type="button" class="lv-tchip' + (chipTxt ? '' : ' ic') + (st.enabled && ti.over ? ' over' : '') + '" data-a="timer" aria-label="ตั้งเวลาโชว์">' + IC.clock + (chipTxt ? '<span>' + esc(chipTxt) + '</span>' : '') + '</button></div>' +
           '<div class="lv-r2m">' + (ai.enabled ? '<button type="button" class="lv-pp' + (ai.paused ? ' paused' : '') + '" data-a="autopp" aria-label="' + (ai.paused ? 'เล่นต่อ' : 'พอส') + '">' + (ai.paused ? IC.play : IC.pause) + '</button>' : '') + '</div>' +
           '<div class="lv-r2r"><span class="lv-autolbl">เลื่อน<br>อัตโนมัติ</span><button type="button" class="lv-sw" role="switch" aria-checked="' + (ai.enabled ? 'true' : 'false') + '" data-a="autosw" aria-label="เลื่อนอัตโนมัติ"><i></i></button></div></div>';
       }
-      const btn = prep ? '' : '<button type="button" aria-label="' + (open ? 'ย่อแถบควบคุม' : 'เปิดแถบควบคุม') + '" data-a="strip"' + (open ? ' style="transform:none"' : '') + '>' + (open ? IC.chevUp : IC.chev) + '</button>';
+      const btn = (prep && !Q.quick) ? '' : '<button type="button" aria-label="' + (open ? 'ย่อแถบควบคุม' : 'เปิดแถบควบคุม') + '" data-a="strip"' + (open ? ' style="transform:none"' : '') + '>' + (open ? IC.chevUp : IC.chev) + '</button>';
       el.innerHTML = (open ? '<div class="lv-strip">' + r1 + r2 + '</div>' : '') + '<div class="lv-sbar" data-s="' + bs + '">' + btn + '</div>';
     }
     // ===== แนวนอน: ดูคอร์ดอย่างเดียว (แถบคิวเซกเมนต์ซ้าย + แผงเลือกเพลง + หน้าคอร์ด) =====
@@ -835,6 +881,7 @@
     }
     function renderActs() {
       const el = $('lvActs'); if (!el) return;
+      if (Q.quick) { renderQActs(el); return; }
       if (guest || !cur().length) { el.innerHTML = ''; return; }
       if (D) {
         el.innerHTML = '<button type="button" class="lv-btn ins" data-a="insert">' + IC.plus + 'แทรกเพลง' + (reqVis().length ? '<span class="lv-badge">' + reqVis().length + '</span>' : '') + '</button>' +
@@ -856,7 +903,9 @@
     function renderList() {
       const el = $('lvList'); if (!el) return;
       const L = cur();
-      if (!L.length) { el.innerHTML = '<div class="lv-empty">ยังไม่มีคิวเพลง<br>เลือกลิสต์ที่หน้า “แฟ้มลิสต์เพลง” แล้วกด Play</div>'; return; }
+      if (!Q.loaded) { el.innerHTML = '<div class="lv-empty">กำลังโหลดคิวเพลง…</div>'; return; }
+      if (Q.quick) { renderQList(el, L); return; }
+      if (!L.length) { renderStart(el); return; }
       if (D) { renderEditList(el, L); return; }
       const act = actOf(L), pl = playingOf(L), prep = !!(pl && pl.type === 'dummy_start');
       const exId = expandedId(L), keepId = keptId(L);
@@ -934,7 +983,7 @@
       else if (isBrk(pl)) h += '<div class="row"><button type="button" class="lv-cap' + ring + '" data-a="next" aria-label="ไปเซ็ตถัดไป">' + IC.pause + 'ไปเซ็ต ' + sn((nextOf(L, pl.id) || pl).set) + '</button></div>';
       else {
         const lr = lastReal(L), isLast = !!(lr && lr.id === pl.id);
-        const collapsed = !pending && (D ? ui.ctrlOpenD === false : (ui.ctrlOpen == null ? ai.enabled : !ui.ctrlOpen));   // หน้าจัดคิว: เปิดค้างไว้ ไม่ย่ออัตโนมัติ (ย่อเองได้)
+        const collapsed = !pending && ((D && !Q.quick) ? ui.ctrlOpenD === false : (ui.ctrlOpen == null ? ai.enabled : !ui.ctrlOpen));   // หน้าจัดคิว: เปิดค้างไว้ ไม่ย่ออัตโนมัติ (ย่อเองได้)
         if (collapsed) h += '<div class="row"><button type="button" class="lv-ptab" data-a="ctrltog" aria-label="ขยายปุ่มก่อนหน้า/ถัดไป"><svg viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6"/></svg></button></div>';
         else h += '<div class="row"><div class="lv-pill"><button type="button" class="lv-pc" data-a="ctrltog" aria-label="ย่อปุ่ม"><svg viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg></button>' +
           '<button type="button" class="lv-fab" data-a="prev" aria-label="เพลงก่อนหน้า">' + IC.prev + '</button>' +
@@ -983,6 +1032,7 @@
     }
     async function doStop() {
       closeOv(); await flushPending();
+      if (Q.quick && D && ui.dirty && !ui.saving) { try { await doSave(); } catch (e) {} }   // Quick Live: ส่งการแก้ที่ค้างก่อนจบ
       const p = playingOf(Q.songs); if (!p || p.type === 'dummy_end') return;
       const en = Q.songs.find((x) => x.type === 'dummy_end'); if (!en) return;
       const ok = await commitMove(p.id, en.id, { auto: true });
@@ -995,7 +1045,8 @@
       if (disposed) return;
       if (pending && !pending.sending) renderCtrl();
       updateProg();
-      if (D && ui.dirty) { const b = $('lvSaveBtn'); if (b) b.classList.toggle('ring', nowMs() - ui.dirtyAt >= 10000); }
+      if (D && ui.dirty) { const b = $('lvSaveBtn'); if (b) b.classList.toggle('ring', nowMs() - ui.dirtyAt >= 10000);
+        if (Q.quick && b && !ui.failed) { const tx = $('lvSaveTx'); if (tx) tx.textContent = ui.saving ? 'กำลังบันทึก…' : 'บันทึก · ' + Math.max(0, 15 - Math.floor((nowMs() - ui.dirtyAt) / 1000)) + ' วิ'; } }
     }
     window.__lvAutoTick = () => { if (!disposed) { updateProg(); renderStrip(); } };
 
@@ -1023,7 +1074,7 @@
     // ===== สรุปโชว์ =====
     function renderSummary() {
       const o = $('lvOv');
-      if (o && !ended() && o.dataset.sum) { delete o.dataset.sum; o.innerHTML = ''; ui.ov = null; ui.sumOpen = true; ui.sumDetail = false; }   // คิวถูกเคลียร์/เริ่มรอบใหม่ → ปิดหน้าสรุป
+      if (o && !ended() && o.dataset.sum) { delete o.dataset.sum; o.innerHTML = ''; ui.ov = null; ui.sumOpen = true; ui.sumDetail = false; ui.qSaved = false; }   // คิวถูกเคลียร์/เริ่มรอบใหม่ → ปิดหน้าสรุป
       if (!ended()) { ui.sumOpen = true; return; }
       if (!o || !ui.sumOpen || D || (ui.ov && ui.ov.kind !== 'summary')) return;
       const L = Q.songs, songs = L.filter((x) => isSong(x));
@@ -1036,7 +1087,8 @@
         L.forEach((x) => { if (!isSong(x)) return; const tg = x.status === 'removed' ? (x.rm === 'skip' ? '<span class="lv-tg sk">ข้าม</span>' : '<span class="lv-tg dl">ลบ</span>') : (x.status === 'played' || x.status === 'playing' ? '<span class="lv-tg pl">เล่นแล้ว</span>' : '<span class="lv-tg np">ไม่ได้เล่น</span>'); h += '<div class="lv-row"><b>' + esc(x.title) + '</b><span class="a">' + esc(x.artist && x.artist !== '-' ? x.artist : '') + '</span>' + tg + '</div>'; });
         h += '</div>';
       }
-      h += '<button type="button" class="lv-pb" data-a="sum-detail">' + (ui.sumDetail ? 'ซ่อนรายละเอียด' : 'ดูรายละเอียด') + '</button><button type="button" class="lv-pb live" data-a="sum-close">ปิด</button></div></div>';
+      if (Q.quick) h += qSumBlock();
+      h += '<button type="button" class="lv-pb" data-a="sum-detail">' + (ui.sumDetail ? 'ซ่อนรายละเอียด' : 'ดูรายละเอียด') + '</button><button type="button" class="lv-pb' + (Q.quick && !ui.qSaved ? '' : ' live') + '" data-a="sum-close">' + (Q.quick && !ui.qSaved ? 'ไม่บันทึก · ปิด' : 'ปิด') + '</button></div></div>';
       const key = 'sum' + h; if (o.dataset.sum === key) return; o.dataset.sum = key;
       o.innerHTML = '<div class="lv-ov" style="justify-content:flex-start">' + h + '</div>'; ui.ov = { kind: 'summary' };
     }
@@ -1085,8 +1137,8 @@
     function doSave() {
       if (!qRef) return; clearTimeout(timers.save); ui.saving = true; ui.failed = false;
       const myBase = base, myD = clone(D), myPend = Object.assign({}, pendReq); let result = null;
-      qRef.transaction((c) => {
-        if (!c || !c.songs) return;
+      return qRef.transaction((c) => {
+        if (!c || (!c.songs && !Q.quick)) return;
         const srv = toArr(c.songs), crev = Number(c.rev) || 0; let payload;
         if (crev === myBase.rev) payload = myD; else if (sigOf(srv) === sigOf(myBase.songs)) payload = rebase(myD, srv); else return;   // ชน: ยกเลิก
         result = clean(normalize(payload)); lastOwnRev = crev + 1;
@@ -1254,6 +1306,279 @@
       }
       if (reqId) { if (D) { pendReq[reqId] = o.id; if (ui.ov && ui.ov.kind === 'insert') renderInsert(); renderActs(); }   // ในร่าง: รอบันทึกสำเร็จก่อนค่อยลบคำขอ
         else { try { db.ref('rooms/' + room + '/requestStats/' + reqId).remove(); } catch (e) {} } }
+    }
+
+    // ===== 2.7 Quick Live: เล่นสดแบบง่าย ไม่ต้องมีลิสต์ — ใช้คิวเดียวกับ Live (rooms/{วง}/queue) ติดธง quick:true =====
+    function qSyncShell() {
+      try { document.body.classList.toggle('lsh-page-quick', !!Q.quick); } catch (e) {}
+      const r = $('lvRoot'); if (r) r.classList.toggle('quick', !!Q.quick);
+    }
+    // ร่างเกิดเมื่อมีการแก้ และหายเองเมื่อบันทึกสำเร็จ (ไม่ค้างร่างเก่า จึงไม่มีป้าย "คิวถูกเปลี่ยนโดย…" เวลาเครื่องอื่นแก้)
+    function qSettle() { if (Q.quick && D && !ui.dirty && !ui.failed && !ui.saving) { D = null; base = null; ui.editOpen = null; } }
+    function qDraft() {
+      if (guest) return false;
+      if (!D) { D = clone(Q.songs); base = { rev: Q.rev, songs: clone(Q.songs) }; ui.dirty = false; ui.failed = false; }
+      return true;
+    }
+    function qDo(fn, okMsg) {
+      if (!qDraft()) return;
+      const nl = fn(D);
+      if (nl) { change(nl); if (okMsg) lshToast(okMsg, 'ok'); }
+      else if (okMsg) lshToast('ทำไม่ได้ตอนนี้', 'warn');
+    }
+    // ต่อท้ายคิว (ก่อนการ์ดจบ) · คิวว่าง = เพลงแรกเป็น "กำลังเล่น" ทันที
+    function qAppend(list, o) {
+      const L = clone(list);
+      if (!L.length) { o.status = 'playing'; o.startedAt = nowMs(); return normalize([o]); }
+      const ei = L.findIndex((x) => x.type === 'dummy_end'); L.splice(ei < 0 ? L.length : ei, 0, o);
+      return normalize(L);
+    }
+    function opToNext(list, id) {   // ย้ายเป็นเพลงถัดไป: วางถัดจากเพลงที่กำลังเล่น
+      const L = clone(list), x = L.find((y) => y.id === id); if (!x || !movable(x)) return null;
+      const pi = L.findIndex((y) => y.status === 'playing'); if (pi < 0) return null;
+      const before = L.indexOf(x); if (before === pi + 1) return null;
+      L.splice(before, 1); const pj = L.findIndex((y) => y.status === 'playing'); L.splice(pj + 1, 0, x);
+      return normalize(L);
+    }
+    function qRestore(list, id) {   // กู้คืน: กลับไปต่อท้ายคิว
+      const L = clone(list), x = L.find((y) => y.id === id); if (!x || x.status !== 'removed') return null;
+      x.status = 'normal'; delete x.rm; delete x.oldStatus; delete x.oi;
+      L.splice(L.indexOf(x), 1); const ei = L.findIndex((y) => y.type === 'dummy_end'); L.splice(ei < 0 ? L.length : ei, 0, x);
+      return normalize(L);
+    }
+    function qSong(s) {
+      const bpm = (s.bpm && s.bpm !== '-' && Number(s.bpm) > 0) ? s.bpm : '-';
+      return { id: 'q_' + nowMs() + '_' + Math.floor(Math.random() * 1000), songId: s.id || '', title: s.title || '', artist: s.artist || '-', key: okKey(s.key) || '-', bpm: bpm, note: '-', set: 'Set 1', status: 'normal', type: 'normal' };
+    }
+    function qAddObj(o) {   // ใส่ในร่างแล้วส่งเร็ว: เพลงแรกส่งทันที (เริ่มเล่น+เริ่มจับเวลา) ที่เหลือรอบันทึกอัตโนมัติ 15 วินาที
+      if (!qDraft()) return false;
+      const first = !D.length;
+      change(qAppend(D, o));
+      if (first) save(false);
+      return true;
+    }
+    function qAddBreak() {
+      if (guest || !qDraft()) return;
+      const act = actOf(D).filter((x) => !SP(x));
+      if (!act.some(isSong)) { lshToast('เพิ่มเพลงก่อนจึงจะพักคุยได้', 'warn'); return; }
+      if (isBrk(act[act.length - 1])) { lshToast('มีพักคุยอยู่ท้ายคิวแล้ว', 'warn'); closeOv(); return; }
+      let n = 1; D.forEach((x) => { if (isBrk(x)) n = Math.max(n, parseInt(sn(x.set), 10) || 1); });
+      const b = { id: 'brk_q' + nowMs() + '_' + Math.floor(Math.random() * 1000), type: 'break', title: 'พักคุย', artist: '', key: '-', bpm: '-', note: '-', set: 'Set ' + (n + 1), status: 'normal' };
+      const X = clone(D), ei = X.findIndex((x) => x.type === 'dummy_end'); X.splice(ei < 0 ? X.length : ei, 0, b);
+      change(normalize(X)); closeOv();
+    }
+    function renderQActs(el) {
+      if (guest) { el.innerHTML = ''; return; }
+      const L = cur(), pl = playingOf(L);
+      if ((pl && pl.type === 'dummy_end') || ended()) { el.innerHTML = ''; return; }
+      const st = (ui.dirty || ui.failed)
+        ? '<button type="button" class="lv-btn save' + (ui.failed ? ' fail' : '') + '" data-a="save" id="lvSaveBtn">' + IC.check + '<span id="lvSaveTx">' + (ui.failed ? 'ส่งไม่สำเร็จ · ลองใหม่' : (ui.saving ? 'กำลังบันทึก…' : 'บันทึก')) + '</span></button>'
+        : (L.length ? '<span class="lv-qsaved">' + IC.check + 'บันทึกแล้ว</span>' : '');
+      el.innerHTML = '<button type="button" class="lv-btn ins" data-a="qadd" style="flex:0 0 auto">' + IC.plus + 'เพิ่มเพลง</button>' + st;
+    }
+    function qBar(x) {
+      const ed = !guest;
+      return '<div class="lv-barrow q' + (ed ? ' mv' : '') + '" data-id="' + esc(x.id) + '">' + (ed ? '<span class="lv-grip">' + IC.grip + '</span>' : '') + '<div class="lv-bar" style="--c:' + setCls(x) + '"></div><span class="lv-bartx">พักคุย</span>' +
+        (ed ? '<button type="button" class="lv-qdel" data-a="qdel" data-id="' + esc(x.id) + '" aria-label="ลบพักคุย">' + IC.trash + '</button>' : '') + '</div>';
+    }
+    function qCard(L, x, o) {
+      const med = isMed(x), k = med ? '' : keyOf(x), no = numberOf(L, x.id);
+      const tag = o.playing ? '<div class="lv-tag live"><i></i>กำลังเล่น</div>' : (o.next ? '<div class="lv-tag">ถัดไป</div>' : '');
+      const kc = med ? '' : ((o.played || guest) ? '<span class="lv-kchip">' + esc(k || '–') + '</span>'
+        : '<button type="button" class="lv-kchip" data-a="keypop" data-id="' + esc(x.id) + '" aria-label="เปลี่ยนคีย์">' + esc(k || '–') + '</button>');
+      const del = (o.mv && !guest) ? '<button type="button" class="lv-qdel" data-a="qdel" data-id="' + esc(x.id) + '" aria-label="ลบออกจากคิว">' + IC.trash + '</button>' : '';
+      const cls = 'lv-card q' + (o.played ? ' played' : '') + (o.playing ? ' playing' : '') + (o.next ? ' next' : '') + (o.mv ? ' mv' : '') + (o.open ? ' open' : '');
+      let h = '<div class="' + cls + '" style="--c:' + setCls(x) + '" data-a="card" data-id="' + esc(x.id) + '"><div class="lv-main">' + ((o.mv && !guest) ? '<span class="lv-grip">' + IC.grip + '</span>' : '') +
+        '<span class="lv-no">' + no + '</span>' + bodyOf(x, tag) + kc + del + '</div>';
+      if (o.playing) h += '<div class="lv-prog" id="lvProg" style="display:none"><div class="tr"><i></i></div><div class="tm"><span class="qe">0:00</span><span class="qd">0:00</span></div></div>';
+      if (o.open) {
+        const lead = (!o.playing && !o.played && !o.next && !guest) ? '<button type="button" class="lv-qnext" data-a="qtonext" data-id="' + esc(x.id) + '">' + IC.skip + 'ย้ายเป็นเพลงถัดไป</button>' : '';
+        h += expHtml(lead, x.id, false);
+      }
+      return h + '</div>';
+    }
+    function renderQList(el, L) {
+      if (!L.length) { el.innerHTML = '<div class="lv-empty">ยังไม่มีเพลงในคิว' + (guest ? '' : '<br>แตะ “เพิ่มเพลง” เพื่อเริ่ม') + '</div>'; return; }
+      try { if (D) L = rebase(L, preview()); } catch (e) {}
+      const act = actOf(L), pl = playingOf(L), exId = expandedId(L), isOpen = (x) => String(x.id) === String(exId);
+      let h = '';
+      const played = act.filter((x) => x.status === 'played' && isSong(x));
+      if (played.length) {
+        h += '<button type="button" class="lv-played' + (ui.playedOpen ? ' open' : '') + '" data-a="played">' + IC.right + 'เล่นไปแล้ว ' + played.length + ' เพลง</button>';
+        if (ui.playedOpen) played.forEach((x) => { h += qCard(L, x, { played: true, open: isOpen(x) }); });
+      }
+      if (pl && isSong(pl)) h += qCard(L, pl, { playing: true, open: isOpen(pl) });
+      else if (pl && isBrk(pl)) h += '<div class="lv-bar cur" style="--c:' + setCls(pl) + '"></div>';
+      h += '<div id="lvSort" style="display:flex;flex-direction:column;gap:8px">';
+      L.forEach((x) => {
+        if (x.status === 'removed' || x.status === 'played' || x.status === 'playing' || SP(x)) return;
+        h += isBrk(x) ? qBar(x) : qCard(L, x, { mv: true, next: x.status === 'next', open: isOpen(x) });
+      });
+      h += '</div>';
+      const rem = L.filter((x) => x.status === 'removed' && (isSong(x) || isBrk(x)));
+      if (rem.length) {
+        h += '<div class="lv-grp" style="color:var(--text-3)">ลบแล้ว · กู้กลับได้</div>';
+        rem.forEach((x) => { h += '<div class="lv-card removed" style="--c:' + setCls(x) + '"><div class="lv-main">' + bodyOf(x) + (guest ? '' : '<button type="button" class="lv-rest" style="color:var(--c-ff8d8d)" data-a="qrest" data-id="' + esc(x.id) + '">' + IC.undo + ' กู้คืน</button>') + '</div></div>'; });
+      }
+      el.innerHTML = h;
+      el.querySelectorAll('.lv-exp[data-xid]').forEach((box) => { const it = itemById(box.dataset.xid); if (it) fillChords(box, it); });
+      const box = $('lvSort');
+      if (box && !guest && window.lshDnD) window.lshDnD.make(box, { handle: '.lv-grip', draggable: '.mv', delay: 0, ghostClass: 'lv-sort-ghost', onEnd: () => {
+        const order = Array.from(box.children).filter((c) => c.dataset && c.dataset.id && c.classList.contains('mv')).map((c) => c.dataset.id);
+        if (qDraft()) applyOrder(order);
+      } });
+      updateProg();
+    }
+
+    // ----- หน้าเริ่ม (คิวว่าง และยังไม่ได้เริ่ม Quick Live) -----
+    const QSET = { lists: null, loading: false };
+    const qOrdKeys = (o) => Object.keys(o || {}).map((k, p) => ({ k: k, p: p, n: (/(\d+)$/.exec(k) || [0, 1e9])[1] })).sort((a, b) => (a.n - b.n) || (a.p - b.p)).map((x) => x.k);
+    function loadLists() {
+      if (QSET.lists || QSET.loading || !db) return; QSET.loading = true;
+      db.ref('rooms/' + room + '/setlists').once('value').then((sn2) => { QSET.lists = sn2.val() || {}; }).catch(() => { QSET.lists = {}; })
+        .then(() => { QSET.loading = false; if (!disposed && !Q.quick && !Q.songs.length) renderList(); });
+    }
+    function renderStart(el) {
+      let h = '<div class="qs"><div class="qs-msg">ยังไม่มีคิวเพลง' + (canCtl ? ' กรุณาเลือกลิสต์เพลงเพื่อใช้งาน<br>หรือใช้ Quick Live' : '') + '</div>';
+      if (canCtl) {
+        h += '<button type="button" class="qs-go" data-a="qgo" aria-label="เริ่ม Quick Live">' + IC.bolt + '<b>Quick Live</b></button>';
+        if (!QSET.lists) { loadLists(); h += '<div class="qs-none">กำลังโหลดลิสต์เพลง…</div>'; }
+        else {
+          const all = Object.keys(QSET.lists).map((id) => Object.assign({ id: id }, QSET.lists[id])).filter((x) => x && x.songs && Object.keys(x.songs).length);
+          all.sort((a, b) => String(b.date || '').localeCompare(String(a.date || '')) || ((b.createdAt || 0) - (a.createdAt || 0)));
+          const favs = all.filter((x) => x.favorite), show = favs.length ? favs : all.slice(0, 6);
+          if (!show.length) h += '<div class="qs-none">ยังไม่มีลิสต์เพลง กรุณาเพิ่มลิสต์เพลง</div>';
+          else {
+            h += '<div class="qs-h">' + (favs.length ? IC.star + 'ลิสต์โปรด' : 'ลิสต์เพลงล่าสุด') + '</div><div class="qs-grid">' +
+              show.map((x) => '<button type="button" class="qs-card" data-a="qlist" data-id="' + esc(x.id) + '"><span class="t">' + esc(x.venue || 'ไม่ระบุสถานที่') + '</span><span class="s">' + esc(x.date || '-') + ' · ' + Object.keys(x.songs).length + ' เพลง</span>' + (x.favorite ? IC.star.replace('<svg ', '<svg class="st" ') : '') + '</button>').join('') + '</div>';
+          }
+        }
+        h += '<button type="button" class="qs-all" data-a="qall">ลิสต์เพลงทั้งหมด</button>';
+      }
+      el.innerHTML = h + '</div>';
+    }
+    function openQStart() {
+      if (!canCtl) return;
+      let pv = ''; try { pv = localStorage.getItem('lsh_qlv_venue') || ''; } catch (e) {}
+      showOv('<div class="lv-pop" data-a="stop-prop"><h4>เริ่ม Quick Live</h4><div class="sub">ชื่อร้าน (ไม่กรอกก็ได้)</div><input class="lv-in" id="lvQVenue" type="text" maxlength="60" placeholder="ชื่อร้าน" autocomplete="off" value="' + esc(pv) + '">' +
+        '<div style="display:flex;gap:10px"><button type="button" class="lv-pb" style="flex:1" data-a="ovclose">ยกเลิก</button><button type="button" class="lv-pb live" style="flex:1" data-a="qgo-ok">ยืนยัน</button></div></div>', 'center', 'qstart');
+      setTimeout(() => { const i = $('lvQVenue'); if (i) { i.focus(); i.select(); } }, 120);
+    }
+    async function qStart(v) {
+      v = String(v || '').trim(); closeOv(); if (!qRef || !canCtl) return;
+      try { localStorage.setItem('lsh_qlv_venue', v); } catch (e) {}
+      try {
+        const r = 'rooms/' + room + '/', up = {};
+        up[r + 'queue'] = { quick: true, venue: v, updatedAt: nowMs(), updatedBy: me };
+        up[r + 'talkbacks'] = null; up[r + 'latestTalkback'] = 'สแตนบายรอคำสั่ง...'; up[r + 'currentCue'] = null; up[r + 'requestStats'] = null;   // ล้างของงานก่อนเหมือนตอนเลือกลิสต์
+        up[r + 'showTimer/startedAt'] = null; up[r + 'showTimer/endedAt'] = null;
+        await db.ref().update(up);
+        ui.qSaved = false; ui.exId = null; ui.playedOpen = false;
+      } catch (e) { lshToast('เริ่ม Quick Live ไม่สำเร็จ: ' + (e && e.message || e), 'error'); }
+    }
+    function openQList(id) {
+      const pl = QSET.lists && QSET.lists[id]; if (!pl) return;
+      const byId = new Map(lib().map((s) => [String(s.id), s]));
+      const rows = qOrdKeys(pl.songs).map((k, i) => {
+        const it = pl.songs[k] || {};
+        if (Array.isArray(it.parts) && it.parts.length) return '<div class="lv-row" style="cursor:default"><span><b>' + esc(it.name || 'เมดเลย์') + '</b><br><span class="a">เมดเลย์ · ' + it.parts.map((p) => esc((byId.get(String(p.songId)) || {}).title || '')).join(' · ') + '</span></span></div>';
+        const m = byId.get(String(it.songId)) || {}, kk = okKey(it.key) || okKey(m.key);
+        return '<div class="lv-row" style="cursor:default"><span><b>' + (i + 1) + '. ' + esc(m.title || 'ไม่ระบุชื่อเพลง') + '</b><br><span class="a">' + esc(m.artist || '') + '</span></span>' + (kk ? '<span class="lv-pls"><span class="lv-pl">คีย์ ' + esc(kk) + '</span></span>' : '') + '</div>';
+      }).join('');
+      showOv('<div class="lv-sheet bot" data-a="stop-prop"><div style="display:flex;justify-content:space-between;align-items:center;gap:8px"><div style="min-width:0"><h4 style="margin:0;font-size:18px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + esc(pl.venue || 'ไม่ระบุสถานที่') + '</h4><div class="lv-hint">' + esc(pl.date || '-') + ' · ' + Object.keys(pl.songs).length + ' เพลง</div></div>' +
+        '<div style="display:flex;align-items:center;gap:8px;flex:none"><button type="button" class="lv-pb live" style="min-height:44px;padding:0 16px" data-a="qplay" data-id="' + esc(id) + '">เลือกเล่นลิสต์นี้</button><button type="button" class="lv-x" data-a="ovclose" aria-label="ปิด">✕</button></div></div>' +
+        '<div class="lv-res">' + rows + '</div></div>', 'bot', 'qlist');
+    }
+
+    // ----- ป๊อปอัพเพิ่มเพลง (ค้นหาเหมือนหน้าเพลงทั้งหมด: คลังหลักก่อน แล้วฐานข้อมูลรองต่อท้าย) -----
+    const qCat = new Map(); let qSeq = 0;
+    function openQAdd() {
+      if (guest) return;
+      try { if (window.lshChordLookup && window.lshChordLookup.preload) window.lshChordLookup.preload(); } catch (e) {}
+      showOv('<div class="lv-sheet tall" data-a="stop-prop"><div style="display:flex;justify-content:space-between;align-items:center;gap:8px"><h4 style="margin:0;font-size:18px">เพิ่มเพลงเข้าคิว</h4><div style="display:flex;gap:8px;align-items:center"><button type="button" class="lv-pb" style="min-height:40px;padding:0 16px" data-a="qbrk">พักคุย</button><button type="button" class="lv-x" data-a="ovclose" aria-label="ปิด">✕</button></div></div>' +
+        '<div style="display:flex;flex-direction:column;gap:10px;flex:none"><div class="lv-srow" id="lvQSrow"><div class="lv-sin">' + IC.search + '<input class="lv-in" id="lvQAddQ" type="search" placeholder="ค้นหาชื่อเพลง / ศิลปิน" autocomplete="off"></div></div>' +
+        '<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><div id="lvQKey" style="display:flex"></div><select class="lv-in" id="lvQSort" aria-label="จัดเรียงโดย" style="height:44px;width:auto;flex:1;min-width:150px;max-width:260px;border-radius:12px"><option value="title">เรียง: ชื่อเพลง</option><option value="artist">เรียง: ศิลปิน</option><option value="key">เรียง: คีย์</option><option value="bpm">เรียง: BPM</option><option value="playCount">เรียง: เล่นบ่อย</option><option value="recent">เรียง: ล่าสุด</option></select></div></div>' +
+        '<div class="lv-res" id="lvQRes"></div></div>', 'top', 'qadd', { q: '', k: '', sort: 'title' });
+      if (window.lshKeyFilter && $('lvQKey')) lshKeyFilter.mount($('lvQKey'), { allText: 'ทั้งหมด', getOptions: () => KEYS12.map((x) => ({ v: x[0], t: x[1] })), getValue: () => (ui.ov && ui.ov.kind === 'qadd' ? ui.ov.k : ''), onPick: (v) => { if (ui.ov && ui.ov.kind === 'qadd') { ui.ov.k = v; renderQAdd(); } } });
+      if (window.lshTags && ui.ov && ui.ov.kind === 'qadd') { const row = $('lvQSrow'); if (row) { const tf = lshTags.mountFilter(row, { getSongs: () => lib(), onChange: () => renderQAdd() }); tf.btn.style.height = '44px'; ui.ov.tagF = tf; } }
+      renderQAdd();
+    }
+    const qSortFn = (opt) => (a, b) => {
+      if (opt === 'artist') return (a.artist || '').localeCompare(b.artist || '', 'th');
+      if (opt === 'key') return String(a.key || '').localeCompare(String(b.key || ''));
+      if (opt === 'bpm') return (Number(b.bpm) || 0) - (Number(a.bpm) || 0);
+      if (opt === 'playCount') return (b.playCount || 0) - (a.playCount || 0);
+      if (opt === 'recent') return ((b.updatedAt || 0) - (a.updatedAt || 0)) || String(b.id).localeCompare(String(a.id));
+      return (a.title || '').localeCompare(b.title || '', 'th');
+    };
+    function qRow(s) {
+      const k = s.key && s.key !== '-' ? s.key : '';
+      return '<button type="button" class="lv-row" data-a="qpick" data-id="' + esc(s.id) + '"><span><b>' + esc(s.title) + '</b><br><span class="a">' + esc(s.artist && s.artist !== '-' ? s.artist : '') + '</span></span>' + (k ? '<span class="lv-pls"><span class="lv-pl">คีย์ ' + esc(k) + '</span></span>' : '') + '</button>';
+    }
+    function renderQAdd() {
+      const o = ui.ov; if (!o || o.kind !== 'qadd') return; const body = $('lvQRes'); if (!body) return;
+      const q = (o.q || '').toLowerCase().trim(), my = ++qSeq, tagSel = o.tagF ? o.tagF.sel : null, hasTag = !!(tagSel && tagSel.size);
+      let list = lib().filter((s) => s && s.title);
+      if (o.k) { const kp = kPc(o.k); list = list.filter((s) => kPc(s.key) === kp && !kMin(s.key)); }
+      const by = qSortFn(o.sort);
+      if (q) { const p1 = [], p2 = [], p3 = []; list.forEach((s) => { const t = (s.title || '').toLowerCase(), a = (s.artist || '').toLowerCase(); if (t.startsWith(q)) p1.push(s); else if (t.includes(q)) p2.push(s); else if (a.includes(q)) p3.push(s); });
+        list = [].concat(p1.sort(by), p2.sort(by), p3.sort(by)); } else list = list.slice().sort(by);
+      if (hasTag) list = lshTags.filter(list, tagSel);
+      list = list.slice(0, 60);
+      body.innerHTML = (list.length ? list.map(qRow).join('') : (q || o.k || hasTag ? '<div class="lv-empty">ไม่พบเพลงนี้ในคลังเพลง</div>' : '<div class="lv-empty">ยังไม่มีเพลงในคลัง</div>')) + '<div id="lvQCat"></div>';
+      const L = window.lshSongSync;
+      if (!q || o.k || hasTag || !L || !L.isMember()) return;   // ฐานข้อมูลรอง: เฉพาะตอนพิมพ์ค้นหา ไม่กรองคีย์/แท็ก (เหมือนหน้าเพลงทั้งหมด) และเฉพาะสมาชิก (เพิ่มลงคลังได้)
+      const have = new Set(); lib().forEach((x) => { if (x.bk) have.add(x.bk); });
+      L.search(q, have, 20).then((rs) => {
+        const box = $('lvQCat'); if (my !== qSeq || !box) return;
+        if (!rs.length) { box.innerHTML = ''; return; }
+        box.innerHTML = '<div class="lv-sech">คุณหมายถึงเพลงนี้หรือเปล่า · จากฐานข้อมูลรอง</div>' + rs.map((e) => { qCat.set(e[0], e); const k = e[3] && e[3] !== '-' ? e[3] : '';
+          return '<button type="button" class="lv-row" data-a="qpickcat" data-bk="' + esc(e[0]) + '"><span><b>' + esc(e[1]) + '</b><br><span class="a">' + esc(e[2] || '') + '</span></span>' + (k ? '<span class="lv-pls"><span class="lv-pl">คีย์ ' + esc(k) + '</span></span>' : '') + '</button>'; }).join('');
+      }).catch(() => { const box = $('lvQCat'); if (my === qSeq && box) box.innerHTML = '<div class="lv-hint" style="padding:8px 2px">โหลดฐานข้อมูลรองไม่ได้ ตรวจสอบอินเทอร์เน็ต</div>'; });
+    }
+    function qDone(rowEl) {   // แอนิเมชันสั้นๆ ว่าเพิ่มเข้าคิวแล้ว → ปิดป๊อปอัพ
+      if (rowEl) { rowEl.classList.remove('qwait'); rowEl.classList.add('qadded'); }
+      clearTimeout(timers.mv); timers.mv = setTimeout(() => { if (ui.ov && ui.ov.kind === 'qadd') closeOv(); }, 480);
+    }
+    function qAddMain(el) {
+      if (!ui.ov || ui.ov.kind !== 'qadd' || ui.ov.busy) return;
+      const s = lib().find((x) => String(x.id) === String(el.dataset.id)); if (!s) return;
+      ui.ov.busy = true; if (qAddObj(qSong(s))) qDone(el); else ui.ov.busy = false;
+    }
+    async function qAddCat(el) {
+      if (!ui.ov || ui.ov.kind !== 'qadd' || ui.ov.busy) return;
+      const e = qCat.get(el.dataset.bk); if (!e || !window.lshSongSync) return;
+      ui.ov.busy = true; el.classList.add('qwait');
+      let id = null;
+      try { const songs = {}; lib().forEach((x) => { songs[x.id] = x; }); id = await window.lshSongSync.addFlowId(e, () => songs); } catch (er) { id = null; }
+      if (!ui.ov || ui.ov.kind !== 'qadd') return;
+      if (!id) { ui.ov.busy = false; el.classList.remove('qwait'); return; }
+      let m = null; try { m = (await db.ref('songs/' + id).once('value')).val(); } catch (er) { m = null; }
+      if (!m) { ui.ov.busy = false; el.classList.remove('qwait'); lshToast('เพิ่มเข้าคิวไม่สำเร็จ ลองใหม่อีกครั้ง', 'error'); return; }
+      if (qAddObj(qSong(Object.assign({ id: id }, m)))) qDone(el); else { ui.ov.busy = false; el.classList.remove('qwait'); }
+    }
+
+    // ----- จบการแสดง: ถามว่าจะบันทึกคิวของวันนี้เป็นลิสต์ไหม -----
+    function qSumBlock() {
+      if (ui.qSaved) return '<div class="lv-qsave done">' + IC.check + 'บันทึกเป็นลิสต์เพลงแล้ว</div>';
+      if (guest || !canCtl) return '';
+      return '<div class="lv-qsave"><div class="q">บันทึกคิวของวันนี้เป็นลิสต์เพลงไว้ไหม?</div><div class="s">เผื่อใช้ซ้ำคืนอื่น · ไม่นับเพลงที่ลบ/ข้าม · พักคุยกลายเป็นเส้นคั่นเซ็ต</div>' +
+        '<input class="lv-in" id="lvQListName" type="text" maxlength="60" autocomplete="off" value="' + esc(Q.venue || 'Quick Live') + '"><button type="button" class="lv-pb live" data-a="qsavelist">บันทึกเป็นลิสต์</button></div>';
+    }
+    async function qSaveList() {
+      if (ui.qSaving || ui.qSaved || !db) return;
+      const nm = ((($('lvQListName') || {}).value) || '').trim() || Q.venue || 'Quick Live';
+      const items = Q.songs.filter((x) => isSong(x) && x.songId && (x.status === 'played' || x.status === 'playing'));
+      if (!items.length) { lshToast('ไม่มีเพลงที่เล่นให้บันทึก', 'warn'); return; }
+      const songs = {}; items.forEach((x, i) => { songs['s_' + i] = { songId: x.songId, set: x.set || 'Set 1', key: okKey(x.key) || '', note: '' }; });
+      const d = new Date(), pad = (n) => String(n).padStart(2, '0'), date = d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate());
+      ui.qSaving = true;
+      try {
+        await db.ref('rooms/' + room + '/setlists').push().set({ venue: nm, date: date, favorite: false, createdAt: nowMs(), songs: songs });
+        ui.qSaved = true; QSET.lists = null; lshToast('บันทึกเป็นลิสต์เพลงแล้ว', 'ok');
+        const o = $('lvOv'); if (o) delete o.dataset.sum; renderSummary();
+      } catch (e) { lshToast('บันทึกลิสต์ไม่สำเร็จ: ' + (e && e.message || e), 'error'); }
+      ui.qSaving = false;
     }
 
     // ===== ลูกค้าขอเพลง =====
@@ -1473,7 +1798,7 @@
     }
     function act(a, el, id, ev) {
       switch (a) {
-        case 'strip': ui.stripOpen = !ui.stripOpen; lsSave('lsh_lv_strip', ui.stripOpen ? '1' : '0'); renderStrip(); return true;
+        case 'strip': if (Q.quick) { ui.qStrip = ui.qStrip === false; lsSave('lsh_qlv_strip', ui.qStrip ? '1' : '0'); } else { ui.stripOpen = !ui.stripOpen; lsSave('lsh_lv_strip', ui.stripOpen ? '1' : '0'); } renderStrip(); return true;
         case 'landopen': ui.landOpen = true; renderLand(); return true;
         case 'landclose': ui.landOpen = false; renderLand(); return true;
         case 'landpick': ui.exId = id; ui.landOpen = false; renderLand(); return true;   // เลือกเพลงดูคอร์ด แล้วแผงย่อกลับเอง
@@ -1481,7 +1806,7 @@
           const was = expandedId(cur()); ui.follow = !ui.follow; ui.keep = null; lsSave('lsh_lv_follow', ui.follow ? '1' : '0');
           ui.exId = ui.follow ? null : (was == null ? 'none' : was);   // เปิด: เพลงที่เล่นขยายทันที · ปิด: คงที่ที่เปิดอยู่ไว้
           ui.landKey = null; renderStrip(); renderList(); renderLand(); return true; }
-        case 'ctrltog': { if (D) { ui.ctrlOpenD = ui.ctrlOpenD === false; renderCtrl(); return true; } const ai = autoInfo(), col = ui.ctrlOpen == null ? ai.enabled : !ui.ctrlOpen; clearTimeout(timers.ctrl); if (col) { ui.ctrlOpen = true; if (ai.enabled) timers.ctrl = setTimeout(() => { ui.ctrlOpen = null; renderCtrl(); }, 15000); } else ui.ctrlOpen = ai.enabled ? null : false; renderCtrl(); return true; }
+        case 'ctrltog': { if (D && !Q.quick) { ui.ctrlOpenD = ui.ctrlOpenD === false; renderCtrl(); return true; } const ai = autoInfo(), col = ui.ctrlOpen == null ? ai.enabled : !ui.ctrlOpen; clearTimeout(timers.ctrl); if (col) { ui.ctrlOpen = true; if (ai.enabled) timers.ctrl = setTimeout(() => { ui.ctrlOpen = null; renderCtrl(); }, 15000); } else ui.ctrlOpen = ai.enabled ? null : false; renderCtrl(); return true; }
         case 'autopp': if (canCtl) autoPP(); return true;
         case 'autosw': { const ai = window.lshAutoAdv; if (!ai || !canCtl) return true; const i = autoInfo(); ai.setEnabled(!i.enabled); setTimeout(render, 150); return true; }
         case 'timer': if (canCtl) ovTimer(); return true;
@@ -1498,6 +1823,19 @@
         case 'next': if (!guest) press(1); return true;
         case 'prev': if (!guest) press(-1); return true;
         case 'stop': if (guest) return true; pop('จบการแสดง?', 'จะส่งเพลงสุดท้ายเป็น “จบ” ทันที และหยุดนับเวลา', [{ t: 'จบการแสดง', c: 'warn', fn: doStop }, { t: 'ยกเลิก', fn: closeOv }]); return true;
+        case 'qgo': openQStart(); return true;
+        case 'qgo-ok': qStart((($('lvQVenue') || {}).value || '')); return true;
+        case 'qlist': openQList(id); return true;
+        case 'qplay': { closeOv(); window.__lshPlayList = id; if (typeof setActiveNav === 'function') setActiveNav('setlists'); return true; }
+        case 'qall': if (typeof menuAction === 'function') menuAction('แฟ้มลิสต์เพลง'); return true;
+        case 'qadd': openQAdd(); return true;
+        case 'qbrk': qAddBreak(); return true;
+        case 'qpick': qAddMain(el); return true;
+        case 'qpickcat': qAddCat(el); return true;
+        case 'qdel': qDo((d) => opRemove(d, id, 'del')); return true;
+        case 'qrest': qDo((d) => qRestore(d, id)); return true;
+        case 'qtonext': qDo((d) => opToNext(d, id), 'ย้ายเป็นเพลงถัดไปแล้ว'); return true;
+        case 'qsavelist': qSaveList(); return true;
         case 'pb': { const b = popBtns[Number(el.dataset.i)]; if (b && b.fn) b.fn(); return true; }
         case 'ovclose': closeOv(); return true;
         case 'ovbg': if (ev.target === el) { if (ui.ov && ui.ov.kind === 'summary') closeSummary(); else closeOv(); } return true;
@@ -1528,13 +1866,13 @@
         case 'pospick': { if (!posCtx) return true; const x = posItems[Number(el.dataset.i)], c = posCtx; closeOv(); if (x) { placeSong(c.o, x.id, c.reqId); if (c.after) c.after(); } return true; }
         // ลูกค้าขอเพลง
         case 'rqpos': { const x = rqItems[Number(el.dataset.i)]; if (!x || !reqCtx) return true; const c = reqCtx; closeOv(); c.rec(false); placeSong(songObj(c.s, 'request'), x.id, null); return true; }
-        case 'keypop': { const it = itemById(id); if (!it || !D) return true; const rr = root.getBoundingClientRect(), r = el.getBoundingClientRect(), KP = window.lshKeyPick;
+        case 'keypop': { const it = itemById(id); if (Q.quick && it) qDraft(); if (!it || !D) return true; const rr = root.getBoundingClientRect(), r = el.getBoundingClientRect(), KP = window.lshKeyPick;
           if (!KP) { lshToast('ต้องอัปเดตแอปก่อน: ปิดแอปแล้วเปิดใหม่ (ไฟล์ index.html ยังเป็นรุ่นเก่า)', 'error'); return true; }
           const mk = (ori) => KP.html({ ori: ori, band: KP.bandOf(it), cur: keyOf(it), color: setCls(it), attr: 'data-a="keyset" data-id="' + esc(id) + '"' }), below = r.bottom - rr.top + 6, up = (rr.height - below) < 340;
           showOv('<div class="lv-kpop" id="lvKpop" data-a="stop-prop" style="right:' + Math.max(8, rr.right - r.right) + 'px;' + (up ? 'bottom:' + (rr.bottom - r.top + 6) + 'px' : 'top:' + below + 'px') + '">' + mk(KP.origCached(it) || '') + '</div>', 'pov', 'keypop');
           if (KP.origCached(it) === undefined) KP.origLoad(it).then((o) => { const box = $('lvKpop'); if (box && ui.ov && ui.ov.kind === 'keypop' && o) box.innerHTML = mk(o); });   // ต้นฉบับโหลดทีหลัง: เติมตัวเลขเมื่อมาถึง
           return true; }
-        case 'keyset': { const nl = D ? opKey(D, id, el.dataset.k) : null; closeOv(); if (nl) change(nl); return true; }
+        case 'keyset': { if (Q.quick) qDraft(); const nl = D ? opKey(D, id, el.dataset.k) : null; closeOv(); if (nl) change(nl); return true; }
         case 'reqpick': reqPopup(JSON.parse(el.dataset.s)); return true;
         case 'reqok': { const v = (($('lvReqQ') || {}).value || '').trim(); if (v) reqPopup({ id: '-', title: v, artist: '-', key: '-', bpm: '-' }); return true; }
       }
@@ -1542,13 +1880,15 @@
     }
     function onChange(ev) {
       const t = ev.target;
+      if (t && t.id === 'lvQSort' && ui.ov && ui.ov.kind === 'qadd') { ui.ov.sort = t.value; renderQAdd(); }
     }
     function onInput(ev) {
       const t = ev.target; if (!t || !ui.ov) return;
       if (t.id === 'lvInsQ' && ui.ov.kind === 'insert') { ui.ov.q = t.value; renderInsert(); }
+      else if (t.id === 'lvQAddQ' && ui.ov.kind === 'qadd') { ui.ov.q = t.value; clearTimeout(timers.qq); timers.qq = setTimeout(renderQAdd, 140); }
       else if (t.id === 'lvReqQ' && ui.ov.kind === 'req') { ui.ov.q = t.value; clearTimeout(timers.rq); timers.rq = setTimeout(renderReqBody, 120); }
     }
-    function onKey(ev) { if (ev.key === 'Enter' && ev.target && ev.target.id === 'lvReqQ') { ev.preventDefault(); act('reqok', ev.target, null, ev); } }
+    function onKey(ev) { if (ev.key === 'Enter' && ev.target && ev.target.id === 'lvReqQ') { ev.preventDefault(); act('reqok', ev.target, null, ev); } else if (ev.key === 'Enter' && ev.target && ev.target.id === 'lvQVenue') { ev.preventDefault(); act('qgo-ok', ev.target, null, ev); } }
     root.addEventListener('click', onClick); root.addEventListener('change', onChange); root.addEventListener('input', onInput); root.addEventListener('keydown', onKey);
 
 
@@ -1627,6 +1967,7 @@
         try { if (pending && !pending.sending) commitPending(); if (D && ui.dirty && !ui.saving && !nextWarn()) doSave(); } catch (e) {}   // ส่งสิ่งที่ค้างก่อนออกจากหน้า
         dgCleanup(); try { root.removeEventListener('click', dgSw, true); root.removeEventListener('pointerdown', dgDown); root.removeEventListener('contextmenu', dgCtx); window.removeEventListener('pointermove', dgMoveEv); window.removeEventListener('pointerup', dgUp); window.removeEventListener('pointercancel', dgCleanup); document.removeEventListener('touchmove', dgTouch); } catch (e) {}
         try { if (landMq && landMq.removeEventListener) landMq.removeEventListener('change', onLandMq); } catch (e) {}
+        try { document.body.classList.remove('lsh-page-quick'); } catch (e) {}
         disposed = true; subs.forEach((f) => { try { f(); } catch (e) {} });
         Object.keys(timers).forEach((k) => clearTimeout(timers[k])); clearInterval(timers.tick);
         if (pending) clearTimeout(pending.timer);
