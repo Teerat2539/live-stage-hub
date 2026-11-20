@@ -2885,3 +2885,19 @@ body.lsh-page-rehearsal > nav { display: none !important; }
 .lsh-qr-img svg { width:min(72vw, 360px, 62vh); height:auto; aspect-ratio:1; display:block; }
 .lsh-qr-name { margin-top:14px; font-size:20px; font-weight:800; color:var(--text); }
 .lsh-qr-sub { margin-top:4px; font-size:13px; color:var(--text-2); }
+
+/* 2.6.0 เพลงจากฐานข้อมูลรอง + ล็อกชื่อเพลงที่ผูกแล้ว */
+#songDetailDrawer .cat-note { display:none; margin-top:8px; font-size:12px; color:var(--text-3); }
+#songDetailDrawer.cat-mode .cat-note { display:block; }
+#songDetailDrawer.cat-mode .cat-hide { display:none !important; }
+#songDetailDrawer:not(.cat-mode) .cat-only { display:none !important; }
+.form-lock { display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:10px; padding:8px 12px; border-radius:10px; border:1px solid var(--line); background:var(--surface-2); font-size:12px; color:var(--text-2); }
+.form-lock button { flex:none; height:34px; padding:0 12px; border-radius:9px; border:1px solid var(--line-strong); background:transparent; color:var(--text-2); font-weight:700; }
+input.is-locked { opacity:.75; background:var(--surface-2); cursor:not-allowed; }
+#catSec { padding:0 0 24px; }
+#catSec .cat-head { margin:14px 4px 8px; padding-top:12px; border-top:1px solid var(--line); font-size:13px; font-weight:800; color:var(--text-2); display:flex; justify-content:space-between; gap:8px; }
+#catSec .cat-head i { font-style:normal; font-weight:600; color:var(--text-3); }
+#catSec .cat-load { margin:6px 4px; font-size:12px; color:var(--text-3); }
+#catSec .song-card { opacity:.88; margin-bottom:8px; }
+#catSec .cat-add { flex:none; width:44px; height:44px; border-radius:12px; border:1px solid var(--live); background:var(--live-soft); color:var(--live); font-size:24px; font-weight:700; line-height:1; padding:0; }
+#catSec .cat-add:active { transform:scale(.94); }

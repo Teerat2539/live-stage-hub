@@ -44,6 +44,8 @@
   <div id="masterSongList" class="song-list">
     <p class="u-empty">กำลังโหลดคลังเพลง...</p>
   </div>
+  <!-- เพลงจากฐานข้อมูลรองที่ตรงกับคำค้น (ยังไม่อยู่ในคลังหลัก) -->
+  <div id="catSec"></div>
 
   <!-- แถบโหมดเลือกหลายเพลง (กดค้างที่การ์ดเพื่อเริ่ม) -->
   <div id="selBar" class="sel-bar hidden" role="toolbar" aria-label="เลือกหลายเพลง">
@@ -83,6 +85,8 @@
     let tagF = null;                 // ปุ่ม # กรองตามแท็ก
     let selMode = false, shownIds = [];
     const selected = new Set();
+    const esc = (t) => String(t == null ? '' : t).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+    let catSeq = 0, catTimer = 0, catKey = '', catRows = {};
 
     // 📌 ดึงชื่อห้องปัจจุบันจาก session มาใช้ดึงข้อมูล setlists ให้ตรงวง
     const sessionStr = localStorage.getItem('lsh_session');
@@ -117,6 +121,7 @@
       db.ref('songs').on('value', (snapshot) => {
         window.lshReady && window.lshReady();
         allSongsData = snapshot.val() || {};
+        if (!window.__songSyncTried) { window.__songSyncTried = true; setTimeout(() => { try { if (window.lshSongSync) window.lshSongSync.migrate(allSongsData); } catch (e) {} }, 1500); }   // ปรับเพลงที่ผูกฐานข้อมูลรองไว้แล้ว (ครั้งเดียว)
         if (tagF) tagF.prune();
         pruneSel();
         onSearchOrFilterChange();
@@ -206,8 +211,9 @@
 
       if (tagF && tagF.sel.size) songList = lshTags.filter(songList, tagF.sel);   // ตรงครบทุกแท็กก่อน → ตรงบางแท็กตามจำนวนที่ตรง
       shownIds = songList.map(x => x.id);
-      renderSongList(songList);
+      renderSongList(songList, searchText);
       updateSelBar();
+      renderCatalogSection(searchText, searchText !== '' && selectedKey === 'ALL' && !(tagF && tagF.sel.size) && !selMode && !(document.getElementById('chkNoChord') && document.getElementById('chkNoChord').checked));
     }
 
     function sortSongArray(arr, option) {
@@ -222,10 +228,14 @@
       });
     }
 
-    function renderSongList(list) {
+    function renderSongList(list, searchText) {
       const container = document.getElementById('masterSongList');
       if (!container) return;
       
+      if (list.length === 0 && searchText) {
+        container.innerHTML = '<p class="u-empty">ไม่พบเพลงนี้ในคลังเพลง</p>';
+        return;
+      }
       if (list.length === 0) {
         container.innerHTML = `
           <div class="empty-state-box">
@@ -249,8 +259,8 @@
             <div style="display:flex;align-items:center;min-width:0">
               ${selMode ? '<span class="sel-ck"></span>' : ''}
               <div>
-                <div class="song-title">${song.title || 'ไม่ระบุชื่อ'}</div>
-                <div class="song-artist">${song.artist || 'ไม่ระบุศิลปิน'}</div>
+                <div class="song-title">${esc(song.title) || 'ไม่ระบุชื่อ'}</div>
+                <div class="song-artist">${esc(song.artist) || 'ไม่ระบุศิลปิน'}</div>
               </div>
             </div>
             <div style="display:flex;align-items:center;gap:12px">
@@ -262,6 +272,34 @@
       });
       container.innerHTML = html;
     }
+
+    // ===== เพลงจากฐานข้อมูลรองที่ตรงกับคำค้น (ยังไม่อยู่ในคลังหลัก): "คุณหมายถึงเพลงนี้หรือเปล่า" 20 เพลงแรก =====
+    function renderCatalogSection(text, show) {
+      const host = document.getElementById('catSec'); if (!host) return;
+      if (!show || !window.lshSongSync) { catSeq++; catKey = ''; host.innerHTML = ''; return; }
+      const ex = new Set(); Object.keys(allSongsData).forEach(id => { const b = allSongsData[id] && allSongsData[id].bk; if (b) ex.add(b); });
+      const key = text + '|' + ex.size; if (key === catKey) return;   // ข้อมูลเดิม ไม่วาดซ้ำ (กันกะพริบ)
+      catKey = key; const my = ++catSeq;
+      const head = '<div class="cat-head"><span>คุณหมายถึงเพลงนี้หรือเปล่า</span><i>จากฐานข้อมูลรอง</i></div>';
+      if (!host.firstChild) host.innerHTML = head + '<div class="cat-load">กำลังค้นหา…</div>';
+      clearTimeout(catTimer);
+      catTimer = setTimeout(async () => {
+        try {
+          const rows = await window.lshSongSync.search(text, ex, 20); if (my !== catSeq) return;
+          if (!rows.length) { host.innerHTML = ''; return; }
+          const canAdd = window.lshSongSync.isMember(); catRows = {};
+          host.innerHTML = head + rows.map(e => { catRows[e[0]] = e;
+            return '<div class="song-card cat-card" data-bk="' + esc(e[0]) + '"><div style="display:flex;align-items:center;min-width:0"><div><div class="song-title">' + esc(e[1]) + '</div><div class="song-artist">' + esc(e[2] || 'ไม่ระบุศิลปิน') + '</div></div></div>' +
+              '<div style="display:flex;align-items:center;gap:10px"><div class="song-key">' + esc(e[3] || '-') + '</div>' + (canAdd ? '<button type="button" class="cat-add" data-bk="' + esc(e[0]) + '" aria-label="เพิ่มเพลงนี้ลงฐานข้อมูล">+</button>' : '') + '</div></div>'; }).join('');
+        } catch (er) { if (my === catSeq) { catKey = ''; host.innerHTML = head + '<div class="cat-load">โหลดฐานข้อมูลรองไม่ได้ ตรวจสอบอินเทอร์เน็ต</div>'; } }
+      }, 200);
+    }
+    document.getElementById('catSec').addEventListener('click', async (e) => {
+      const add = e.target.closest('.cat-add'), card = e.target.closest('.cat-card'); if (!card) return;
+      const row = catRows[(add || card).getAttribute('data-bk')]; if (!row) return;
+      if (add) { add.disabled = true; await window.lshSongSync.addFlow(row, () => allSongsData); add.disabled = false; }
+      else if (window.lshSongKit && window.lshSongKit.openCatalog) window.lshSongKit.openCatalog(row, () => allSongsData);
+    });
 
     // ===== โหมดเลือกหลายเพลง: กดค้างที่การ์ดเพื่อเริ่ม · แตะการ์ดอื่นเพื่อเลือก/เลิกเลือก =====
     const listEl = document.getElementById('masterSongList');

@@ -603,6 +603,7 @@
           set: item.set || 'Set 1',
           status: idx === 0 ? 'next' : (idx === 1 ? 'standby' : 'normal'), // เพลงแรกรอที่ "ถัดไป" — การ์ดเริ่มการแสดงเป็นตัวกำลังเล่นก่อน
           type: 'normal',
+          ...(Number(item.duration) > 0 ? { duration: Number(item.duration) } : {}),   // ความยาวเดิมของลิสต์นี้ (ถ้ามี) ใช้กับเลื่อนอัตโนมัติ
           ...(item.sn ? { sn: item.sn } : {})   // โน้ตแปะส่วนตัว: หน้า Live แสดงของใครของมัน
         });
       });
@@ -922,6 +923,7 @@
         };
         if (item.sn) songsPayload['s_' + i].sn = item.sn;   // โน้ตแปะส่วนตัวจากห้องซ้อม — ไม่ทำหาย
         if (item.bpm) songsPayload['s_' + i].bpm = item.bpm;   // BPM ของลิสต์นี้ (ตั้งจากห้องซ้อม) — ไม่ทำหาย
+        if (Number(item.duration) > 0) songsPayload['s_' + i].duration = Number(item.duration);   // ความยาวเดิมที่เก็บไว้ตอนปรับตามฐานข้อมูลรอง — ไม่ทำหาย
       });
 
       try {
@@ -1111,7 +1113,7 @@
     function medleyPayload(it) {
       const o = {
         name: it.name || '', set: it.set || 'Set 1',
-        parts: medleyParts(it).map(pt => ({ songId: pt.songId, key: pt.key || '', secs: (pt.secs || []).map(x => ({ i: x.i, n: x.n || '' })) }))
+        parts: medleyParts(it).map(pt => Object.assign({ songId: pt.songId, key: pt.key || '', secs: (pt.secs || []).map(x => ({ i: x.i, n: x.n || '' })) }, Number(pt.duration) > 0 ? { duration: Number(pt.duration) } : {}))
       };
       if (it.sn) o.sn = it.sn;   // โน้ตแปะส่วนตัวจากห้องซ้อม
       return o;
@@ -1119,7 +1121,7 @@
     function medleyQueueParts(it) {
       return medleyParts(it).map(pt => {
         const m = allSongsData[pt.songId] || {};
-        return { songId: pt.songId, title: m.title || 'ไม่ระบุชื่อเพลง', artist: m.artist || '', key: pt.key || m.key || '-', secs: (pt.secs || []).map(x => ({ i: x.i, n: x.n || '' })) };
+        return Object.assign({ songId: pt.songId, title: m.title || 'ไม่ระบุชื่อเพลง', artist: m.artist || '', key: pt.key || m.key || '-', secs: (pt.secs || []).map(x => ({ i: x.i, n: x.n || '' })) }, Number(pt.duration) > 0 ? { duration: Number(pt.duration) } : {});
       });
     }
     function medleyRowHtml(item, idx) {
