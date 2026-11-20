@@ -2858,3 +2858,7 @@ body.lsh-page-rehearsal > nav { display: none !important; }
 .sn-note { position: absolute; max-width: min(60%, 220px); min-width: 48px; padding: 5px 8px 6px; background: var(--sn, #ffe14d); color: #111; font-family: inherit; font-size: 12px; font-weight: 600; line-height: 1.35; white-space: pre-wrap; word-break: break-word; border-radius: 2px 2px 8px 2px; box-shadow: 0 2px 5px rgba(0,0,0,.4); transform: rotate(-1.2deg); }
 .sn-note:nth-child(even) { transform: rotate(1deg); }
 .sn-note[data-a] { cursor: pointer; }
+
+/* ===== 2.3.5 เนื้อคอร์ด 1 คอลัมน์: เว้นขอบซ้ายขวา กันตกขอบ ===== */
+.ch-view:not(.ch-cols2) .ch-body { padding-left: 12px; padding-right: 12px; }
+.qx:not(.cols2) .ch-body { padding-left: 12px; padding-right: 12px; }
