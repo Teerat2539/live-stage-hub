@@ -322,7 +322,7 @@
     .rh-bar .lv-btn { flex: none; }
     .rh-bar .sp { flex: 1; }
     .lv-btn.end { border-color: var(--danger); color: var(--c-ff8d8d); background: var(--danger-soft); font-weight: 700; }
-    .lv-btn.add { flex: none; position: absolute; right: 14px; bottom: 14px; height: 52px; border-radius: 999px; padding: 0 20px; background: var(--live); color: var(--live-ink); border-color: var(--live); font-weight: 800; font-size: 15px; white-space: nowrap; box-shadow: 0 6px 18px rgba(0,0,0,.5); z-index: 20; }
+    .lv-btn.add { flex: none; position: absolute; left: 14px; bottom: 14px; height: 52px; border-radius: 999px; padding: 0 20px; background: var(--live); color: var(--live-ink); border-color: var(--live); font-weight: 800; font-size: 15px; white-space: nowrap; box-shadow: 0 6px 18px rgba(0,0,0,.5); z-index: 20; }
     .rh .lv-scroll { padding-bottom: 110px; }
     .rh-card .rh-chev { flex: none; align-self: center; width: 34px; height: 34px; border-radius: 10px; border: 1px solid var(--line); background: var(--surface-2); color: var(--text-3); padding: 0; display: flex; align-items: center; justify-content: center; }
     .rh-card .rh-chev svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; transition: transform .15s; }
@@ -354,8 +354,22 @@
     .rh-pens button.c0 { background: #ffe14d; } .rh-pens button.c1 { background: #6ee7a0; } .rh-pens button.c2 { background: #ff9ad5; } .rh-pens button.c3 { background: #7cc8ff; }
     .rh-pens button.on { border-color: var(--text); box-shadow: 0 0 0 2px var(--live); }
     .lv-seg.rh-penbtn button.on { background: var(--live); color: var(--live-ink); }
-    .lv-exp .ch-body.rh-pen { touch-action: none; -webkit-user-select: text; user-select: text; cursor: crosshair; }
-    .lv-exp .ch-body.rh-pen ::selection { background: rgba(53,230,192,.45); }
+    .lv-exp .ch-body.rh-pen { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; cursor: crosshair; }
+    .rh .lv-ctrl { left: 0; right: 0; bottom: 0; height: 0; display: block; }
+    .rh-fab { position: absolute; right: 14px; bottom: 14px; width: 52px; height: 52px; border-radius: 50%; padding: 0; z-index: 20; display: flex; align-items: center; justify-content: center; background: var(--surface-2); border: 2px solid var(--line-strong); color: var(--text); box-shadow: 0 6px 18px rgba(0,0,0,.5); }
+    .rh-fab svg { width: 24px; height: 24px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+    .rh-fab.on { border-color: var(--live); }
+    .rh-fab.c0 { background: #ffe14d; color: #111; } .rh-fab.c1 { background: #6ee7a0; color: #111; } .rh-fab.c2 { background: #ff9ad5; color: #111; } .rh-fab.c3 { background: #7cc8ff; color: #111; }
+    .rh-fab.x, .rh-fab.n { background: var(--live); color: var(--live-ink); }
+    .rh-penpanel { position: absolute; right: 14px; bottom: 78px; z-index: 21; flex-direction: column; align-items: center; gap: 10px; padding: 10px; border-radius: 28px; background: var(--c-171b23); border: 1px solid var(--line-strong); box-shadow: 0 8px 22px rgba(0,0,0,.55); display: flex; }
+    .rh-penpanel button { width: 40px; height: 40px; }
+    .rh-penpanel button.note { width: 40px; border-radius: 50%; padding: 0; font-size: 18px; }
+    .rh-npop { position: absolute; z-index: 60; display: flex; gap: 6px; padding: 6px; border-radius: 14px; background: var(--c-171b23); border: 1px solid var(--line-strong); box-shadow: 0 8px 22px rgba(0,0,0,.55); }
+    .rh-npop button { width: 42px; height: 42px; border-radius: 12px; border: 1px solid var(--line-strong); background: var(--surface-2); color: var(--text); padding: 0; display: flex; align-items: center; justify-content: center; }
+    .rh-npop button.del { color: var(--c-ff8d8d); border-color: var(--danger); }
+    .rh-npop svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+    #rhPrev { position: fixed; left: 0; top: 0; width: 0; height: 0; z-index: 70; pointer-events: none; }
+    #rhPrev i { position: fixed; border-radius: 3px; opacity: .55; }
     .rh-snpop textarea { width: 100%; height: 110px; padding: 10px; resize: none; }
     .rh-snpop .rh-pens { justify-content: center; margin: 4px 0; }
     .rh-banner { position: absolute; left: 12px; right: 12px; top: 10px; z-index: 80; display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 10px 14px; border-radius: 14px; background: var(--next); color: var(--next-ink); font-weight: 700; font-size: 14px; box-shadow: 0 8px 22px rgba(0,0,0,.55); }
@@ -405,6 +419,7 @@
       lyrics: '<svg viewBox="0 0 24 24"><path d="M4 9h16M4 14h12M4 19h14"/></svg>',
       grip: '<svg viewBox="0 0 18 24"><circle cx="5" cy="6" r="1.8"/><circle cx="13" cy="6" r="1.8"/><circle cx="5" cy="12" r="1.8"/><circle cx="13" cy="12" r="1.8"/><circle cx="5" cy="18" r="1.8"/><circle cx="13" cy="18" r="1.8"/></svg>',
       trash: '<svg viewBox="0 0 24 24"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/></svg>',
+      edit: '<svg viewBox="0 0 24 24"><path d="M4 20l4-1 11-11-3-3L5 16z"/></svg>',
       pen: '<svg viewBox="0 0 24 24"><path d="M4 20l4-1 11-11-3-3L5 16z"/><path d="M14 7l3 3"/></svg>',
       play: '<svg viewBox="0 0 24 24"><path d="M7 4.5v15l13-7.5z"/></svg>'
     };
@@ -477,8 +492,7 @@
         '<div class="lv-seg lv-one" data-k="cols"><button type="button" data-v="t" class="on" aria-label="' + colsLbl() + '">' + (ui.cols2 ? IC.cols2 : IC.cols1) + '</button></div>' +
         '<div class="lv-seg lv-one" data-k="mode"><button type="button" data-v="t" class="on" aria-label="' + modeLbl() + '">' + (ui.lyr ? IC.lyrics : IC.chords) + '</button></div>' +
         '<div class="lv-seg" data-k="fs"><button type="button" data-v="-">A−</button><button type="button" data-v="+">A+</button></div>' +
-        '<div class="lv-seg lv-one rh-penbtn"><button type="button" class="' + (ui.penOpen ? 'on' : '') + '" data-a="pen" aria-label="ปากกาไฮไลต์">' + IC.pen + '</button></div></div>' +
-        (ui.penOpen ? '<div class="rh-pens" data-a="stop-prop">' + [0, 1, 2, 3].map((i) => '<button type="button" class="c' + i + (ui.pen === i ? ' on' : '') + '" data-a="pencol" data-v="' + i + '" aria-label="สีที่ ' + (i + 1) + '"></button>').join('') + '<button type="button" class="' + (ui.pen === 'x' ? 'on' : '') + '" data-a="pencol" data-v="x" aria-label="ยางลบ">ลบ</button><button type="button" class="note' + (ui.pen === 'n' ? ' on' : '') + '" data-a="pencol" data-v="n" aria-label="โน้ตแปะ (เห็นคนเดียว)">✎ โน้ต</button></div>' : '') +
+        '</div>' +
         '<div class="lv-status">กำลังโหลดคอร์ด…</div><div class="ch-body' + (ui.pen != null ? ' rh-pen' : '') + '" style="font-size:' + ui.fs + 'px"></div></div>';
     }
     function toggleSeg(btn) {
@@ -555,7 +569,7 @@
       showOv('<div class="lv-pop rh-snpop" data-a="stop-prop"><h4>โน้ตแปะ <span style="font-size:12px;color:var(--text-3);font-weight:400">เห็นคนเดียว</span></h4>' +
         '<textarea class="rh-in" id="rhSnText" placeholder="พิมพ์โน้ต…" maxlength="300">' + esc(old ? old.t : '') + '</textarea>' +
         '<div class="rh-pens" id="rhSnCols">' + [0, 1, 2, 3].map((i) => '<button type="button" class="c' + i + (i === c0 ? ' on' : '') + '" data-a="sncol" data-v="' + i + '" aria-label="สีที่ ' + (i + 1) + '"></button>').join('') + '</div>' +
-        '<button type="button" class="lv-pb live" data-a="snsave">บันทึก</button>' + (old ? '<button type="button" class="lv-pb warn" data-a="sndel">ลบโน้ตนี้</button>' : '') + '<button type="button" class="lv-pb" data-a="ovclose">ยกเลิก</button></div>', 'center', 'note', { itemId: itemId, addr: addr, noteId: noteId || null, c: c0 });
+        '<button type="button" class="lv-pb live" data-a="snsave">บันทึก</button>' + '<button type="button" class="lv-pb" data-a="ovclose">ยกเลิก</button></div>', 'center', 'note', { itemId: itemId, addr: addr, noteId: noteId || null, c: c0 });
       setTimeout(() => { const t = $('rhSnText'); if (t) t.focus(); }, 50);
     }
     function saveNote() {
@@ -567,49 +581,60 @@
       else upd({}).then(() => ref(base).push(Object.assign({}, o.addr, { c: o.c, t: t, at: nowMs() })));
       closeOv(); return true;
     }
+    // ===== ใช้เครื่องมือบนเนื้อคอร์ด =====
+    // ไฮไลต์: กดค้างแล้วลาก (เลื่อนหน้าจอด้วยนิ้วได้ปกติ) · โน้ต/ยางลบ: แตะ (ทำตอนปล่อยนิ้ว ถ้านิ้วไม่ขยับ)
+    const PEN_HEX = ['#ffe14d', '#6ee7a0', '#ff9ad5', '#7cc8ff'];
     let pd = null;
+    function penPreview(r, color) {
+      let box = $('rhPrev'); if (!box) { box = document.createElement('div'); box.id = 'rhPrev'; document.body.appendChild(box); }
+      box.innerHTML = r ? Array.from(r.getClientRects()).map((q) => '<i style="left:' + q.left + 'px;top:' + q.top + 'px;width:' + q.width + 'px;height:' + q.height + 'px;background:' + color + '"></i>').join('') : '';
+    }
     function penDown(ev) {
       if (ui.pen == null || (ev.pointerType === 'mouse' && ev.button !== 0)) return;
       const body = ev.target.closest && ev.target.closest('.ch-body.rh-pen'); if (!body || !root.contains(body)) return;
-      if (ui.pen === 'n') {   // โน้ตแปะ: แตะตำแหน่งที่จะติด (แตะหมุดเดิม = ให้ตัวกดปกติเปิดดู/แก้)
-        const b0 = ev.target.closest && ev.target.closest('.ch-body.rh-pen'); if (!b0 || !root.contains(b0) || (ev.target.closest && ev.target.closest('[data-n]'))) return;
-        const c = caretAt(ev.clientX, ev.clientY); if (!c) return;
-        const ad = window.lshSticky.pointAddr(c, b0); ev.preventDefault();
-        if (ad) openNote(b0.closest('.lv-exp').dataset.xid, ad, null); else lshToast('แตะที่ตัวอักษรหรือคอร์ดเพื่อติดโน้ต', 'warn');
-        return;
+      pd = { body: body, tgt: ev.target, x: ev.clientX, y: ev.clientY, pid: ev.pointerId, id: body.closest('.lv-exp').dataset.xid, active: false, c0: null, r: null, timer: 0 };
+      if (typeof ui.pen === 'number') {
+        const start = () => { if (!pd) return; const c = caretAt(pd.x, pd.y); if (!c) { pd = null; return; } pd.c0 = c; pd.active = true; ui.drawing = true; try { pd.body.setPointerCapture(pd.pid); } catch (e) {} try { if (navigator.vibrate) navigator.vibrate(12); } catch (e) {} };
+        if (ev.pointerType === 'mouse') start(); else pd.timer = setTimeout(start, 280);
       }
-      if (ui.pen === 'x') {   // ยางลบ: แตะที่ไฮไลต์ ลบทั้งก้อนที่ลงไว้ครั้งนั้น
-        const hit = ev.target.closest && ev.target.closest('[data-g], [data-n]');   // ไฮไลต์ หรือ โน้ตแปะ (หมุด/กล่องข้อความ) — ลบอันที่แตะ
-        if (hit && body.contains(hit)) {
-          ev.preventDefault(); const id = body.closest('.lv-exp').dataset.xid;
-          if (hit.dataset.n) ref('sn/' + myKey + '/' + id + '/' + hit.dataset.n).remove().then(() => upd({})).catch(() => lshToast('ลบโน้ตไม่สำเร็จ', 'error'));
-          else ref('hl/' + id + '/' + hit.dataset.g).remove().then(() => upd({})).catch(() => lshToast('ลบไฮไลต์ไม่สำเร็จ', 'error'));
-        }
-        return;
-      }
-      const c = caretAt(ev.clientX, ev.clientY); if (!c) return;
-      pd = { body: body, c0: c, id: body.closest('.lv-exp').dataset.xid, r: null }; ui.drawing = true;
-      try { body.setPointerCapture(ev.pointerId); } catch (e) {}
-      ev.preventDefault();
     }
     function penMove(ev) {
-      if (!pd) return; const c = caretAt(ev.clientX, ev.clientY); if (!c) return;
+      if (!pd) return;
+      if (!pd.active) { if (Math.abs(ev.clientX - pd.x) > 8 || Math.abs(ev.clientY - pd.y) > 8) { clearTimeout(pd.timer); pd.moved = true; if (typeof ui.pen === 'number') pd = null; } return; }
+      const c = caretAt(ev.clientX, ev.clientY); if (!c) return;
       const r = document.createRange(), a = pd.c0, cmp = a.compareBoundaryPoints(Range.START_TO_START, c);
       if (cmp <= 0) { r.setStart(a.startContainer, a.startOffset); r.setEnd(c.startContainer, c.startOffset); } else { r.setStart(c.startContainer, c.startOffset); r.setEnd(a.startContainer, a.startOffset); }
-      pd.r = r; const sel = window.getSelection(); sel.removeAllRanges(); sel.addRange(r); ev.preventDefault();
+      pd.r = r; penPreview(r, PEN_HEX[ui.pen] || '#ffe14d'); ev.preventDefault();
     }
-    function penUp() {
-      if (!pd) return; const d = pd; pd = null; ui.drawing = false;
-      const sel = window.getSelection(); if (sel) sel.removeAllRanges();
-      if (d.r && !d.r.collapsed && d.body.isConnected) {
-        const pcs = piecesOf(d.r, d.body);
-        if (pcs.length) {
-          { const v = V(d.id); say('ไฮไลต์เพลง ' + (v ? v.title : '')); ref('hl/' + d.id).push({ c: ui.pen, by: me, at: nowMs(), p: pcs }).catch(() => lshToast('ไฮไลต์ไม่สำเร็จ', 'error')); upd({}); }
+    function penUp(ev) {
+      if (!pd) return; const d = pd; pd = null; clearTimeout(d.timer);
+      const cancelled = ev && ev.type === 'pointercancel';
+      if (d.active) {
+        ui.drawing = false; penPreview(null);
+        if (!cancelled && d.r && !d.r.collapsed && d.body.isConnected) {
+          const pcs = piecesOf(d.r, d.body);
+          if (pcs.length) { const v = V(d.id); say('ไฮไลต์เพลง ' + (v ? v.title : '')); ref('hl/' + d.id).push({ c: ui.pen, by: me, at: nowMs(), p: pcs }).catch(() => lshToast('ไฮไลต์ไม่สำเร็จ', 'error')); upd({}); }
         }
+        if (ui.deferred) { ui.deferred = false; render(); }
+        return;
       }
-      if (ui.deferred) { ui.deferred = false; render(); }
+      if (cancelled || d.moved || (ui.pen !== 'n' && ui.pen !== 'x')) return;
+      if (ui.pen === 'n') {   // โน้ตแปะ: แตะตำแหน่งที่จะติด (แตะโพสอิทเดิม = ให้ตัวกดปกติเปิดป๊อปโอเวอร์)
+        if (d.tgt.closest && d.tgt.closest('[data-n]')) return;
+        const c = caretAt(d.x, d.y); if (!c) return;
+        const ad = window.lshSticky.pointAddr(c, d.body);
+        if (ad) openNote(d.id, ad, null); else lshToast('แตะที่ตัวอักษรหรือคอร์ดเพื่อติดโน้ต', 'warn');
+        return;
+      }
+      const hit = d.tgt.closest && d.tgt.closest('[data-g], [data-n]');   // ยางลบ: แตะไฮไลต์หรือโพสอิท ลบอันนั้นทั้งก้อน
+      if (hit && d.body.contains(hit)) {
+        if (hit.dataset.n) ref('sn/' + myKey + '/' + d.id + '/' + hit.dataset.n).remove().then(() => upd({})).catch(() => lshToast('ลบโน้ตไม่สำเร็จ', 'error'));
+        else ref('hl/' + d.id + '/' + hit.dataset.g).remove().then(() => upd({})).catch(() => lshToast('ลบไฮไลต์ไม่สำเร็จ', 'error'));
+      }
     }
     root.addEventListener('pointerdown', penDown); root.addEventListener('pointermove', penMove); root.addEventListener('pointerup', penUp); root.addEventListener('pointercancel', penUp);
+    root.addEventListener('touchmove', (ev) => { if (pd && pd.active) ev.preventDefault(); }, { passive: false });   // ลากไฮไลต์อยู่ ห้ามหน้าจอเลื่อน
+    root.addEventListener('contextmenu', (ev) => { if (ui.pen != null && ev.target.closest && ev.target.closest('.ch-body.rh-pen')) ev.preventDefault(); });
     function hlNews(first) {   // ไฮไลต์ใหม่จากคนอื่น: ตามเพลงที่ซ้อมอยู่ → เด้งไปตรงนั้น
       const seen = ui.hlSeen || (ui.hlSeen = new Set()); let latest = null;
       Object.keys((N && N.hl) || {}).forEach((id) => Object.keys(N.hl[id]).forEach((gid) => { if (seen.has(gid)) return; seen.add(gid); const h = N.hl[id][gid]; if (!first && h.by !== me && (!latest || (h.at || 0) > (latest.h.at || 0))) latest = { id: id, gid: gid, h: h }; }));
@@ -669,7 +694,11 @@
     }
     function renderCtrl() {
       const el = $('lvCtrl'); if (!el) return;
-      el.innerHTML = '<button type="button" class="lv-btn add" data-a="add">' + IC.plus + 'เพิ่มเพลง</button>';
+      if (!ui.exId) { ui.pen = null; ui.penOpen = false; }   // เครื่องมือดินสอใช้ได้เฉพาะตอนมีคอร์ดเปิดอยู่
+      const col = (typeof ui.pen === 'number') ? 'c' + ui.pen : (ui.pen === 'x' || ui.pen === 'n' ? ui.pen : '');
+      const panel = ui.exId && ui.penOpen ? '<div class="rh-pens rh-penpanel" data-a="stop-prop">' + [0, 1, 2, 3].map((i) => '<button type="button" class="c' + i + (ui.pen === i ? ' on' : '') + '" data-a="pencol" data-v="' + i + '" aria-label="ไฮไลต์สีที่ ' + (i + 1) + '"></button>').join('') + '<button type="button" class="' + (ui.pen === 'x' ? 'on' : '') + '" data-a="pencol" data-v="x" aria-label="ยางลบ">ลบ</button><button type="button" class="note' + (ui.pen === 'n' ? ' on' : '') + '" data-a="pencol" data-v="n" aria-label="โน้ตแปะ (เห็นคนเดียว)">✎</button></div>' : '';
+      el.innerHTML = '<button type="button" class="lv-btn add" data-a="add">' + IC.plus + 'เพิ่มเพลง</button>' + panel +
+        (ui.exId ? '<button type="button" class="rh-fab ' + col + (ui.penOpen ? ' on' : '') + '" data-a="pen" aria-label="เครื่องมือปากกา/โน้ต">' + IC.pen + '</button>' : '');
     }
     function renderUndo() {
       let el = $('rhUndo');
@@ -841,13 +870,18 @@
         case 'strip': ui.stripOpen = !ui.stripOpen; lsSave('lsh_rh_strip', ui.stripOpen ? '1' : '0'); renderStrip(); return true;
         case 'followsw': ui.follow = !ui.follow; lsSave('lsh_rh_follow', ui.follow ? '1' : '0'); renderStrip(); return true;
         case 'end': endRehearsal(); return true;
-        case 'notev': if (ui.pen === 'x') return true;   // โหมดยางลบ: แตะเพื่อลบ ไม่ใช่เปิดแก้
-          { const xid = el.closest('.lv-exp') ? el.closest('.lv-exp').dataset.xid : null, n = xid ? myNotes(xid).find((q) => q.id === el.dataset.n) : null; if (n) openNote(xid, { a: n.a, k: n.k, s: n.s }, n.id); return true; }
+        case 'notev': {   // แตะโพสอิท → ป๊อปโอเวอร์ชี้ที่โพสอิทใบนั้น (แก้ไข / ลบ) · โหมดยางลบ: ลบตอนปล่อยนิ้วอยู่แล้ว
+          if (ui.pen === 'x') return true;
+          const xid = el.closest('.lv-exp') ? el.closest('.lv-exp').dataset.xid : null, n = xid ? myNotes(xid).find((q) => q.id === el.dataset.n) : null; if (!n) return true;
+          const anchor = el.closest('.sn-note') || el, rr = root.getBoundingClientRect(), r = anchor.getBoundingClientRect(), up = (rr.bottom - r.bottom) < 80;
+          showOv('<div class="rh-npop" data-a="stop-prop" style="left:' + Math.max(8, Math.min(r.left - rr.left, rr.width - 108)) + 'px;' + (up ? 'bottom:' + (rr.bottom - r.top + 6) + 'px' : 'top:' + (r.bottom - rr.top + 6) + 'px') + '"><button type="button" data-a="snedit" aria-label="แก้ไขโน้ต">' + IC.edit + '</button><button type="button" class="del" data-a="sndel" aria-label="ลบโน้ต">' + IC.trash + '</button></div>', 'pov', 'npop', { itemId: xid, noteId: n.id, addr: { a: n.a, k: n.k, s: n.s } });
+          return true; }
+        case 'snedit': { const o = ui.ov; if (o && o.kind === 'npop') openNote(o.itemId, o.addr, o.noteId); return true; }
         case 'sncol': if (ui.ov && ui.ov.kind === 'note') { ui.ov.c = Number(el.dataset.v); document.querySelectorAll('#rhSnCols button').forEach((b) => b.classList.toggle('on', b === el)); } return true;
         case 'snsave': saveNote(); return true;
         case 'sndel': { const o = ui.ov; if (o && o.noteId) { ref('sn/' + myKey + '/' + o.itemId + '/' + o.noteId).remove(); upd({}); } closeOv(); return true; }
         case 'gotoreh': { const o = ui.ov, gid = el.dataset.id; if (o && o.kind === 'note') { const t = (($('rhSnText') || {}).value || '').trim(); if (t) saveNote(); else closeOv(); } if (orderIds().includes(gid)) { ui.exId = gid; ui.toolId = null; ui.jump = true; render(); scrollToCard(gid); } return true; }
-        case 'pen': ui.penOpen = !ui.penOpen; if (!ui.penOpen) ui.pen = null; render(); return true;
+        case 'pen': ui.penOpen = !ui.penOpen; render(); return true;
         case 'pencol': { const v = (el.dataset.v === 'x' || el.dataset.v === 'n') ? el.dataset.v : Number(el.dataset.v); ui.pen = ui.pen === v ? null : v; render(); return true; }
         case 'add': openAdd(); return true;
         case 'addpick': { let s; try { s = JSON.parse(el.dataset.s); } catch (e) { return true; } addSong(s); return true; }
