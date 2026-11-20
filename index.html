@@ -179,6 +179,12 @@
       v._frT = setTimeout(() => v.removeAttribute('data-fr'), kind === 'next' ? 3000 : 60000);
       if (!v._frTap) { v._frTap = true; v.addEventListener('pointerdown', () => { if (v.getAttribute('data-fr') === 'talk') { clearTimeout(v._frT); v.removeAttribute('data-fr'); } }, true); }
     };
+    // แตะนอกป๊อปโอเวอร์/เมนู = ปิดเฉพาะอันนั้น: กลืนคลิกที่ตามมา ไม่ให้ทะลุไปกดปุ่ม/ปิดหน้าต่างที่อยู่ข้างใต้
+    window.lshSwallowClick = function() {
+      const h = (e) => { e.stopPropagation(); e.preventDefault(); off(); };
+      const off = () => { clearTimeout(t); document.removeEventListener('click', h, true); };
+      const t = setTimeout(off, 700); document.addEventListener('click', h, true);
+    };
     window.lshAttention = function(textEl, kind) {
       try { window.lshChordFrame(kind); } catch (e) {}
       const box = textEl && textEl.closest ? textEl.closest('.top-box') : null;
@@ -523,7 +529,7 @@
         if (below >= ph || below >= r.top - 12) { pop.style.top = (r.bottom + 8) + 'px'; pop.style.maxHeight = Math.max(160, below - 4) + 'px'; pop.style.transformOrigin = 'top left'; }
         else { pop.style.bottom = (window.innerHeight - r.top + 8) + 'px'; pop.style.maxHeight = Math.max(160, r.top - 20) + 'px'; pop.style.transformOrigin = 'bottom left'; }
         pop.addEventListener('click', (e) => { const b = e.target.closest('[data-v]'); if (!b) return; const v = b.getAttribute('data-v'); close(); cfg.onPick(v); });
-        closer = (e) => { if (pop && !pop.contains(e.target) && !btn.contains(e.target)) close(); };
+        closer = (e) => { if (pop && !pop.contains(e.target) && !btn.contains(e.target)) { close(); window.lshSwallowClick(); } };
         document.addEventListener('pointerdown', closer, true); document.addEventListener('keydown', onKey, true);
         requestAnimationFrame(() => pop && pop.classList.add('in'));
       }
@@ -605,7 +611,7 @@
           if (below >= ph || below >= r.top - 12) { pop.style.top = (r.bottom + 8) + 'px'; pop.style.maxHeight = Math.max(160, below - 4) + 'px'; pop.style.transformOrigin = 'top left'; }
           else { pop.style.bottom = (window.innerHeight - r.top + 8) + 'px'; pop.style.maxHeight = Math.max(160, r.top - 20) + 'px'; pop.style.transformOrigin = 'bottom left'; }
           pop.addEventListener('click', (e) => { const b = e.target.closest('.lshtg-chip'); if (!b) return; const k = b.getAttribute('data-k'); if (sel.has(k)) sel.delete(k); else sel.add(k); b.classList.toggle('st2', sel.has(k)); change(); });
-          closer = (e) => { if (pop && !pop.contains(e.target) && !btn.contains(e.target)) closePop(); };
+          closer = (e) => { if (pop && !pop.contains(e.target) && !btn.contains(e.target)) { closePop(); window.lshSwallowClick(); } };
           document.addEventListener('pointerdown', closer, true); document.addEventListener('keydown', onKey, true);
           requestAnimationFrame(() => pop && pop.classList.add('in'));
         }
@@ -647,7 +653,7 @@
         inp.onkeydown = (e) => { if (e.key === 'Enter') { e.preventDefault(); addTyped(); } };
         body.onclick = (e) => { const b = e.target.closest('.lshtg-chip'); if (!b) return; const k = b.getAttribute('data-k'), st = state.get(k) || 0; state.set(k, st === 2 ? 0 : 2); paint(); };   // ไม่มี/ติ๊กครึ่ง → ติ๊กเต็ม · ติ๊กเต็ม → เอาออก
         ov.querySelector('.lshtg-cancel').onclick = close;
-        ov.addEventListener('pointerdown', (e) => { if (e.target === ov) close(); });
+        ov.addEventListener('click', (e) => { if (e.target === ov) close(); });
         ov.querySelector('.lshtg-save').onclick = async () => {
           const pending = clean(inp.value); if (pending) addTyped();   // ยังพิมพ์ค้างไว้ในช่อง = นับเป็นแท็กที่เพิ่ม
           const upd = {}; let n = 0;
@@ -1140,6 +1146,7 @@
         $('songFormOverlay').onclick = () => { $('unsavedWarningOverlay').classList.remove('hidden'); };
         $('btnConfirmDiscard').onclick = () => { $('unsavedWarningOverlay').classList.add('hidden'); $('songFormOverlay').classList.add('hidden'); };
         $('btnCancelDiscard').onclick = () => { $('unsavedWarningOverlay').classList.add('hidden'); };
+        $('unsavedWarningOverlay').onclick = (e) => { if (e.target === e.currentTarget) $('unsavedWarningOverlay').classList.add('hidden'); };   // แตะนอกกล่อง = เขียนต่อ
         $('btnCancelForm').onclick = () => { $('songFormOverlay').classList.add('hidden'); };
         $('btnSaveSong').onclick = saveSongData;
         $('btnTapTempo').onclick = () => {
@@ -1166,6 +1173,7 @@
           $('deleteConfirmOverlay').classList.remove('hidden');
         };
         $('btnCancelDelete').onclick = () => { $('deleteConfirmOverlay').classList.add('hidden'); };
+        $('deleteConfirmOverlay').onclick = (e) => { if (e.target === e.currentTarget) $('deleteConfirmOverlay').classList.add('hidden'); };
         $('btnExecuteDelete').onclick = async () => {
           if (!currentActiveSongId) return;
           try {
@@ -1621,6 +1629,7 @@
           }, 250); };
           skip.onclick = () => done({});
           if (allowCancel) ov.querySelector('.lk-cancel').onclick = () => done('cancel');
+          ov.addEventListener('click', (e) => { if (e.target === ov) done(allowCancel ? 'cancel' : {}); });   // แตะนอกกล่อง = ยกเลิก/ปิด
         });
       }
       // ตอนเพิ่มเพลงใหม่: คืน 'cancel' (กลับไปแก้ฟอร์ม) / {} (บันทึกโดยไม่มีคอร์ด) / {bk,d,b,y,g}
@@ -2302,8 +2311,8 @@
   </div>
 
   <!-- POPUP ยืนยันออกจากระบบ -->
-  <div id="logoutConfirmModal" class="overlay hidden">
-    <div class="box">
+  <div id="logoutConfirmModal" class="overlay hidden" onclick="closeLogoutModal()">
+    <div class="box" onclick="event.stopPropagation()">
       <h3 style="margin-bottom:10px">ออกจากระบบ</h3>
       <p class="modal-desc">คุณต้องการออกจากระบบและสลับห้องใช่หรือไม่?</p>
       <button onclick="confirmLogout()" class="btn-danger">ยืนยัน</button>
@@ -2312,7 +2321,7 @@
   </div>
 
   <!-- POPUP ยืนยันเคลียร์คิว -->
-  <div id="clearQueueConfirmModal" class="overlay hidden">
+  <div id="clearQueueConfirmModal" class="overlay hidden" onclick="closeClearQueueModal(event)">
     <div class="box" onclick="event.stopPropagation()">
       <h3 style="margin-bottom:10px;color:var(--c-ff5451)"><svg class="ic" aria-hidden="true"><use href="#i-eraser"/></svg> เคลียร์คิวและข้อมูลโชว์</h3>
       <p class="modal-desc">คุณต้องการล้างคิวเพลง, ท็อคแบค และรีเควสทั้งหมด เพื่อเริ่มโชว์ใหม่ใช่หรือไม่?</p>
@@ -2340,7 +2349,7 @@
   </div>
 
   <!-- POPUP ล็อกอินสมาชิก -->
-  <div id="memberLoginModal" class="overlay hidden">
+  <div id="memberLoginModal" class="overlay hidden" onclick="cancelToRoomSelect()">
     <div class="box" onclick="event.stopPropagation()">
       <h3>เข้าสู่ระบบ</h3>
       <p style="font-size:12px;color:var(--c-aaaaaa);margin:5px 0">ล็อกอินครั้งเดียวอยู่ได้จนถึงเที่ยงวันของวันที่ 7 <b id="loginRoomLabel" hidden></b></p>
@@ -2383,7 +2392,7 @@
   </div>
 
   <!-- POPUP จอยวง (กรอกชื่อเล่น + รหัสห้อง 4 หลัก) -->
-  <div id="joinBandModal" class="overlay hidden">
+  <div id="joinBandModal" class="overlay hidden" onclick="closeJoinBand()">
     <div class="box" onclick="event.stopPropagation()" style="text-align:left">
       <button type="button" class="join-back" onclick="closeJoinBand()" aria-label="กลับ"><svg class="ic ic-solo" aria-hidden="true"><use href="#i-close"/></svg></button>
       <h3 style="margin:4px 0 6px">จอยวง</h3>
@@ -2427,7 +2436,7 @@
   </div>
 
   <!-- POPUP ยืนยันการลบร้าน -->
-  <div id="deleteRoomConfirmModal" class="overlay hidden">
+  <div id="deleteRoomConfirmModal" class="overlay hidden" onclick="closeDeleteRoomModal(event)">
     <div class="box" onclick="event.stopPropagation()">
       <h3 style="margin-bottom:10px;color:var(--c-ef4444)"><svg class="ic" aria-hidden="true"><use href="#i-trash"/></svg> ยืนยันการลบข้อมูลร้าน</h3>
       <p id="deleteRoomText" class="modal-desc">คุณต้องการลบข้อมูลรีเควสทั้งหมดของร้านนี้ใช่หรือไม่?</p>
@@ -2545,7 +2554,7 @@
     };
 
     // ===== ตรวจเวอร์ชันแอป (2.0): เทียบเลขใน version.json บนเซิร์ฟเวอร์ กับเลขของโค้ดที่เปิดอยู่ =====
-    const LSH_APP_VER = '2.4.0';
+    const LSH_APP_VER = '2.4.1';
     window.LSH_VER_TXT = LSH_APP_VER;
     try { const dv = document.getElementById('drawerVersion'); if (dv) dv.textContent = 'เวอร์ชัน ' + LSH_APP_VER; } catch (e) {}   // แสดงเลขเวอร์ชันท้ายเมนูแฮมเบอร์เกอร์
     let lshVerAt = 0;

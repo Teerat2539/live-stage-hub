@@ -165,8 +165,8 @@
   </div>
 
   <!-- Pop-up ยืนยันเมื่อมีข้อมูลยังไมเค้าบันทึก (Unsaved Warning) -->
-  <div id="unsavedWarningModal" class="setlist-overlay hidden" style="z-index:15500">
-    <div class="setlist-form-box u-center">
+  <div id="unsavedWarningModal" class="setlist-overlay hidden" style="z-index:15500" onclick="window.closeUnsavedModal()">
+    <div class="setlist-form-box u-center" onclick="event.stopPropagation()">
       <h3 class="modal-title is-warn"><svg class="ic" aria-hidden="true"><use href="#i-alert"/></svg> ยังไม่ได้บันทึกข้อมูล</h3>
       <p class="modal-desc">คุณต้องการออกจากหน้านี้โดยไม่บันทึกใช่หรือไม่?</p>
       <div class="u-row-center">
@@ -178,8 +178,8 @@
 
   <!-- Pop-up ยืนยันการบันทึก -->
   <!-- เตือนตอนเริ่มโชว์: ลิสต์นี้มีร่างที่ซ้อมกันมาและยังไม่ได้บันทึก -->
-  <div id="rehearseWarnModal" class="setlist-overlay hidden" style="z-index:15000">
-    <div class="setlist-form-box u-center">
+  <div id="rehearseWarnModal" class="setlist-overlay hidden" style="z-index:15000" onclick="document.getElementById('btnWarnCancel').click()">
+    <div class="setlist-form-box u-center" onclick="event.stopPropagation()">
       <h3 class="modal-title">ลิสต์นี้มีที่ซ้อมกันมา</h3>
       <p class="modal-desc">มีการแก้ไขจากห้องซ้อมที่ยังไม่ได้บันทึก จะเล่นลิสต์แบบไหน?</p>
       <div class="u-row-center" style="flex-direction:column;gap:8px">
@@ -190,8 +190,8 @@
     </div>
   </div>
 
-  <div id="saveConfirmModal" class="setlist-overlay hidden" style="z-index:15000">
-    <div class="setlist-form-box u-center">
+  <div id="saveConfirmModal" class="setlist-overlay hidden" style="z-index:15000" onclick="window.closeSaveModal()">
+    <div class="setlist-form-box u-center" onclick="event.stopPropagation()">
       <h3 class="modal-title"><svg class="ic" aria-hidden="true"><use href="#i-save"/></svg> ยืนยันการบันทึก</h3>
       <p class="modal-desc">ต้องการบันทึกการเปลี่ยนแปลงแฟ้มลิสต์เพลงนี้ใช่หรือไม่?</p>
       <div class="u-row-center">
@@ -202,8 +202,8 @@
   </div>
 
   <!-- Pop-up ยืนยันการลบลิสต์ -->
-  <div id="deleteConfirmModal" class="setlist-overlay hidden" style="z-index:15000">
-    <div class="setlist-form-box u-center">
+  <div id="deleteConfirmModal" class="setlist-overlay hidden" style="z-index:15000" onclick="window.closeDeleteModal()">
+    <div class="setlist-form-box u-center" onclick="event.stopPropagation()">
       <h3 class="modal-title is-danger"><svg class="ic" aria-hidden="true"><use href="#i-trash"/></svg> ยืนยันการลบลิสต์เพลง</h3>
       <p class="modal-desc">ต้องการลบแฟ้มลิสต์เพลงนี้ออกจากระบบใช่หรือไม่?</p>
       <div class="u-row-center">

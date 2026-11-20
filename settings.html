@@ -302,8 +302,8 @@
   </div>
 
   <!-- Popup ยืนยันการกระทำ (Generic Confirm Modal) -->
-  <div id="genericConfirmModal" class="set-overlay hidden">
-    <div class="set-modal-box u-center">
+  <div id="genericConfirmModal" class="set-overlay hidden" onclick="closeGenericConfirm()">
+    <div class="set-modal-box u-center" onclick="event.stopPropagation()">
       <h3 id="genericConfirmTitle" class="modal-title is-warn"><svg class="ic" aria-hidden="true"><use href="#i-alert"/></svg> ยืนยันการดำเนินการ</h3>
       <p id="genericConfirmDesc" class="modal-desc">คุณต้องการดำเนินการนี้ใช่หรือไม่?</p>
       <div class="u-row-center">
