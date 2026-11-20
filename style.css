@@ -2875,3 +2875,13 @@ body.lsh-page-rehearsal > nav { display: none !important; }
   input:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=color]):not([type=file]):not([type=button]):not([type=submit]),
   textarea { font-size: max(16px, 1em) !important; }
 }
+
+/* 2.5.0 QR เข้าวง */
+.band-code-btns { display:flex; flex-direction:column; gap:8px; }
+.band-code-btns .band-copy { min-width:76px; }
+.lsh-qr-ov { z-index:15300; }
+.lsh-qr-box { width:auto !important; max-width:92vw; text-align:center; padding:20px !important; }
+.lsh-qr-img { background:#fff; border-radius:16px; padding:6px; line-height:0; display:inline-block; }
+.lsh-qr-img svg { width:min(72vw, 360px, 62vh); height:auto; aspect-ratio:1; display:block; }
+.lsh-qr-name { margin-top:14px; font-size:20px; font-weight:800; color:var(--text); }
+.lsh-qr-sub { margin-top:4px; font-size:13px; color:var(--text-2); }

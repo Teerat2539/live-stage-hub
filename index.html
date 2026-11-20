@@ -179,6 +179,78 @@
       v._frT = setTimeout(() => v.removeAttribute('data-fr'), kind === 'next' ? 3000 : 60000);
       if (!v._frTap) { v._frTap = true; v.addEventListener('pointerdown', () => { if (v.getAttribute('data-fr') === 'talk') { clearTimeout(v._frT); v.removeAttribute('data-fr'); } }, true); }
     };
+    // ตัวสร้าง QR โค้ด (ภายในแอป ไม่ใช้เน็ต) — โหมดไบต์ UTF-8, แก้ผิดระดับ M, เวอร์ชัน 1–10 (ข้อความได้ถึง ~210 ไบต์)
+    window.lshQR = (function() {
+      const TOTAL = [0, 26, 44, 70, 100, 134, 172, 196, 242, 292, 346], ECC = [0, 10, 16, 26, 18, 24, 16, 18, 22, 22, 26], NB = [0, 1, 1, 1, 2, 2, 4, 4, 4, 5, 5];
+      const ALIGN = [null, [], [6, 18], [6, 22], [6, 26], [6, 30], [6, 34], [6, 22, 38], [6, 24, 42], [6, 26, 46], [6, 28, 50]];
+      const EXP = new Array(512), LOG = new Array(256);
+      (function() { let x = 1; for (let i = 0; i < 255; i++) { EXP[i] = x; LOG[x] = i; x <<= 1; if (x & 256) x ^= 0x11d; } for (let i = 255; i < 512; i++) EXP[i] = EXP[i - 255]; })();
+      const mul = (a, b) => (a && b) ? EXP[LOG[a] + LOG[b]] : 0;
+      function rsRem(data, n) {
+        const coef = new Array(n).fill(0); coef[n - 1] = 1; let root = 1;
+        for (let i = 0; i < n; i++) { for (let j = 0; j < n; j++) { coef[j] = mul(coef[j], root); if (j + 1 < n) coef[j] ^= coef[j + 1]; } root = mul(root, 2); }
+        const rem = new Array(n).fill(0);
+        data.forEach((b) => { const f = b ^ rem.shift(); rem.push(0); for (let i = 0; i < n; i++) rem[i] ^= mul(coef[i], f); });
+        return rem;
+      }
+      const utf8 = (s) => Array.from(unescape(encodeURIComponent(s))).map((c) => c.charCodeAt(0));
+      function build(text) {
+        const bytes = utf8(text); let ver = 0;
+        for (let v = 1; v <= 10; v++) { const dataCw = TOTAL[v] - ECC[v] * NB[v]; if (bytes.length <= dataCw - (v < 10 ? 2 : 3)) { ver = v; break; } }
+        if (!ver) return null;
+        const dataCw = TOTAL[ver] - ECC[ver] * NB[ver], bits = [];
+        const put = (val, n) => { for (let i = n - 1; i >= 0; i--) bits.push((val >>> i) & 1); };
+        put(4, 4); put(bytes.length, ver < 10 ? 8 : 16); bytes.forEach((b) => put(b, 8));
+        put(0, Math.min(4, dataCw * 8 - bits.length)); while (bits.length % 8) bits.push(0);
+        const data = []; for (let i = 0; i < bits.length; i += 8) { let b = 0; for (let j = 0; j < 8; j++) b = (b << 1) | bits[i + j]; data.push(b); }
+        for (let p = 0xEC; data.length < dataCw; p ^= 0xEC ^ 0x11) data.push(p);
+        const nb = NB[ver], eccLen = ECC[ver], short = nb - TOTAL[ver] % nb, shortLen = Math.floor(TOTAL[ver] / nb), blocks = [];
+        for (let i = 0, k = 0; i < nb; i++) { const d = data.slice(k, k + shortLen - eccLen + (i < short ? 0 : 1)); k += d.length; blocks.push({ d: d, e: rsRem(d, eccLen) }); }
+        const all = []; for (let i = 0; i < blocks[nb - 1].d.length; i++) blocks.forEach((b) => { if (i < b.d.length) all.push(b.d[i]); });
+        for (let i = 0; i < eccLen; i++) blocks.forEach((b) => all.push(b.e[i]));
+        const size = ver * 4 + 17, M = [], F = [];
+        for (let y = 0; y < size; y++) { M.push(new Array(size).fill(false)); F.push(new Array(size).fill(false)); }
+        const set = (x, y, d) => { if (x >= 0 && y >= 0 && x < size && y < size) { M[y][x] = d; F[y][x] = true; } };
+        for (let i = 0; i < size; i++) { set(6, i, i % 2 === 0); set(i, 6, i % 2 === 0); }
+        [[3, 3], [size - 4, 3], [3, size - 4]].forEach((c) => { for (let dy = -4; dy <= 4; dy++) for (let dx = -4; dx <= 4; dx++) { const d = Math.max(Math.abs(dx), Math.abs(dy)); set(c[0] + dx, c[1] + dy, d !== 2 && d !== 4); } });
+        const ap = ALIGN[ver];
+        ap.forEach((ax, i) => ap.forEach((ay, j) => { if ((i === 0 && j === 0) || (i === 0 && j === ap.length - 1) || (i === ap.length - 1 && j === 0)) return; for (let dy = -2; dy <= 2; dy++) for (let dx = -2; dx <= 2; dx++) set(ax + dx, ay + dy, Math.max(Math.abs(dx), Math.abs(dy)) !== 1); }));
+        const fmt = (mask) => { const d0 = (0 << 3) | mask; let r = d0 << 10; for (let i = 14; i >= 10; i--) if ((r >>> i) & 1) r ^= 0x537 << (i - 10); return ((d0 << 10) | r) ^ 0x5412; };
+        const drawFmt = (mask) => {
+          const b = fmt(mask), g = (i) => ((b >>> i) & 1) === 1;
+          for (let i = 0; i <= 5; i++) set(8, i, g(i)); set(8, 7, g(6)); set(8, 8, g(7)); set(7, 8, g(8)); for (let i = 9; i < 15; i++) set(14 - i, 8, g(i));
+          for (let i = 0; i < 8; i++) set(size - 1 - i, 8, g(i)); for (let i = 8; i < 15; i++) set(8, size - 15 + i, g(i)); set(8, size - 8, true);
+        };
+        drawFmt(0);
+        if (ver >= 7) { let r = ver << 12; for (let i = 17; i >= 12; i--) if ((r >>> i) & 1) r ^= 0x1F25 << (i - 12); const vb = (ver << 12) | r; for (let i = 0; i < 18; i++) { const bt = ((vb >>> i) & 1) === 1, a = size - 11 + i % 3, c = Math.floor(i / 3); set(a, c, bt); set(c, a, bt); } }
+        const isFn = F.map((r) => r.slice());
+        let k = 0;
+        for (let right = size - 1; right >= 1; right -= 2) { if (right === 6) right = 5; for (let v = 0; v < size; v++) for (let j = 0; j < 2; j++) { const x = right - j, y = (((right + 1) & 2) === 0) ? size - 1 - v : v; if (!isFn[y][x] && k < all.length * 8) { M[y][x] = ((all[k >> 3] >>> (7 - (k & 7))) & 1) === 1; k++; } } }
+        const MASK = [(x, y) => (x + y) % 2 === 0, (x, y) => y % 2 === 0, (x, y) => x % 3 === 0, (x, y) => (x + y) % 3 === 0, (x, y) => (Math.floor(x / 3) + Math.floor(y / 2)) % 2 === 0, (x, y) => x * y % 2 + x * y % 3 === 0, (x, y) => (x * y % 2 + x * y % 3) % 2 === 0, (x, y) => ((x + y) % 2 + x * y % 3) % 2 === 0];
+        const apply = (m) => { for (let y = 0; y < size; y++) for (let x = 0; x < size; x++) if (!isFn[y][x] && MASK[m](x, y)) M[y][x] = !M[y][x]; };
+        function penalty() {
+          let p = 0;
+          const line = (get) => { for (let a = 0; a < size; a++) { let run = 1; for (let b = 1; b < size; b++) { if (get(a, b) === get(a, b - 1)) { run++; if (run === 5) p += 3; else if (run > 5) p++; } else run = 1; }
+            for (let b = 0; b + 10 < size; b++) { const s = []; for (let i = 0; i < 11; i++) s.push(get(a, b + i) ? 1 : 0); const t = s.join(''); if (t === '10111010000' || t === '00001011101') p += 40; } } };
+          line((a, b) => M[a][b]); line((a, b) => M[b][a]);
+          for (let y = 0; y < size - 1; y++) for (let x = 0; x < size - 1; x++) { const c = M[y][x]; if (c === M[y][x + 1] && c === M[y + 1][x] && c === M[y + 1][x + 1]) p += 3; }
+          let dark = 0; M.forEach((r) => r.forEach((c) => { if (c) dark++; })); p += Math.floor(Math.abs(dark * 20 - size * size * 10) / (size * size)) * 10;
+          return p;
+        }
+        let best = 0, bestP = Infinity;
+        for (let m = 0; m < 8; m++) { apply(m); drawFmt(m); const p = penalty(); if (p < bestP) { bestP = p; best = m; } apply(m); }
+        apply(best); drawFmt(best);
+        return M;
+      }
+      // คืน SVG (ขาวดำ มีขอบขาว 4 ช่อง) ; null ถ้าข้อความยาวเกิน
+      function svg(text, px) {
+        const M = build(text); if (!M) return null; const n = M.length, q = 4; let d = '';
+        for (let y = 0; y < n; y++) for (let x = 0; x < n; x++) if (M[y][x]) d += 'M' + (x + q) + ',' + (y + q) + 'h1v1h-1z';
+        const t = n + q * 2;
+        return '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ' + t + ' ' + t + '" width="' + (px || 240) + '" height="' + (px || 240) + '" shape-rendering="crispEdges" role="img" aria-label="QR code"><rect width="' + t + '" height="' + t + '" fill="#fff"/><path d="' + d + '" fill="#000"/></svg>';
+      }
+      return { svg: svg, matrix: build };
+    })();
     // แตะนอกป๊อปโอเวอร์/เมนู = ปิดเฉพาะอันนั้น: กลืนคลิกที่ตามมา ไม่ให้ทะลุไปกดปุ่ม/ปิดหน้าต่างที่อยู่ข้างใต้
     window.lshSwallowClick = function() {
       const h = (e) => { e.stopPropagation(); e.preventDefault(); off(); };
@@ -2548,13 +2620,14 @@
         navigator.serviceWorker.register('sw.js').catch(() => {});
       }
       checkSession();
+      if (LSH_JOIN_CODE) setTimeout(() => { try { lshOpenInvite(LSH_JOIN_CODE); } catch (e) {} }, 700);
       setInterval(checkSessionExpiry, 1000);
       lshCheckVersion();
       document.addEventListener('visibilitychange', () => { if (!document.hidden && Date.now() - lshVerAt > 300000) lshCheckVersion(); });
     };
 
     // ===== ตรวจเวอร์ชันแอป (2.0): เทียบเลขใน version.json บนเซิร์ฟเวอร์ กับเลขของโค้ดที่เปิดอยู่ =====
-    const LSH_APP_VER = '2.4.1';
+    const LSH_APP_VER = '2.5.0';
     window.LSH_VER_TXT = LSH_APP_VER;
     try { const dv = document.getElementById('drawerVersion'); if (dv) dv.textContent = 'เวอร์ชัน ' + LSH_APP_VER; } catch (e) {}   // แสดงเลขเวอร์ชันท้ายเมนูแฮมเบอร์เกอร์
     let lshVerAt = 0;
@@ -2911,7 +2984,7 @@
       const vLogo = visiting ? await lshBandLogo(cur.room) : null;
       const visitRow = visiting ? `<div class="band-row on" style="margin-top:8px">${lshBandIc(cur.room, vLogo)}<div style="flex:1;text-align:left"><div class="band-name">${lshEsc(cur.room)}</div><div class="band-role">ผู้เยี่ยมชม · <span id="bpLeft"></span></div></div></div>
         <button type="button" class="band-join" id="bpBack" data-band="${lshEsc(home)}">กลับวง ${lshEsc(home)}</button>` : '';
-      const codeCard = inv ? `<div class="band-code"><div style="flex:1"><div class="band-role">รหัสจอยวง ${lshEsc(cur.room)}</div><div class="band-pin" id="bpPin">${lshEsc(inv.pin)}</div><div class="band-role" id="bpLeftCode"></div></div><button type="button" class="band-copy" id="bpCopy">คัดลอก</button></div>` : '';
+      const codeCard = inv ? `<div class="band-code"><div style="flex:1"><div class="band-role">รหัสจอยวง ${lshEsc(cur.room)}</div><div class="band-pin" id="bpPin">${lshEsc(inv.pin)}</div><div class="band-role" id="bpLeftCode"></div></div><div class="band-code-btns"><button type="button" class="band-copy" id="bpQr" aria-label="แสดง QR โค้ดเข้าวง">QR</button><button type="button" class="band-copy" id="bpCopy">คัดลอก</button></div></div>` : '';
 
       box.innerHTML = `<div class="band-grab"></div><h3 style="margin:0 0 12px">วงของฉัน</h3>
         <div class="band-list">${rows || '<div class="u-empty">ยังไม่ได้ถูกจัดเข้าวง</div>'}</div>
@@ -2932,6 +3005,7 @@
         if (l2 && inv) { const m = Math.max(0, Math.ceil((inv.expiresAt - Date.now()) / 60000)); l2.textContent = 'เปลี่ยนรหัสใหม่ในอีก ' + Math.floor(m / 60) + ' ชม. ' + (m % 60) + ' นาที'; }
       };
       tick(); lshPanelTimer = setInterval(tick, 30000);
+      const bq = document.getElementById('bpQr'); if (bq && inv) bq.onclick = () => lshShowInviteQR(cur.room, inv);
       const cp = document.getElementById('bpCopy');
       if (cp && inv) cp.onclick = async () => {
         try { await navigator.clipboard.writeText(inv.pin); cp.textContent = 'คัดลอกแล้ว'; } catch (e) { cp.textContent = inv.pin; }
@@ -2969,6 +3043,33 @@
 
     // ----- จอยวง -----
     let joinAsMember = false;
+    // ===== QR เข้าวง: สมาชิกเปิด QR ให้คนนอกสแกน → เปิดหน้าจอยวงพร้อมรหัส เหลือกรอกชื่อ =====
+    function lshInviteUrl(pin) { return location.href.split(/[?#]/)[0] + '?join=' + pin; }
+    function lshShowInviteQR(room, inv) {
+      const svg = window.lshQR && window.lshQR.svg(lshInviteUrl(inv.pin), 256);
+      if (!svg) { lshAlert('สร้าง QR ไม่สำเร็จ'); return; }
+      const old = document.getElementById('lshQrOv'); if (old) old.remove();
+      const ov = document.createElement('div'); ov.id = 'lshQrOv'; ov.className = 'overlay lsh-qr-ov';
+      const m = Math.max(0, Math.ceil((inv.expiresAt - Date.now()) / 60000));
+      ov.innerHTML = '<div class="box lsh-qr-box"><div class="lsh-qr-img">' + svg + '</div><div class="lsh-qr-name">' + lshEsc(room) + '</div><div class="lsh-qr-sub">รหัส ' + lshEsc(inv.pin) + ' · หมดอายุในอีก ' + Math.floor(m / 60) + ' ชม. ' + (m % 60) + ' นาที</div></div>';
+      ov.addEventListener('click', () => ov.remove());   // แตะที่ไหนก็ปิด (ปิดเฉพาะ QR ไม่ปิดแผงวงข้างหลัง)
+      document.body.appendChild(ov);
+    }
+    // ลิงก์จาก QR: ?join=รหัส → เปิดหน้าจอยวงพร้อมรหัสให้เลย (อ่านครั้งเดียวแล้วเอาออกจาก URL)
+    const LSH_JOIN_CODE = (() => { try { const q = new URLSearchParams(location.search), c = q.get('join'); if (c == null) return null; q.delete('join'); history.replaceState(null, '', location.pathname + (q.toString() ? '?' + q.toString() : '') + location.hash); return /^[0-9]{4}$/.test(c) ? c : null; } catch (e) { return null; } })();
+    function lshOpenInvite(code) {
+      if (window.lshReady) window.lshReady();
+      const s = lshGetSession(); if (s && s.userType === 'admin') return;
+      const member = !!(s && s.userType === 'member');
+      if (!s) closeAllModals();
+      openJoinBand(member);
+      const ins = document.querySelectorAll('#joinCodeRow input'); code.split('').forEach((c, i) => { if (ins[i]) ins[i].value = c; });
+      if (!member) {
+        const n = document.getElementById('joinNickInput'); if (s && s.nickname) n.value = s.nickname;
+        document.getElementById('joinSubText').textContent = 'กรอกชื่อเล่นของคุณ แล้วกดเข้าร่วมวงได้เลย';
+        setTimeout(() => n.focus(), 80);
+      }
+    }
     function openJoinBand(asMember) {
       joinAsMember = !!asMember;
       const s = lshGetSession();
