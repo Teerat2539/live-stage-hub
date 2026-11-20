@@ -172,7 +172,15 @@
         if (t && t.animate) t.animate([{ opacity: .25 }, { opacity: 1 }], { duration: 360, easing: 'ease-out' });
       });
     };
+    // กรอบล้อมหน้าดูคอร์ดเต็มจอ เมื่อมีท็อคแบคใหม่/เพลงถัดไปเข้ามาตอนเปิดคอร์ดอยู่ (ไม่มีแถบแจ้งเตือน): talk = ค้างจนแตะกรอบ/1 นาที, next = 3 วินาที
+    window.lshChordFrame = function(kind) {
+      const v = document.getElementById('lshChordView'); if (!v || v.classList.contains('hidden')) return;
+      clearTimeout(v._frT); v.removeAttribute('data-fr'); void v.offsetWidth; v.setAttribute('data-fr', kind === 'next' ? 'next' : 'talk');
+      v._frT = setTimeout(() => v.removeAttribute('data-fr'), kind === 'next' ? 3000 : 60000);
+      if (!v._frTap) { v._frTap = true; v.addEventListener('pointerdown', () => { if (v.getAttribute('data-fr') === 'talk') { clearTimeout(v._frT); v.removeAttribute('data-fr'); } }, true); }
+    };
     window.lshAttention = function(textEl, kind) {
+      try { window.lshChordFrame(kind); } catch (e) {}
       const box = textEl && textEl.closest ? textEl.closest('.top-box') : null;
       const bar = box ? box.parentElement : null;
       if (!bar) return;
@@ -303,7 +311,20 @@
           { g: 0, t: 'เมดเลย์', d: '(แตะลิสต์ที่ชี้ แล้วกดแก้ไข จึงจะเห็นส่วนนี้) กด "+ เมดเลย์" เพื่อสร้างเมดเลย์ ใส่ชื่อ แล้ว "+ เพิ่มเพลงเข้าเมดเลย์" รวมหลายเพลงเป็นรายการเดียว', m: M.rows([[SET[1], 'เมดเลย์ครึ่งเพลง', '2 เพลง', '']]) },
           { g: 0, t: 'คีย์และโน้ตต่อเพลง', d: '(แตะลิสต์ที่ชี้ แล้วกดแก้ไข จึงจะเห็นส่วนนี้) แต่ละเพลงในลิสต์เลือกคีย์ และใส่โน้ตบันทึกพิเศษ เช่น วนท่อนอินโทร ได้', m: M.rows([[SET[0], 'เคลิ้ม', 'วนท่อนอินโทร', 'G']]) },
           { g: 0, t: 'ส่งออกให้วง', d: '(แตะลิสต์ที่ชี้ แล้วกดแก้ไข จึงจะเห็นส่วนนี้) ปุ่มส่งออกสร้างข้อความรายการเพลงให้ แชร์หรือคัดลอกส่งให้คนในวงได้', m: M.box(['<div class="tm-s">มายคลับ/จันทร์ 16 พ.ย.<br>1. เสียดาย — Bodyslam · G<br>2. เคลิ้ม — Slot Machine · G</div>']) },
-          { g: 0, t: 'ป้องกันพลาด', d: '(แตะลิสต์ที่ชี้ แล้วกดแก้ไข จึงจะเห็นส่วนนี้) กด "บันทึก" แล้วมีหน้าต่างให้ยืนยันก่อน ถ้าออกโดยยังไม่บันทึกจะมีเตือน และการลบลิสต์ต้องยืนยันก่อนเสมอ', m: M.btns([['แก้ไขต่อ', '', 'ghost'], ['ยืนยัน (ไม่บันทึก)', '', 'danger']]) }
+          { g: 0, t: 'ป้องกันพลาด', d: '(แตะลิสต์ที่ชี้ แล้วกดแก้ไข จึงจะเห็นส่วนนี้) กด "บันทึก" แล้วมีหน้าต่างให้ยืนยันก่อน ถ้าออกโดยยังไม่บันทึกจะมีเตือน และการลบลิสต์ต้องยืนยันก่อนเสมอ', m: M.btns([['แก้ไขต่อ', '', 'ghost'], ['ยืนยัน (ไม่บันทึก)', '', 'danger']]) },
+          { g: 0, t: 'ซ้อมกับวง', d: 'ปุ่ม "ซ้อม" เปิดห้องซ้อมของลิสต์นี้ ทุกเครื่องในวงเห็นและแก้ร่วมกัน ดูวิธีใช้ห้องซ้อมได้ที่หัวข้อ "ห้องซ้อม"', m: M.btns([['ซ้อม', '', 'ghost']]), s: '#btnRehearse' }
+        ] },
+        rehearsal: { name: 'ห้องซ้อม', noAuto: true, cards: [
+          { g: 0, t: 'ห้องซ้อมคืออะไร', d: 'เปิดจากหน้าลิสต์เพลง กดปุ่ม "ซ้อม" ทุกเครื่องในวงจะเห็นรายการเพลงเดียวกันแบบสด แก้ที่ไหนเห็นพร้อมกัน และจะไม่ไปแก้ลิสต์จริงจนกว่าจะกดบันทึกตอนจบ', m: M.btns([['ซ้อม', '', 'ghost']]) },
+          { g: 0, t: 'การ์ดเพลง', d: 'แตะการ์ดหนึ่งครั้งเพื่อเปิด/ปิดคอร์ด แตะสองครั้งหรือแตะลูกศรเพื่อเปิดเมนูเพลง (คีย์ BPM เซ็ต โน้ต ลบเพลง ซ้อมเพลงนี้) จับที่ด้านซ้ายแล้วลากเพื่อสลับลำดับ', m: M.rows([[SET[0], 'เธอยังคงสวยงาม', 'ศิลปิน', 'G'], [SET[0], 'ขอให้เธอใจดี', 'ศิลปิน', 'Am']]), s: '.rh-card' },
+          { g: 0, t: 'ซ้อมเพลงนี้', d: 'เปิดเมนูเพลงแล้วกด "ซ้อมเพลงนี้" เพลงนั้นจะมีกรอบเรืองแสงและป้าย "กำลังซ้อม" บนทุกเครื่อง', m: M.now('● กำลังซ้อม', 'เธอยังคงสวยงาม', '') , s: '.rh-card.playing' },
+          { g: 0, t: 'ตามเพลงที่ซ้อม', d: 'เปิดสวิตช์ "ตามเพลงที่ซ้อม" เครื่องนี้จะเปิดคอร์ดตามเพลงที่วงกำลังซ้อมให้เอง และเด้งไปตรงไฮไลต์ล่าสุดของคนอื่น', m: M.sw('ตามเพลงที่ซ้อม', true), s: '[data-a=followsw]' },
+          { g: 0, t: 'ปากกาและโน้ต', d: 'ปุ่มดินสอมุมล่างขวาจะโผล่เมื่อมีการ์ดที่เปิดคอร์ดอยู่ เลือกสีไฮไลต์ 4 สี, โน้ตแปะ หรือยางลบ', m: M.btns([['✎', '', 'pri']]), s: '.rh-fab' },
+          { g: 0, t: 'ไฮไลต์', d: 'เลือกสีแล้ว กดค้างที่ตัวอักษรหรือคอร์ดแล้วลากคลุมช่วงที่ต้องการ ทุกคนในวงเห็นร่วมกัน และหายไปเมื่อจบการซ้อม', m: M.box(['<div class="tm-s">กดค้าง แล้วลากคลุม</div>']) },
+          { g: 0, t: 'โน้ตแปะ', d: 'เลือกโน้ตแล้วแตะจุดที่ต้องการ จะมีป๊อปโอเวอร์เด้งขึ้นมา พิมพ์ เลือกสี แล้วกดเครื่องหมายถูก โน้ตเห็นเฉพาะคุณ และเก็บลงลิสต์ตอนบันทึก (แสดงในหน้า Live ด้วย)', m: M.box(['<div class="tm-s">✎ … &nbsp; ● &nbsp; ✓</div>']) },
+          { g: 0, t: 'ลบ', d: 'เลือก "ลบ" แล้วแตะที่ไฮไลต์หรือโน้ต ลบทั้งอันในครั้งเดียว หรือแตะโพสอิทแล้วกดไอคอนถังขยะ', m: M.btns([['ลบ', '', 'ghost']]) },
+          { g: 0, t: 'เพิ่มเพลง', d: 'ปุ่มมุมล่างซ้ายค้นหาและเพิ่มเพลงเข้ารายการซ้อม ถ้าลบเพลงพลาดมีแถบ "เรียกคืน" ให้กดทันที', m: M.btns([['+ เพิ่มเพลง', '', 'pri']]), s: '[data-a=add]' },
+          { g: 0, t: 'จบการซ้อม', d: 'กด "จบการซ้อม" แล้วเลือกบันทึกทับลิสต์เดิม บันทึกเป็นลิสต์ใหม่ หรือทิ้ง ถ้าบันทึกทับ ฉบับก่อนหน้าจะถูกเก็บไว้ย้อนกลับได้', m: M.btns([['จบการซ้อม', '', 'ghost']]), s: '[data-a=end]' }
         ] },
         settings: { name: 'ตั้งค่า', cards: [
           { g: 0, t: 'เมนูตั้งค่า', d: 'หน้านี้เป็นรายการเมนู แตะหัวข้อเพื่อเข้าหน้าย่อย แล้วใช้ปุ่มย้อนกลับมุมบนซ้ายเพื่อกลับมาที่เมนู', m: M.rows([[null, 'โปรไฟล์', '', ''], [null, 'คำสั่งด่วน', '', ''], [null, 'ค้นหา', '', ''], [null, 'การแสดงผล', '', '']]) },
@@ -331,13 +352,13 @@
         settings: ['.settings-tabs', '.set-menu button:nth-child(1)', '.set-menu button:nth-child(2)', '.set-menu button:nth-child(3)', '.set-menu button:nth-child(4)', '.header-left .hdr-btn']
       };
       Object.keys(SEL).forEach((k) => TOURS[k].cards.forEach((c, i) => { const v = SEL[k][i]; if (v) Object.assign(c, (typeof v === 'string' || Array.isArray(v)) ? { s: v } : v); }));
-      const ORDER = ['shell', 'monitor', 'live', 'talkback', 'songs', 'setlists', 'settings'];
+      const ORDER = ['shell', 'monitor', 'live', 'talkback', 'songs', 'setlists', 'rehearsal', 'settings'];
       const sess = () => { try { return JSON.parse(localStorage.getItem('lsh_session')) || {}; } catch (e) { return {}; } };
       const cardsOf = (p) => { const s = sess(), T = TOURS[p]; if (!T || s.userType === 'admin') return []; const guest = s.userType === 'guest'; return T.cards.filter((c) => !(guest && c.g === 0)); };
       const rd = () => { try { return JSON.parse(localStorage.getItem(KEY)) || {}; } catch (e) { return {}; } };
       const wr = (st) => { try { localStorage.setItem(KEY, JSON.stringify(st)); } catch (e) {} };
       const setS = (p, v) => { const st = rd(); st[p] = v; wr(st); };
-      const curPage = () => { const b = document.querySelector('nav button.active'); return b ? b.id.replace('nav-', '') : ''; };
+      const curPage = () => { if (document.body.classList.contains('lsh-page-rehearsal')) return 'rehearsal'; const b = document.querySelector('nav button.active'); return b ? b.id.replace('nav-', '') : ''; };
       const vis = (n) => { if (!n) return false; const r = n.getBoundingClientRect(); return r.width > 0 && r.height > 0 && getComputedStyle(n).visibility !== 'hidden'; };
       function findTarget(c, page) {
         if (!c.s || (page !== 'shell' && curPage() !== page)) return null;
@@ -414,7 +435,7 @@
         const ml = document.getElementById('memberLoginModal'); if (ml && !ml.classList.contains('hidden')) return;
         const st = rd();
         if (window.__lshFresh) { window.__lshFresh = false; if (!localStorage.getItem('lsh_tour_asked') && !Object.keys(st).length && sess().userType !== 'admin') { offer(page); return; } }
-        if (!cardsOf(page).length) return;
+        if (!cardsOf(page).length || (TOURS[page] && TOURS[page].noAuto)) return;
         if (!st.shell && cardsOf('shell').length) { start('shell', st[page] ? '' : page); return; }
         if (!st[page]) start(page);
       } catch (e) {} }, 1300); }
@@ -1247,7 +1268,7 @@
         lastT = t; raf = requestAnimationFrame(tick);
       }
       async function lockScreen() { try { if (navigator.wakeLock) wake = await navigator.wakeLock.request('screen'); } catch (e) {} }
-      function close() { setPlay(false); if (root) root.classList.add('hidden'); try { if (wake) wake.release(); } catch (e) {} wake = null; }
+      function close() { setPlay(false); if (root) { root.classList.add('hidden'); root.removeAttribute('data-fr'); } try { if (wake) wake.release(); } catch (e) {} wake = null; }
       function mountUi() {
         if (root) return;
         try { fs = parseInt(localStorage.getItem('lsh_chord_fs'), 10) || 20; lyr = localStorage.getItem('lsh_chord_lyr') === '1'; cols2 = localStorage.getItem('lsh_chord_cols') === '2'; } catch (e) {}
@@ -2524,7 +2545,7 @@
     };
 
     // ===== ตรวจเวอร์ชันแอป (2.0): เทียบเลขใน version.json บนเซิร์ฟเวอร์ กับเลขของโค้ดที่เปิดอยู่ =====
-    const LSH_APP_VER = '2.3.5';
+    const LSH_APP_VER = '2.4.0';
     window.LSH_VER_TXT = LSH_APP_VER;
     try { const dv = document.getElementById('drawerVersion'); if (dv) dv.textContent = 'เวอร์ชัน ' + LSH_APP_VER; } catch (e) {}   // แสดงเลขเวอร์ชันท้ายเมนูแฮมเบอร์เกอร์
     let lshVerAt = 0;

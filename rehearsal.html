@@ -323,8 +323,8 @@
     .rh-bar .lv-btn { flex: none; }
     .rh-bar .sp { flex: 1; }
     .lv-btn.end { border-color: var(--danger); color: var(--c-ff8d8d); background: var(--danger-soft); font-weight: 700; }
-    .lv-btn.add { flex: none; position: absolute; left: 14px; bottom: 14px; height: 52px; border-radius: 999px; padding: 0 20px; background: var(--live); color: var(--live-ink); border-color: var(--live); font-weight: 800; font-size: 15px; white-space: nowrap; box-shadow: 0 6px 18px rgba(0,0,0,.5); z-index: 20; }
-    .rh .lv-scroll { padding-bottom: 110px; }
+    .lv-btn.add { flex: none; position: absolute; left: 14px; bottom: calc(14px + env(safe-area-inset-bottom, 0px)); height: 52px; border-radius: 999px; padding: 0 20px; background: var(--live); color: var(--live-ink); border-color: var(--live); font-weight: 800; font-size: 15px; white-space: nowrap; box-shadow: 0 6px 18px rgba(0,0,0,.5); z-index: 20; }
+    .rh .lv-scroll { padding-bottom: calc(110px + env(safe-area-inset-bottom, 0px)); }
     .rh-card .rh-chev { flex: none; align-self: center; width: 34px; height: 34px; border-radius: 10px; border: 1px solid var(--line); background: var(--surface-2); color: var(--text-3); padding: 0; display: flex; align-items: center; justify-content: center; }
     .rh-card .rh-chev svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; transition: transform .15s; }
     .rh-card .rh-chev.on svg { transform: rotate(180deg); }
@@ -345,7 +345,7 @@
     .rh-sum .li { font-size: 13px; color: var(--text-2); padding: 6px 10px; border-radius: 10px; border: 1px solid var(--line); background: var(--surface); }
     .rh-sum .li b { color: var(--text); }
     .rh-sum .li i { font-style: normal; color: var(--text-3); }
-    .rh-undo { position: absolute; left: 14px; right: 14px; bottom: 80px; z-index: 30; display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 10px 14px; border-radius: 14px; background: var(--c-171b23); border: 1px solid var(--line-strong); box-shadow: 0 8px 22px rgba(0,0,0,.55); font-size: 14px; }
+    .rh-undo { position: absolute; left: 14px; right: 14px; bottom: calc(80px + env(safe-area-inset-bottom, 0px)); z-index: 30; display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 10px 14px; border-radius: 14px; background: var(--c-171b23); border: 1px solid var(--line-strong); box-shadow: 0 8px 22px rgba(0,0,0,.55); font-size: 14px; }
     .rh-undo button { height: 34px; border-radius: 10px; border: 1px solid var(--live); background: var(--live-soft); color: var(--live); padding: 0 14px; font-weight: 700; }
     /* ปากกาไฮไลต์ (2.3.x): สีทึบ ตัวอักษรเข้ม อ่านชัดทั้งโหมดมืดและสว่าง */
     .rh-hl, .ch-c.rh-hl { color: #111 !important; border-radius: 3px; box-decoration-break: clone; -webkit-box-decoration-break: clone; }
@@ -357,12 +357,12 @@
     .lv-seg.rh-penbtn button.on { background: var(--live); color: var(--live-ink); }
     .lv-exp .ch-body.rh-pen { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; cursor: crosshair; }
     .rh .lv-ctrl { left: 0; right: 0; bottom: 0; height: 0; display: block; }
-    .rh-fab { position: absolute; right: 14px; bottom: 14px; width: 52px; height: 52px; border-radius: 50%; padding: 0; z-index: 20; display: flex; align-items: center; justify-content: center; background: var(--surface-2); border: 2px solid var(--line-strong); color: var(--text); box-shadow: 0 6px 18px rgba(0,0,0,.5); }
+    .rh-fab { position: absolute; right: 14px; bottom: calc(14px + env(safe-area-inset-bottom, 0px)); width: 52px; height: 52px; border-radius: 50%; padding: 0; z-index: 20; display: flex; align-items: center; justify-content: center; background: var(--surface-2); border: 2px solid var(--line-strong); color: var(--text); box-shadow: 0 6px 18px rgba(0,0,0,.5); }
     .rh-fab svg { width: 24px; height: 24px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
     .rh-fab.on { border-color: var(--live); }
     .rh-fab.c0 { background: #ffe14d; color: #111; } .rh-fab.c1 { background: #6ee7a0; color: #111; } .rh-fab.c2 { background: #ff9ad5; color: #111; } .rh-fab.c3 { background: #7cc8ff; color: #111; }
     .rh-fab.x, .rh-fab.n { background: var(--live); color: var(--live-ink); }
-    .rh-penpanel { position: absolute; right: 14px; bottom: 78px; z-index: 21; flex-direction: column; align-items: center; gap: 10px; padding: 10px; border-radius: 28px; background: var(--c-171b23); border: 1px solid var(--line-strong); box-shadow: 0 8px 22px rgba(0,0,0,.55); display: flex; }
+    .rh-penpanel { position: absolute; right: 14px; bottom: calc(78px + env(safe-area-inset-bottom, 0px)); z-index: 21; flex-direction: column; align-items: center; gap: 10px; padding: 10px; border-radius: 28px; background: var(--c-171b23); border: 1px solid var(--line-strong); box-shadow: 0 8px 22px rgba(0,0,0,.55); display: flex; }
     .rh-penpanel button { width: 40px; height: 40px; }
     .rh-penpanel button.note { width: 40px; border-radius: 50%; padding: 0; font-size: 18px; }
     .rh-npop { position: absolute; z-index: 60; display: flex; gap: 6px; padding: 6px; border-radius: 14px; background: var(--c-171b23); border: 1px solid var(--line-strong); box-shadow: 0 8px 22px rgba(0,0,0,.55); }
@@ -583,6 +583,14 @@
       const cols = o.open ? [0, 1, 2, 3].map((i) => '<button type="button" class="c' + i + (i === o.c ? ' on' : '') + '" data-a="sncp" data-v="' + i + '" aria-label="สีที่ ' + (i + 1) + '"></button>').join('') : '<button type="button" class="c' + o.c + '" data-a="snc" aria-label="เลือกสี"></button>';
       return '<div class="rh-pens">' + cols + '</div><button type="button" class="rh-ok" data-a="snsave" aria-label="บันทึกโน้ต">' + IC.check + '</button>';
     }
+    // คีย์บอร์ดบนจอสัมผัส (iPad/มือถือ) ย่อพื้นที่มองเห็น: เลื่อนป๊อปโอเวอร์โน้ตให้อยู่ในส่วนที่ยังเห็นเสมอ
+    function fitNpe() {
+      const e = root.querySelector('.rh-npe'); if (!e) return; e.style.transform = '';
+      const vv = window.visualViewport; if (!vv) return;
+      const r = e.getBoundingClientRect(), top = vv.offsetTop + 6, bot = vv.offsetTop + vv.height - 6; let dy = 0;
+      if (r.bottom > bot) dy = bot - r.bottom; if (r.top + dy < top) dy = top - r.top;
+      if (Math.abs(dy) > 1) e.style.transform = 'translateY(' + Math.round(dy) + 'px)';
+    }
     function openNote(itemId, addr, noteId, rect, draftText, draftC) {
       const old = noteId ? myNotes(itemId).find((n) => n.id === noteId) : null;
       const c0 = draftC != null ? draftC : (old ? (old.c || 0) : snColor()), txt = draftText != null ? draftText : (old ? old.t : '');
@@ -591,6 +599,8 @@
       showOv('<div class="rh-npe ' + (below ? 'dn' : 'up') + '" data-a="stop-prop" style="width:' + W + 'px;left:' + left + 'px;--ax:' + ax + 'px;' + (below ? 'top:' + (rc.b + 10) + 'px' : 'bottom:' + (rr.height - rc.t + 10) + 'px') + '">' +
         '<textarea id="rhSnText" placeholder="✎" maxlength="300">' + esc(txt) + '</textarea><div class="rh-nrow" id="rhNpeRow"></div></div>', 'pov', 'note', { itemId: itemId, addr: addr, noteId: noteId || null, c: c0, open: false, rect: rc, orig: old ? old.t : '', origC: old ? (old.c || 0) : null });
       const row = $('rhNpeRow'); if (row) row.innerHTML = npeRow();
+      fitNpe(); if (window.visualViewport && !ui.vvOn) { ui.vvOn = true; window.visualViewport.addEventListener('resize', fitNpe); window.visualViewport.addEventListener('scroll', fitNpe); }
+      setTimeout(fitNpe, 350);   // คีย์บอร์ดขึ้นช้ากว่า focus
       setTimeout(() => { const t = $('rhSnText'); if (t) { t.focus(); try { t.setSelectionRange(t.value.length, t.value.length); } catch (e) {} } }, 50);
     }
     function tryCloseNote() {   // แตะนอกป๊อปโอเวอร์ = ยกเลิก · ถ้ามีข้อความที่ยังไม่ได้บันทึก ถามก่อน
@@ -624,7 +634,7 @@
       pd = { body: body, tgt: ev.target, x: ev.clientX, y: ev.clientY, pid: ev.pointerId, id: body.closest('.lv-exp').dataset.xid, active: false, c0: null, r: null, timer: 0 };
       if (typeof ui.pen === 'number') {
         const start = () => { if (!pd) return; const c = caretAt(pd.x, pd.y); if (!c) { pd = null; return; } pd.c0 = c; pd.active = true; ui.drawing = true; try { pd.body.setPointerCapture(pd.pid); } catch (e) {} try { if (navigator.vibrate) navigator.vibrate(12); } catch (e) {} };
-        if (ev.pointerType === 'mouse') start(); else pd.timer = setTimeout(start, 280);
+        if (ev.pointerType === 'mouse' || ev.pointerType === 'pen') start(); else pd.timer = setTimeout(start, 280);   // เมาส์/Apple Pencil: เริ่มลากทันที · นิ้ว: กดค้างก่อน
       }
     }
     function penMove(ev) {

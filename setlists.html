@@ -646,7 +646,7 @@
         if (typeof window.setActiveNav === 'function') {
           window.setActiveNav('queue');
         } else {
-          location.href = 'queue.html';
+          location.href = './';   // (สำรอง: หน้า queue.html ถูกรวมเข้า Live แล้ว)
         }
       } catch (e) {
         lshAlert('เกิดข้อผิดพลาดในการตั้งค่าคิว: ' + e.message);
