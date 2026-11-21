@@ -1421,13 +1421,26 @@
         } catch (e) { const hit = await cacheGet('own:' + id); if (hit) return hit; throw e; }
       }
       function hasOwn(id) { return !!(window.lshChordOwn && window.lshChordOwn.has(String(id))); }
+      // 2.8.1: คอร์ดที่แก้เองมาก่อนฐานรองเสมอ — ถ้ารายการในเครื่องยังไม่รู้ ให้ถามเซิร์ฟเวอร์ตรงๆ (จำผลไว้ ไม่ใช่ลบ/ย้ายข้อมูล)
+      const ownProbe = {};
+      async function probeOwn(id) {
+        id = String(id == null ? '' : id); if (!id || id === '-') return false;
+        if (hasOwn(id)) return true;
+        if (id in ownProbe) return ownProbe[id];
+        try {
+          const sn = await Promise.race([db.ref('songContent/' + id).once('value'), new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), 4000))]);
+          const ok = !!sn.val(); ownProbe[id] = ok;
+          if (ok) { (window.lshChordOwn = window.lshChordOwn || new Set()).add(id); try { if (window.lshChordPaint) window.lshChordPaint(); } catch (e) {} }
+          return ok;
+        } catch (e) { return false; }   // ออฟไลน์/ช้า: ไม่จำผล ลองใหม่ครั้งหน้า
+      }
       async function open(songId, s) {
         mountUi(); song = s || {}; rec = null; speed = 1; $('chSpd').textContent = 'x1.0';
         root.classList.remove('hidden'); lockScreen();
         $('chTitle').textContent = song.title || ''; $('chArtist').textContent = song.artist || '';
         $('chBody').innerHTML = ''; $('chStatus').textContent = 'กำลังโหลดคอร์ด…'; $('chScroll').scrollTop = 0;
         try {
-          rec = hasOwn(songId) ? await loadOwn(songId) : await load(song.bk);
+          rec = (hasOwn(songId) || await probeOwn(songId)) ? await loadOwn(songId) : await load(song.bk);
           baseKey = rec.k || song.key || ''; bandKey = song.key || ''; st = bandShift();
           if (rec.by) $('chArtist').textContent = (song.artist || '') + ' · แก้ล่าสุดโดย ' + rec.by;
           $('chStatus').textContent = ''; render();
@@ -1590,12 +1603,13 @@
       }
       async function getDoc(songId, qkey) {
         let s = cachedSong(songId);
-        if (!s || !(s.bk || hasOwn(songId))) {   // ไม่มีในแคช/ยังไม่รู้ว่ามีคอร์ด → อ่านสดจาก Firebase
+        const own = hasOwn(songId) || await probeOwn(songId);   // 2.8.1: คอร์ดที่แก้ก่อนเสมอ
+        if (!s || !(s.bk || own)) {   // ไม่มีในแคช/ยังไม่รู้ว่ามีคอร์ด → อ่านสดจาก Firebase
           const sn = await Promise.race([db.ref('songs/' + songId).once('value'), new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), 8000))]);
           s = sn.val() || {};
         }
         let r;
-        if (hasOwn(songId)) r = await loadOwn(songId);
+        if (own) r = await loadOwn(songId);
         else if (s.bk) r = await load(s.bk);
         else throw new Error('notfound');
         const base = r.k || s.key || '';
@@ -1603,6 +1617,10 @@
       }
       // 2.0: เปิดคอร์ดจากรหัสคลังคอร์ด (bk) ตรงๆ — ใช้กับเพลงที่เลือกจากคลังคอร์ด/ยังไม่ผูก bk ในฐานข้อมูลหลัก (รูปแบบผลลัพธ์เหมือน getDoc)
       async function getDocBk(bk, key, title) {
+        try {   // 2.8.1: มีเพลงในคลังที่ผูก bk นี้และแก้คอร์ดไว้ → ใช้คอร์ดที่แก้
+          const m = (JSON.parse(localStorage.getItem('lsh_songs') || '[]') || []).filter((x) => x && x.bk === bk);
+          for (let i = 0; i < m.length; i++) { if (hasOwn(m[i].id) || await probeOwn(m[i].id)) { return await getDoc(m[i].id, key); } }
+        } catch (e) {}
         const r = await load(bk);
         const s = { key: key && key !== '-' ? key : (r.k || ''), title: title || '', duration: Number(r.d) || 0 };
         const base = r.k || s.key || '';
@@ -1768,7 +1786,8 @@
         const r = ex ? await take(ex) : await pickDialog(info, ix, false);
         if (!r || !r.bk) return;
         const empty = (v) => v == null || v === '' || v === '-' || v === 0 || v === '0' || (Array.isArray(v) && !v.length);
-        const up = Object.assign({ bk: r.bk }, r.f || {});   // ผูกแล้วใช้ค่าจากฐานข้อมูลรองเป็นหลัก (ชื่อ ศิลปิน คีย์ bpm ความยาว) ช่องที่ฐานข้อมูลรองไม่มีคงค่าเดิม
+        const up = Object.assign({ bk: r.bk }, r.f || {}); if (window.lshChordOwn && window.lshChordOwn.has(String(songId))) delete up.key;   // 2.8.1
+        // ผูกแล้วใช้ค่าจากฐานข้อมูลรองเป็นหลัก (ชื่อ ศิลปิน คีย์ bpm ความยาว) ช่องที่ฐานข้อมูลรองไม่มีคงค่าเดิม
         if (up.duration == null && empty(song.duration) && r.d) up.duration = r.d; if (up.bpm == null && empty(song.bpm) && r.b) up.bpm = r.b;
         if (empty(song.year) && r.y) up.year = r.y; if (empty(song.genres) && r.g) up.genres = r.g;
         try { await db.ref('songs/' + songId).update(up); if (window.lshAutoAdv && window.lshAutoAdv.refreshDurations) window.lshAutoAdv.refreshDurations(); lshToast('เชื่อมคอร์ดแล้ว', 'ok'); } catch (e) { lshToast('บันทึกไม่สำเร็จ: ' + e.message, 'error'); }
@@ -1786,9 +1805,10 @@
       const sess = () => { try { return JSON.parse(localStorage.getItem('lsh_session')) || {}; } catch (e) { return {}; } };
       const isMember = () => sess().userType === 'member';
       // เฉพาะช่องที่ต่างจากของเดิม
-      function patchOf(song, e) {
+      function patchOf(song, e, id) {
         const f = L().fieldsOf(e), p = {};
         Object.keys(f).forEach((k) => { const cur = (k === 'bpm' || k === 'duration') ? (Number(song[k]) || 0) : str(song[k]); if (cur !== f[k]) p[k] = f[k]; });
+        if (id != null && window.lshChordOwn && window.lshChordOwn.has(String(id))) delete p.key;   // 2.8.1: เพลงที่แก้คอร์ดเองแล้วใช้คีย์ของคอร์ดที่แก้ ไม่เขียนทับ
         return p;
       }
       async function chunked(map) {
@@ -1818,7 +1838,7 @@
           if (fl && fl.state === 'done') { try { localStorage.setItem('lsh_songsync_v1', 'done'); } catch (e) {} return; }
           if (fl && (fl.state === 'freezing' || fl.state === 'frozen') && Date.now() - (fl.at || 0) < 10 * 60000) return;   // เครื่องอื่นกำลังทำอยู่
           const ix = await L().getIdx(), plan = {};
-          Object.keys(songs || {}).forEach((id) => { const sg = songs[id]; if (!sg || !sg.bk) return; const e = ix.byKey.get(sg.bk); if (!e) return; const p = patchOf(sg, e); if (Object.keys(p).length) plan[id] = p; });
+          Object.keys(songs || {}).forEach((id) => { const sg = songs[id]; if (!sg || !sg.bk) return; const e = ix.byKey.get(sg.bk); if (!e) return; const p = patchOf(sg, e, id); if (Object.keys(p).length) plan[id] = p; });
           const ids = Object.keys(plan);
           if (!ids.length) { await db.ref(FLAG).set({ state: 'done', at: Date.now(), n: 0 }); try { localStorage.setItem('lsh_songsync_v1', 'done'); } catch (e) {} return; }
           if (!(await confirmDlg(ids.length))) { try { sessionStorage.setItem('lsh_songsync_later', '1'); } catch (e) {} return; }
@@ -1886,7 +1906,7 @@
       }
       async function attach(songId, e) {   // ผูกเพลงที่มีอยู่กับเพลงในฐานข้อมูลรอง ใช้ค่าจากฐานข้อมูลรองเป็นหลัก
         const t = await L().take(e), cur = (await db.ref('songs/' + songId).once('value')).val() || {};
-        const up = Object.assign({ bk: e[0] }, t.f || {});
+        const up = Object.assign({ bk: e[0] }, t.f || {}); if (window.lshChordOwn && window.lshChordOwn.has(String(songId))) delete up.key;   // 2.8.1
         if (up.duration == null && !(Number(cur.duration) > 0) && t.d) up.duration = t.d; if (up.bpm == null && !(Number(cur.bpm) > 0) && t.b) up.bpm = Number(t.b);
         if (!cur.year && t.y) up.year = t.y; if ((!cur.genres || !cur.genres.length) && t.g && t.g.length) up.genres = t.g;
         await db.ref('songs/' + songId).update(up);
@@ -2837,7 +2857,7 @@
     };
 
     // ===== ตรวจเวอร์ชันแอป (2.0): เทียบเลขใน version.json บนเซิร์ฟเวอร์ กับเลขของโค้ดที่เปิดอยู่ =====
-    const LSH_APP_VER = '2.8.0';
+    const LSH_APP_VER = '2.8.1';
     window.LSH_VER_TXT = LSH_APP_VER;
     try { const dv = document.getElementById('drawerVersion'); if (dv) dv.textContent = 'เวอร์ชัน ' + LSH_APP_VER; } catch (e) {}   // แสดงเลขเวอร์ชันท้ายเมนูแฮมเบอร์เกอร์
     let lshVerAt = 0;
