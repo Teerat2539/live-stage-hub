@@ -338,6 +338,9 @@
     .lv-qdel { flex: none; width: 40px; height: 40px; border-radius: 12px; border: 1px solid var(--danger-soft); background: var(--danger-soft); color: var(--danger); display: flex; align-items: center; justify-content: center; padding: 0; }
     .lv-qdel svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
     .lv-card.q .lv-kchip { flex: none; }
+    .lv-qstart { display: flex; align-items: center; justify-content: center; gap: 8px; width: calc(100% - 20px); margin: 0 10px 10px; min-height: 46px; border: 0; border-radius: 999px; background: var(--live); color: var(--live-ink); font-size: 16px; font-weight: 800; font-family: inherit; cursor: pointer; }
+    .lv-qstart svg { width: 20px; height: 20px; }
+    .lv-by { font-size: 11px; color: var(--text-3); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .lv-qnext { height: 34px; border-radius: 10px; border: 1px solid var(--next); background: var(--next-soft); color: var(--next); font-size: 13px; font-weight: 700; display: inline-flex; align-items: center; gap: 6px; padding: 0 12px; margin-left: auto; }
     .lv-qnext svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
     .lv-qsaved { margin-left: auto; display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: var(--text-3); }
@@ -1329,7 +1332,7 @@
     // ต่อท้ายคิว (ก่อนการ์ดจบ) · คิวว่าง = เพลงแรกเป็น "กำลังเล่น" ทันที
     function qAppend(list, o) {
       const L = clone(list);
-      if (!L.length) { o.status = 'playing'; o.startedAt = nowMs(); return normalize([o]); }
+      if (!L.length) return normalize([o]);   // 2.8: เพลงแรกยังไม่เล่น — รอแตะ "เริ่มเล่น" (การ์ดเริ่มการแสดงเป็นตัวที่ "กำลังเล่น" เหมือน Live ปกติ)
       const ei = L.findIndex((x) => x.type === 'dummy_end'); L.splice(ei < 0 ? L.length : ei, 0, o);
       return normalize(L);
     }
@@ -1348,9 +1351,9 @@
     }
     function qSong(s) {
       const bpm = (s.bpm && s.bpm !== '-' && Number(s.bpm) > 0) ? s.bpm : '-';
-      return { id: 'q_' + nowMs() + '_' + Math.floor(Math.random() * 1000), songId: s.id || '', title: s.title || '', artist: s.artist || '-', key: okKey(s.key) || '-', bpm: bpm, note: '-', set: 'Set 1', status: 'normal', type: 'normal' };
+      return { id: 'q_' + nowMs() + '_' + Math.floor(Math.random() * 1000), songId: s.id || '', title: s.title || '', artist: s.artist || '-', key: okKey(s.key) || '-', bpm: bpm, note: '-', set: 'Set 1', status: 'normal', type: 'normal', by: me || 'ไม่ระบุ' };   // 2.8: ชื่อเล่นผู้เพิ่ม (เฉพาะ Quick Live — ไม่ถูกบันทึกลงลิสต์)
     }
-    function qAddObj(o) {   // ใส่ในร่างแล้วส่งเร็ว: เพลงแรกส่งทันที (เริ่มเล่น+เริ่มจับเวลา) ที่เหลือรอบันทึกอัตโนมัติ 15 วินาที
+    function qAddObj(o) {   // ใส่ในร่างแล้วส่งเร็ว: เพลงแรกส่งทันที (ให้เครื่องอื่นเห็นคิว) ที่เหลือรอบันทึกอัตโนมัติ 15 วินาที
       if (!qDraft()) return false;
       const first = !D.length;
       change(qAppend(D, o));
@@ -1389,7 +1392,8 @@
       const del = (o.mv && !guest) ? '<button type="button" class="lv-qdel" data-a="qdel" data-id="' + esc(x.id) + '" aria-label="ลบออกจากคิว">' + IC.trash + '</button>' : '';
       const cls = 'lv-card q' + (o.played ? ' played' : '') + (o.playing ? ' playing' : '') + (o.next ? ' next' : '') + (o.mv ? ' mv' : '') + (o.open ? ' open' : '');
       let h = '<div class="' + cls + '" style="--c:' + setCls(x) + '" data-a="card" data-id="' + esc(x.id) + '"><div class="lv-main">' + ((o.mv && !guest) ? '<span class="lv-grip">' + IC.grip + '</span>' : '') +
-        '<span class="lv-no">' + no + '</span>' + bodyOf(x, tag) + kc + del + '</div>';
+        '<span class="lv-no">' + no + '</span>' + bodyOf(x, tag).replace(/<\/div>$/, (x.by ? '<div class="lv-by">โดย ' + esc(x.by) + '</div>' : '') + '</div>') + kc + del + '</div>' +
+        (o.start && !guest ? '<button type="button" class="lv-qstart" data-a="next">' + IC.play + 'เริ่มเล่น</button>' : '');
       if (o.playing) h += '<div class="lv-prog" id="lvProg" style="display:none"><div class="tr"><i></i></div><div class="tm"><span class="qe">0:00</span><span class="qd">0:00</span></div></div>';
       if (o.open) {
         const lead = (!o.playing && !o.played && !o.next && !guest) ? '<button type="button" class="lv-qnext" data-a="qtonext" data-id="' + esc(x.id) + '">' + IC.skip + 'ย้ายเป็นเพลงถัดไป</button>' : '';
@@ -1412,7 +1416,7 @@
       h += '<div id="lvSort" style="display:flex;flex-direction:column;gap:8px">';
       L.forEach((x) => {
         if (x.status === 'removed' || x.status === 'played' || x.status === 'playing' || SP(x)) return;
-        h += isBrk(x) ? qBar(x) : qCard(L, x, { mv: true, next: x.status === 'next', open: isOpen(x) });
+        h += isBrk(x) ? qBar(x) : qCard(L, x, { mv: true, next: x.status === 'next', start: !!(pl && pl.type === 'dummy_start' && x.status === 'next'), open: isOpen(x) });
       });
       h += '</div>';
       const rem = L.filter((x) => x.status === 'removed' && (isSong(x) || isBrk(x)));

@@ -2902,3 +2902,9 @@ input.is-locked { opacity:.75; background:var(--surface-2); cursor:not-allowed; 
 #catSec .song-card { opacity:.88; margin-bottom:8px; }
 #catSec .cat-add { flex:none; width:44px; height:44px; border-radius:12px; border:1px solid var(--live); background:var(--live-soft); color:var(--live); font-size:24px; font-weight:700; line-height:1; padding:0; }
 #catSec .cat-add:active { transform:scale(.94); }
+
+/* 2.8: ยังไม่มีคิว = แถบล่างเหลือปุ่มโฮมปุ่มเดียว · หน้าโฮม (Live ที่คิวว่าง) ไม่มีแถบเลย */
+#nav-home { display: none; }
+body.lsh-noqueue nav button:not(#nav-home) { display: none !important; }
+body.lsh-noqueue nav #nav-home { display: flex !important; flex-grow: 1; }
+body.lsh-noqueue.lsh-page-live > nav { display: none !important; }

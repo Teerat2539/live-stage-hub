@@ -2346,6 +2346,7 @@
         unbind();
         room = r;
         if (window.lshAutoAdv) window.lshAutoAdv.bind(r); // เลื่อนเพลงอัตโนมัติ: ผูกห้องพร้อมตัวจับเวลาโชว์
+        if (window.lshHome) window.lshHome.bind(r);       // 2.8: รู้ว่ามีคิวหรือยัง (ซ่อนแถบเมนู/ปุ่มโฮม)
         if (typeof db === 'undefined' || !db || !db.ref) return;
         ref = db.ref('rooms/' + room + '/showTimer');
         cb = (snap) => { st = Object.assign({}, DEFAULT, snap.val() || {}); render(); };
@@ -2355,6 +2356,7 @@
       }
       function unbind() {
         if (window.lshAutoAdv) window.lshAutoAdv.unbind();
+        if (window.lshHome) window.lshHome.unbind();
         if (ref && cb) { try { ref.off('value', cb); } catch (e) {} }
         clearInterval(tick); ref = cb = tick = null; room = null; st = Object.assign({}, DEFAULT); render();
       }
@@ -2756,6 +2758,10 @@
 
   <!-- Footer Navigation 12% -->
   <nav>
+    <button id="nav-home" style="display:none" onclick="setActiveNav('live')" aria-label="หน้าโฮม">
+      <span class="nav-ico"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 11l9-8 9 8"/><path d="M5 10v10h5v-6h4v6h5V10"/></svg></span>
+      <span class="nav-label">หน้าโฮม</span>
+    </button>
     <button id="nav-monitor" onclick="setActiveNav('monitor')">
       <span class="nav-ico"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8M12 16v4"/></svg></span>
       <span class="nav-label">Monitor</span>
@@ -2831,7 +2837,7 @@
     };
 
     // ===== ตรวจเวอร์ชันแอป (2.0): เทียบเลขใน version.json บนเซิร์ฟเวอร์ กับเลขของโค้ดที่เปิดอยู่ =====
-    const LSH_APP_VER = '2.7.0';
+    const LSH_APP_VER = '2.8.0';
     window.LSH_VER_TXT = LSH_APP_VER;
     try { const dv = document.getElementById('drawerVersion'); if (dv) dv.textContent = 'เวอร์ชัน ' + LSH_APP_VER; } catch (e) {}   // แสดงเลขเวอร์ชันท้ายเมนูแฮมเบอร์เกอร์
     let lshVerAt = 0;
@@ -2903,6 +2909,31 @@
           try { if (screen.orientation && screen.orientation.unlock) screen.orientation.unlock(); } catch (e) {}   // ไม่ล็อกแนวตั้งแล้ว: ทุกหน้าหมุนได้
         }
       };
+    })();
+
+    // 2.8: ยังไม่มีคิว = ไม่มีแถบ Monitor/Live/TalkBack (หน้าโฮมไม่มีแถบเลย หน้าอื่นมีปุ่มโฮมปุ่มเดียว) · มีคิวแล้วจึงมีแถบตามปกติ
+    window.lshHome = (function () {
+      let ref = null, cb = null, room = null, loaded = false, noQ = false;
+      function pageId() { const a = document.querySelector('nav button.active'); return a ? a.id.replace('nav-', '') : ''; }
+      function apply() {
+        document.body.classList.toggle('lsh-noqueue', loaded && noQ);
+        if (loaded && noQ) { const id = pageId(); if (id === 'monitor' || id === 'talkback') setActiveNav('live'); }   // ไม่มีคิว = ไม่มีอะไรให้ดู → หน้าโฮม
+      }
+      function bind(r) {
+        if (!r || r === room) return;
+        try { const ss = JSON.parse(localStorage.getItem('lsh_session') || '{}'); if (ss.userType === 'admin') return; } catch (e) {}
+        if (typeof db === 'undefined' || !db || !db.ref) return;
+        unbind(); room = r;
+        ref = db.ref('rooms/' + r + '/queue');
+        cb = (snap) => { const q = snap.val(); noQ = !(q && (q.quick || (q.songs && Object.keys(q.songs).length))); loaded = true; apply(); };
+        ref.on('value', cb);
+      }
+      function unbind() {
+        if (ref && cb) { try { ref.off('value', cb); } catch (e) {} }
+        ref = cb = room = null; loaded = false; noQ = false;
+        document.body.classList.remove('lsh-noqueue');
+      }
+      return { bind: bind, unbind: unbind, noQueue: () => loaded && noQ };
     })();
 
     function startClock() {
@@ -3748,6 +3779,12 @@
 
     async function loadPage(pageName) {
       if (pageName === 'search' || pageName === 'queue') pageName = 'live';
+      if (window.lshHome && window.lshHome.noQueue() && (pageName === 'monitor' || pageName === 'talkback')) {   // 2.8: ไม่มีคิว → หน้าโฮม
+        pageName = 'live';
+        localStorage.setItem('lsh_last_page', 'live');
+        document.querySelectorAll('nav button').forEach(btn => btn.classList.remove('active'));
+        const nl = document.getElementById('nav-live'); if (nl) nl.classList.add('active');
+      }
       if (window.lshWakeLock) window.lshWakeLock.sync(pageName);
       const sessionStr = localStorage.getItem('lsh_session');
       if (!sessionStr) {
